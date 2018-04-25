@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+     <CheckBoxPreference
+        android:title="Vibrating alarm"
+        android:key="UseVibration"
+        android:defaultValue="true" />
+  <SeekBarPreference
+        android:title="Alarm volume"
+        android:key="AudioVolume"
+        android:defaultValue="100"
+        android:max="100"/>
+  <TrackRadar.IntEditTextPreference
+            android:inputType="number"
+            android:summary="How many seconds before alarming again"
+        android:title="Alarm interval"
+        android:key="AlarmInterval"            
+        android:defaultValue="3"/>
+  <TrackRadar.IntEditTextPreference
+            android:inputType="number"
+            android:summary="How many meters off the track to turn the alarm on"
+        android:title="Alarm distance"
+        android:key="AlarmDistance"
+        android:defaultValue="50"/>
+  <TrackRadar.IntEditTextPreference
+            android:inputType="number"
+            android:summary="How many seconds without GPS to turn the alarm on"
+        android:title="GPS signal lost timeout"
+        android:key="SignalBlindnessTimeout"
+        android:defaultValue="30"/>
+</PreferenceScreen>

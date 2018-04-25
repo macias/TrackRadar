@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:minWidth="25px"
+    android:orientation="vertical"
+    android:minHeight="25px">
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/linearLayout1">
+        <Button
+            android:text="Track"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/TrackButton"
+            android:textAppearance="?android:attr/textAppearanceMedium" />
+        <TextView
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/TrackFileNameTextView"
+            android:singleLine="true"
+            android:ellipsize="start"
+            android:hint="track filename"
+            android:layout_gravity="center_vertical"
+            android:padding="4sp" />
+    </LinearLayout>
+    <TextView
+        android:text="Large Text"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/InfoTextView"
+        android:gravity="center_horizontal"
+        android:padding="4sp"
+        android:textSize="50sp" />
+    <ListView
+        android:minWidth="25px"
+        android:minHeight="25px"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:id="@+id/android:list" />
+    <TextView
+        android:text="Track is not available."
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/TrackInfoTextView"
+        android:paddingTop="2sp"
+        android:paddingBottom="2sp"
+        android:paddingLeft="4sp"
+        android:paddingRight="4sp" />
+    <TextView
+        android:text="Alarm is not available."
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/AlarmInfoTextView"
+        android:paddingBottom="2sp"
+        android:paddingTop="2sp"
+        android:paddingLeft="4sp"
+        android:paddingRight="4sp" />
+    <TextView
+        android:text="GPS is turned off."
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/GpsInfoTextView"
+        android:paddingTop="2sp"
+        android:paddingBottom="2sp"
+        android:paddingLeft="4sp"
+        android:paddingRight="4sp" />
+    <Button
+        android:text="@string/StartService"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/EnableButton" />
+</LinearLayout>

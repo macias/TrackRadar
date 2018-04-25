@@ -1,0 +1,381 @@
+<?xml version="1.0" encoding="utf-8"?>
+    <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+        <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:focusableInTouchMode="true"
+            android:minWidth="25px"
+            android:minHeight="25px"
+            android:paddingLeft="2px"
+            android:paddingRight="2px">
+            <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:id="@+id/linearLayout1"
+                android:minWidth="25px"
+                android:minHeight="25px" />
+            <CheckBox
+                android:text="Vibrate"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:id="@+id/VibrateCheckBox" />
+            <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:id="@+id/linearLayout2">
+                <Button
+                    android:text="Off-track"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:id="@+id/DistanceAudioFileNameButton" />
+                <TextView
+                    android:text="Medium Text"
+                    android:textAppearance="?android:attr/textAppearanceMedium"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:id="@+id/DistanceAudioFileNameTextView"
+                    android:gravity="center_vertical"
+                    android:layout_weight="1"
+                    android:ellipsize="start"
+                    android:singleLine="true" />
+                <Button
+                    android:text="&gt;"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:id="@+id/DistancePlayButton" />
+            </LinearLayout>
+            <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:id="@+id/linearLayout3">
+                <TextView
+                    android:text="Volume"
+                    android:textAppearance="?android:attr/textAppearanceMedium"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:id="@+id/textView2"
+                    android:layout_gravity="center_vertical" />
+                <SeekBar
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/DistanceVolumeSeekBar"
+                    android:layout_weight="1"
+                    android:max="100"
+                    android:paddingLeft="4px"
+                    android:paddingRight="4px" />
+                <TextView
+                    android:text="0"
+                    android:textAppearance="?android:attr/textAppearanceMedium"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:id="@+id/DistanceVolumeTextView"
+                    android:minEms="3"
+                    android:maxEms="3"
+                    android:layout_gravity="center" />
+            </LinearLayout>
+            <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:id="@+id/linearLayout12">
+                <Button
+                    android:text="GPS lost"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:id="@+id/GpsLostAudioFileNameButton" />
+                <TextView
+                    android:text="Medium Text"
+                    android:textAppearance="?android:attr/textAppearanceMedium"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:id="@+id/GpsLostAudioFileNameTextView"
+                    android:gravity="center_vertical"
+                    android:layout_weight="1"
+                    android:ellipsize="start"
+                    android:singleLine="true" />
+                <Button
+                    android:text="&gt;"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:id="@+id/GpsLostPlayButton" />
+            </LinearLayout>
+            <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:id="@+id/linearLayout13">
+                <TextView
+                    android:text="Volume"
+                    android:textAppearance="?android:attr/textAppearanceMedium"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:id="@+id/textView12"
+                    android:layout_gravity="center_vertical" />
+                <SeekBar
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/GpsLostVolumeSeekBar"
+                    android:layout_weight="1"
+                    android:max="100"
+                    android:paddingLeft="4px"
+                    android:paddingRight="4px" />
+                <TextView
+                    android:text="0"
+                    android:textAppearance="?android:attr/textAppearanceMedium"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:id="@+id/GpsLostVolumeTextView"
+                    android:minEms="3"
+                    android:maxEms="3"
+                    android:layout_gravity="center" />
+            </LinearLayout>
+            <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:id="@+id/linearLayout22">
+                <Button
+                    android:text="GPS on"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:id="@+id/GpsOnAudioFileNameButton" />
+                <TextView
+                    android:text="Medium Text"
+                    android:textAppearance="?android:attr/textAppearanceMedium"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:id="@+id/GpsOnAudioFileNameTextView"
+                    android:gravity="center_vertical"
+                    android:layout_weight="1"
+                    android:ellipsize="start"
+                    android:singleLine="true" />
+                <Button
+                    android:text="&gt;"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:id="@+id/GpsOnPlayButton" />
+            </LinearLayout>
+            <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:id="@+id/linearLayout23">
+                <TextView
+                    android:text="Volume"
+                    android:textAppearance="?android:attr/textAppearanceMedium"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:id="@+id/textView22"
+                    android:layout_gravity="center_vertical" />
+                <SeekBar
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/GpsOnVolumeSeekBar"
+                    android:layout_weight="1"
+                    android:max="100"
+                    android:paddingLeft="4px"
+                    android:paddingRight="4px" />
+                <TextView
+                    android:text="0"
+                    android:textAppearance="?android:attr/textAppearanceMedium"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:id="@+id/GpsOnVolumeTextView"
+                    android:minEms="3"
+                    android:maxEms="3"
+                    android:layout_gravity="center" />
+            </LinearLayout>
+            <TextView
+                android:text="Off the track"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:id="@+id/textView49"
+                android:padding="4sp"
+                android:textStyle="bold" />
+            <View
+                style="@style/Divider" />
+            <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="fill_parent"
+                android:paddingLeft="4sp"
+                android:paddingRight="4sp"
+                android:layout_height="wrap_content"
+                android:id="@+id/linearLayout15">
+                <TextView
+                    android:text="Distance"
+                    android:textAppearance="?android:attr/textAppearanceMedium"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:id="@+id/textView5"
+                    android:gravity="center_vertical"
+                    android:paddingBottom="2sp"
+                    android:paddingTop="4sp"
+                    android:layout_weight="1" />
+                <EditText
+                    android:inputType="number"
+                    android:layout_width="wrap_content"
+                    android:layout_weight="0"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/DistanceEditText"
+                    android:paddingLeft="10sp"
+                    android:paddingRight="10sp"
+                    android:singleLine="true"
+                    android:minEms="4"
+                    android:maxEms="4" />
+            </LinearLayout>
+            <TextView
+                android:text="How many meters to go off track to turn the alarm on."
+                android:textAppearance="?android:attr/textAppearanceSmall"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:id="@+id/textView8"
+                android:textColor="#87CEEB"
+                android:paddingBottom="2sp"
+                android:paddingLeft="4sp"
+                android:paddingRight="4sp"
+                android:paddingTop="2sp" />
+            <View
+                style="@style/Divider" />
+            <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:paddingLeft="4sp"
+                android:paddingRight="4sp"
+                android:id="@+id/linearLayout4">
+                <TextView
+                    android:text="Interval"
+                    android:textAppearance="?android:attr/textAppearanceMedium"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:id="@+id/textView4"
+                    android:gravity="center_vertical"
+                    android:paddingBottom="2sp"
+                    android:paddingTop="4sp"
+                    android:layout_weight="1" />
+                <EditText
+                    android:inputType="number"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0"
+                    android:id="@+id/OffTrackIntervalEditText"
+                    android:paddingLeft="10sp"
+                    android:paddingRight="10sp"
+                    android:singleLine="true"
+                    android:maxEms="4"
+                    android:minEms="4" />
+            </LinearLayout>
+            <TextView
+                android:text="How many seconds off the track before turning the alarm again."
+                android:textAppearance="?android:attr/textAppearanceSmall"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:id="@+id/textView8"
+                android:textColor="#87CEEB"
+                android:paddingBottom="2sp"
+                android:paddingLeft="4sp"
+                android:paddingRight="4sp"
+                android:paddingTop="2sp" />
+            <TextView
+                android:text="No signal"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:id="@+id/textView50"
+                android:padding="4sp"
+                android:textStyle="bold" />
+            <View
+                style="@style/Divider" />
+            <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:paddingLeft="4sp"
+                android:paddingRight="4sp"
+                android:id="@+id/linearLayout46">
+                <TextView
+                    android:text="Timeout"
+                    android:textAppearance="?android:attr/textAppearanceMedium"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:id="@+id/textView45"
+                    android:gravity="center_vertical"
+                    android:paddingTop="4sp"
+                    android:paddingBottom="2sp"
+                    android:layout_weight="1" />
+                <EditText
+                    android:inputType="number"
+                    android:layout_width="wrap_content"
+                    android:layout_weight="0"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/NoGpsTimeoutEditText"
+                    android:text="testing"
+                    android:singleLine="true"
+                    android:paddingLeft="10sp"
+                    android:paddingRight="10sp"
+                    android:maxEms="4"
+                    android:minEms="4" />
+            </LinearLayout>
+            <TextView
+                android:text="How many seconds with no GPS before turning the alarm on."
+                android:textAppearance="?android:attr/textAppearanceSmall"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:id="@+id/textView48"
+                android:textColor="#87CEEB"
+                android:paddingBottom="2sp"
+                android:paddingLeft="4sp"
+                android:paddingRight="4sp"
+                android:paddingTop="2sp" />
+            <View
+                style="@style/Divider" />
+            <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:paddingLeft="4sp"
+                android:paddingRight="4sp"
+                android:id="@+id/linearLayout6">
+                <TextView
+                    android:text="Interval"
+                    android:textAppearance="?android:attr/textAppearanceMedium"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:id="@+id/textView5"
+                    android:gravity="center_vertical"
+                    android:paddingTop="4sp"
+                    android:paddingBottom="2sp"
+                    android:layout_weight="1" />
+                <EditText
+                    android:inputType="number"
+                    android:layout_width="wrap_content"
+                    android:layout_weight="0"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/NoGpsIntervalEditText"
+                    android:text="testing"
+                    android:singleLine="true"
+                    android:paddingLeft="10sp"
+                    android:paddingRight="10sp"
+                    android:maxEms="4"
+                    android:minEms="4" />
+            </LinearLayout>
+            <TextView
+                android:text="How many minutes with no GPS to turn the alarm again."
+                android:textAppearance="?android:attr/textAppearanceSmall"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:id="@+id/textView8"
+                android:textColor="#87CEEB"
+                android:paddingBottom="2sp"
+                android:paddingLeft="4sp"
+                android:paddingRight="4sp"
+                android:paddingTop="2sp" />
+        </LinearLayout>
+    </ScrollView>

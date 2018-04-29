@@ -40,13 +40,21 @@ namespace TrackRadar
         {
             try
             {
+                // https://stackoverflow.com/questions/704311/android-how-do-i-investigate-an-anr
+                // https://stackoverflow.com/questions/5513457/anr-keydispatchingtimedout-error/5513623#5513623
+                StrictMode.SetVmPolicy(new StrictMode.VmPolicy.Builder()
+                           .DetectAll()
+                           .PenaltyLog()
+                           .PenaltyDeath()
+                           .Build());
+
                 base.OnCreate(bundle);
 
                 this.debugMode = Common.IsDebugMode(this);
 
                 this.log_writer = new LogFile(this, "app.log", DateTime.UtcNow.AddDays(-2));
 
-                log(LogLevel.Info, "app started");
+                logDebug(LogLevel.Info, "app started (+testing log)");
 
                 this.radarIntent = new Intent(this, typeof(RadarService));
 
@@ -70,11 +78,11 @@ namespace TrackRadar
                 this.receiver.AlarmUpdate += Receiver_AlarmUpdate;
                 this.receiver.DebugUpdate += Receiver_DebugUpdate;
 
-                this.log(LogLevel.Info, "Done OnCreate");
+                this.logDebug(LogLevel.Verbose, "Done OnCreate");
             }
             catch (Exception ex)
             {
-                this.log(LogLevel.Error, "OnCreate " + ex.ToString());
+                this.logDebug(LogLevel.Error, "OnCreate " + ex.ToString());
             }
 
         }
@@ -89,7 +97,7 @@ namespace TrackRadar
             }
             catch (Exception ex)
             {
-                this.log(LogLevel.Error, "Receiver_DistanceUpdate " + ex.ToString());
+                this.logDebug(LogLevel.Error, "Receiver_DistanceUpdate " + ex.ToString());
             }
 
         }
@@ -99,11 +107,11 @@ namespace TrackRadar
             try
             {
                 showAlarm(e.Message);
-                log(LogLevel.Info, "alarm: " + e.Message);
+                logDebug(LogLevel.Verbose, "alarm: " + e.Message);
             }
             catch (Exception ex)
             {
-                this.log(LogLevel.Error, "Receiver_AlarmUpdate " + ex.ToString());
+                this.logDebug(LogLevel.Error, "Receiver_AlarmUpdate " + ex.ToString());
             }
 
         }
@@ -122,13 +130,13 @@ namespace TrackRadar
         {
             try
             {
-                this.log(LogLevel.Info, "Entering OnResume");
+                this.logDebug(LogLevel.Verbose, "Entering OnResume");
 
                 lastGpsEvent_debug = GpsEvent.Stopped;
 
                 base.OnResume();
 
-                log(LogLevel.Info, "RESUMED");
+                logDebug(LogLevel.Verbose, "RESUMED");
                 LocationManager lm = (LocationManager)GetSystemService(Context.LocationService);
                 lm.AddGpsStatusListener(this);
 
@@ -138,11 +146,11 @@ namespace TrackRadar
                     ServiceReceiver.SendInfoRequest(this);
                 }
 
-                this.log(LogLevel.Info, "Done OnResume");
+                this.logDebug(LogLevel.Verbose, "Done OnResume");
             }
             catch (Exception ex)
             {
-                this.log(LogLevel.Error, "OnResume " + ex.ToString());
+                this.logDebug(LogLevel.Error, "OnResume " + ex.ToString());
             }
 
         }
@@ -150,19 +158,19 @@ namespace TrackRadar
         {
             try
             {
-                this.log(LogLevel.Info, "Entering OnPause");
+                this.logDebug(LogLevel.Verbose, "Entering OnPause");
 
-                log(LogLevel.Info, "app paused");
+                logDebug(LogLevel.Verbose, "app paused");
                 LocationManager lm = (LocationManager)GetSystemService(Context.LocationService);
                 lm.RemoveGpsStatusListener(this);
 
                 base.OnPause();
 
-                this.log(LogLevel.Info, "Done OnPause");
+                this.logDebug(LogLevel.Verbose, "Done OnPause");
             }
             catch (Exception ex)
             {
-                this.log(LogLevel.Error, "OnPause " + ex.ToString());
+                this.logDebug(LogLevel.Error, "OnPause " + ex.ToString());
             }
 
         }
@@ -177,7 +185,12 @@ namespace TrackRadar
             try
             {
                 if (this.debugMode && this.adapter != null)
+                {
+                    // limit UI to small number of items on the list
+                    if (this.adapter.Count == 100)
+                        this.adapter.Remove(this.adapter.GetItem(this.adapter.Count-1));
                     this.adapter.Insert(message, 0);
+                }
             }
             catch (Exception ex)
             {
@@ -185,12 +198,12 @@ namespace TrackRadar
             }
         }
 
-        private void log(LogLevel level, string message)
+        private void logDebug(LogLevel level, string message)
         {
             try
             {
-                if (level> LogLevel.Info)
-                Common.Log(message);
+                if (level > LogLevel.Verbose)
+                    Common.Log(message);
                 log_writer?.WriteLine(level, message);
                 logUI(message);
             }
@@ -204,7 +217,7 @@ namespace TrackRadar
         {
             try
             {
-                log(LogLevel.Info, "app destroyed");
+                logDebug(LogLevel.Verbose, "app destroyed");
 
                 this.receiver.AlarmUpdate -= Receiver_AlarmUpdate;
                 this.receiver.DistanceUpdate -= Receiver_DistanceUpdate;
@@ -216,11 +229,11 @@ namespace TrackRadar
 
                 base.OnDestroy();
 
-                this.log(LogLevel.Info, "Done OnDestroy");
+                this.logDebug(LogLevel.Verbose, "Done OnDestroy");
             }
             catch (Exception ex)
             {
-                this.log(LogLevel.Error, "OnDestroy " + ex.ToString());
+                this.logDebug(LogLevel.Error, "OnDestroy " + ex.ToString());
             }
         }
 
@@ -237,7 +250,7 @@ namespace TrackRadar
 
                 LocationManager lm = (LocationManager)GetSystemService(Context.LocationService);
                 bool gps_enabled = lm.IsProviderEnabled(LocationManager.GpsProvider);
-                log(LogLevel.Info, $"gps provider enabled {gps_enabled}");
+                logDebug(LogLevel.Verbose, $"gps provider enabled {gps_enabled}");
                 this.gpsInfoTextView.Visibility = gps_enabled ? ViewStates.Gone : ViewStates.Visible;
 
                 bool is_running = isServiceRunning();
@@ -254,7 +267,7 @@ namespace TrackRadar
             }
             catch (Exception ex)
             {
-                this.log(LogLevel.Error, "updateReadiness " + ex.ToString());
+                this.logDebug(LogLevel.Error, "updateReadiness " + ex.ToString());
                 throw;
             }
         }
@@ -263,7 +276,7 @@ namespace TrackRadar
         {
             try
             {
-                this.log(LogLevel.Info, "Entering trackSelectionClicked");
+                this.logDebug(LogLevel.Verbose, "Entering trackSelectionClicked");
 
                 var intent = new Intent();
                 intent.SetType("application/gpx+xml");
@@ -271,11 +284,11 @@ namespace TrackRadar
                 StartActivityForResult(
                     Intent.CreateChooser(intent, "Select gpx file"), SelectTrackCode);
 
-                this.log(LogLevel.Info, "Done trackSelectionClicked");
+                this.logDebug(LogLevel.Verbose, "Done trackSelectionClicked");
             }
             catch (Exception ex)
             {
-                this.log(LogLevel.Error, "trackSelectionClicked " + ex.ToString());
+                this.logDebug(LogLevel.Error, "trackSelectionClicked " + ex.ToString());
             }
         }
 
@@ -283,7 +296,7 @@ namespace TrackRadar
         {
             try
             {
-                this.log(LogLevel.Info, "Entering OnActivityResult");
+                this.logDebug(LogLevel.Verbose, "Entering OnActivityResult");
 
                 base.OnActivityResult(requestCode, resultCode, intent);
 
@@ -298,11 +311,11 @@ namespace TrackRadar
                     }
                 }
 
-                this.log(LogLevel.Info, "Done OnActivityResult");
+                this.logDebug(LogLevel.Verbose, "Done OnActivityResult");
             }
             catch (Exception ex)
             {
-                this.log(LogLevel.Error, "OnActivityResult " + ex.ToString());
+                this.logDebug(LogLevel.Error, "OnActivityResult " + ex.ToString());
             }
         }
 
@@ -310,16 +323,16 @@ namespace TrackRadar
         {
             try
             {
-                this.log(LogLevel.Info, "ENABLE CLICKED: Checking if service is running");
+                this.logDebug(LogLevel.Verbose, "ENABLE CLICKED: Checking if service is running");
                 bool running = isServiceRunning();
                 if (running)
                 {
-                    this.log(LogLevel.Info, "stopping service");
+                    this.logDebug(LogLevel.Verbose, "stopping service");
                     this.StopService(radarIntent);
                 }
                 else
                 {
-                    this.log(LogLevel.Info, "starting service service");
+                    this.logDebug(LogLevel.Verbose, "starting service service");
                     this.adapter.Clear();
 
                     showAlarm("running", Android.Graphics.Color.GreenYellow);
@@ -328,14 +341,14 @@ namespace TrackRadar
 
                     this.StartService(radarIntent);
                 }
-                this.log(LogLevel.Info, "updating UI");
+                this.logDebug(LogLevel.Verbose, "updating UI");
                 updateReadiness();
 
-                this.log(LogLevel.Info, "Done EnableButtonClicked");
+                this.logDebug(LogLevel.Verbose, "Done EnableButtonClicked");
             }
             catch (Exception ex)
             {
-                this.log(LogLevel.Error, $"We have error {ex.Message}");
+                this.logDebug(LogLevel.Error, $"We have error {ex.Message}");
                 log_writer?.WriteLine(LogLevel.Error, $"{ex}");
             }
         }
@@ -353,12 +366,12 @@ namespace TrackRadar
         {
             if (e == GpsEvent.Started || e == GpsEvent.Stopped)
             {
-                log(LogLevel.Info, "MA gps changed to " + e.ToString());
+                logDebug(LogLevel.Verbose, "MA gps changed to " + e.ToString());
                 updateReadiness();
             }
             else if (e != lastGpsEvent_debug) // prevents polluting log with SatelliteStatus value
             {
-                log(LogLevel.Info, $"MA minor status gps changed to {e}");
+                logDebug(LogLevel.Verbose, $"MA minor status gps changed to {e}");
                 this.lastGpsEvent_debug = e;
             }
         }
@@ -395,15 +408,15 @@ namespace TrackRadar
         {
             try
             {
-                this.log(LogLevel.Info, "Entering OnCreateOptionsMenu");
+                this.logDebug(LogLevel.Verbose, "Entering OnCreateOptionsMenu");
 
                 this.MenuInflater.Inflate(Resource.Menu.MainMenu, menu);
 
-                this.log(LogLevel.Info, "Done OnCreateOptionsMenu");
+                this.logDebug(LogLevel.Verbose, "Done OnCreateOptionsMenu");
             }
             catch (Exception ex)
             {
-                this.log(LogLevel.Error, "OnCreateOptionsMenu " + ex.ToString());
+                this.logDebug(LogLevel.Error, "OnCreateOptionsMenu " + ex.ToString());
             }
 
             return true;
@@ -413,18 +426,18 @@ namespace TrackRadar
         {
             try
             {
-                this.log(LogLevel.Info, "Entering OnOptionsItemSelected");
+                this.logDebug(LogLevel.Verbose, "Entering OnOptionsItemSelected");
                 // since we have only single item menu we blindly process further
 
                 maxOutSystemVolume(new Android.Media.VolumeNotificationFlags());
 
                 StartActivity(typeof(SettingsActivity));
 
-                this.log(LogLevel.Info, "Done OnOptionsItemSelected");
+                this.logDebug(LogLevel.Verbose, "Done OnOptionsItemSelected");
             }
             catch (Exception ex)
             {
-                this.log(LogLevel.Error, "OnOptionsItemSelected " + ex.ToString());
+                this.logDebug(LogLevel.Error, "OnOptionsItemSelected " + ex.ToString());
             }
 
             return true;

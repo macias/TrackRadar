@@ -57,7 +57,7 @@ namespace TrackRadar
             this.handler.Start();
 
             this.trackSegments.Value = readGpx(Preferences.LoadTrackFileName(this));
-            logDebug(LogLevel.Info, trackSegments.Value.Count.ToString() + " segs, with "
+            logDebug(LogLevel.Verbose, trackSegments.Value.Count.ToString() + " segs, with "
                 + trackSegments.Value.Select(it => it.TrackPoints.Count()).Sum() + " points");
 
             this.locationManager = (LocationManager)GetSystemService(Context.LocationService);
@@ -71,13 +71,16 @@ namespace TrackRadar
                 locationManager.RequestLocationUpdates(LocationManager.GpsProvider, 0, 0, this, this.handler.Looper);
             }
 
+            // push Android to update us with gps positions
+            getLastKnownPosition();
+
             this.signalTimer.Value = new SignalTimer(logDebug,
                 () => prefs.Value.NoGpsAlarmFirstTimeout,
                 () => prefs.Value.NoGpsAlarmAgainInterval,
                 () => alarms.Go(Alarm.GpsOn),
               () =>
               {
-                  logDebug(LogLevel.Info, "gps off");
+                  logDebug(LogLevel.Verbose, "gps off");
                   MainReceiver.SendAlarm(this, Message.NoSignalText);
                   alarms.Go(Alarm.GpsLost);
 
@@ -93,26 +96,24 @@ namespace TrackRadar
             receiver.UpdatePrefs += Receiver_UpdatePrefs;
             receiver.InfoRequest += Receiver_InfoRequest;
 
-            // push Android to update us with gps positions
-            getLastKnownPosition();
-
-            logDebug(LogLevel.Info, "service started");
+            logDebug(LogLevel.Info, "service started (+testing log)");
 
             return StartCommandResult.Sticky;
         }
 
         private void getLastKnownPosition()
         {
-            logDebug(LogLevel.Info, "Requesting last known position");
+            logDebug(LogLevel.Verbose, "Requesting last known position");
             Location loc = this.locationManager.GetLastKnownLocation(LocationManager.GpsProvider);
             if (loc == null)
-                logDebug(LogLevel.Info, $"didn't receive any location");
+                logDebug(LogLevel.Verbose, $"didn't receive any location");
             else
-                logDebug(LogLevel.Info, $"last known pos {locationToString(loc)}");
+                logDebug(LogLevel.Verbose, $"last known pos {locationToString(loc)}");
         }
 
         private void Receiver_InfoRequest(object sender, EventArgs e)
         {
+            logLocal( LogLevel.Verbose,"Received info request");
             if (this.signalTimer.Value.HasGpsSignal)
                 MainReceiver.SendDistance(this, statistics.SignedDistance);
             else
@@ -133,7 +134,7 @@ namespace TrackRadar
         }
         private void Receiver_UpdatePrefs(object sender, EventArgs e)
         {
-            logDebug(LogLevel.Info, "updating prefs");
+            logDebug(LogLevel.Verbose, "updating prefs");
             loadPreferences();
         }
 
@@ -145,29 +146,29 @@ namespace TrackRadar
 
                 this.signalTimer.Value.Dispose();
 
-                logDebug(LogLevel.Info, "removing events handlers");
+                logDebug(LogLevel.Verbose, "removing events handlers");
 
                 this.receiver.UpdatePrefs -= Receiver_UpdatePrefs;
                 this.receiver.InfoRequest -= Receiver_InfoRequest;
 
-                logDebug(LogLevel.Info, "unregistering receiver");
+                logDebug(LogLevel.Verbose, "unregistering receiver");
 
                 UnregisterReceiver(this.receiver);
                 this.receiver = null;
 
-                logDebug(LogLevel.Info, "removing GPS updates");
+                logDebug(LogLevel.Verbose, "removing GPS updates");
 
                 locationManager.RemoveUpdates(this);
 
-                logDebug(LogLevel.Info, "disposing alarms");
+                logDebug(LogLevel.Verbose, "disposing alarms");
 
                 this.alarms.Dispose();
 
-                logDebug(LogLevel.Info, "disposing handler");
+                logDebug(LogLevel.Verbose, "disposing handler");
 
                 this.handler.Dispose();
 
-                logDebug(LogLevel.Info, "service destroyed " + statistics.ToString());
+                logDebug(LogLevel.Verbose, "service destroyed " + statistics.ToString());
 
                 this.serviceLog.Value.Dispose();
 
@@ -181,7 +182,7 @@ namespace TrackRadar
 
         public void OnLocationChanged(Location location)
         {
-            logDebug(LogLevel.Info, $"new loc {locationToString(location)}");
+            logDebug(LogLevel.Verbose, $"new loc {locationToString(location)}");
 
             if (!statistics.CanUpdate())
             {
@@ -248,14 +249,26 @@ namespace TrackRadar
         {
             try
             {
-                if (level > LogLevel.Info)
-                    Common.Log(message);
-                this.serviceLog.Value.WriteLine(level, message);
+                logLocal(level, message);
                 MainReceiver.SendDebug(this, message);
             }
             catch (Exception ex)
             {
                 Common.Log($"CRASH logDebug {ex}");
+            }
+        }
+
+        private void logLocal(LogLevel level, string message)
+        {
+            try
+            {
+                if (level > LogLevel.Verbose)
+                    Common.Log(message);
+                this.serviceLog.Value.WriteLine(level, message);
+            }
+            catch (Exception ex)
+            {
+                Common.Log($"CRASH {nameof(logLocal)} {ex}");
             }
         }
 
@@ -286,7 +299,7 @@ namespace TrackRadar
                     if (d <= prefs.Value.OffTrackAlarmDistance)
                     {
                         watch.Stop();
-                        logDebug(LogLevel.Info, $"On [{s}]" + d.ToString("0.0") + " (" + seg.TrackPoints[s - 1].ToString(geoPointFormat) + " -- "
+                        logDebug(LogLevel.Verbose, $"On [{s}]" + d.ToString("0.0") + " (" + seg.TrackPoints[s - 1].ToString(geoPointFormat) + " -- "
                             + seg.TrackPoints[s].ToString(geoPointFormat) + ") in " + watch.Elapsed.ToString());
                         dist = -dist;
                         return true;
@@ -296,26 +309,26 @@ namespace TrackRadar
 
 
             watch.Stop();
-            this.serviceLog.Value.WriteLine(LogLevel.Info, $"dist {dist.ToString("0.0")} point {point.ToString(geoPointFormat)}"
+            this.serviceLog.Value.WriteLine(LogLevel.Verbose, $"dist {dist.ToString("0.0")} point {point.ToString(geoPointFormat)}"
                 + $" segment {trackSegments.Value[closest_track].TrackPoints[closest_segment - 1].ToString(geoPointFormat)}"
                 + $" -- {trackSegments.Value[closest_track].TrackPoints[closest_segment].ToString(geoPointFormat)}");
-            logDebug(LogLevel.Info, $"Off [{closest_segment}]" + dist.ToString("0.0") + " in " + watch.Elapsed.ToString());
+            logDebug(LogLevel.Verbose, $"Off [{closest_segment}]" + dist.ToString("0.0") + " in " + watch.Elapsed.ToString());
             return false;
         }
 
         public void OnProviderDisabled(string provider)
         {
-            logDebug(LogLevel.Info, "GPS OFF on service");
+            logDebug(LogLevel.Verbose, "GPS OFF on service");
         }
 
         public void OnProviderEnabled(string provider)
         {
-            logDebug(LogLevel.Info, "GPS ON on service");
+            logDebug(LogLevel.Verbose, "GPS ON on service");
         }
 
         public void OnStatusChanged(string provider, [GeneratedEnum] Availability status, Bundle extras)
         {
-            logDebug(LogLevel.Info, "GPS change on service " + status);
+            logDebug(LogLevel.Verbose, "GPS change on service " + status);
         }
 
         private static List<GpxTrackSegment> readGpx(string filename)

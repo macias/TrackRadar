@@ -30,11 +30,11 @@ namespace TrackRadar
             this.gpsOnAlarm = gpsOnAlarm;
             this.gpsOffAlarm = gpsOffAlarm;
 
-            Interlocked.Exchange(ref this.lastNoGpsAlarmAtTicks, 0);
-            Interlocked.Exchange(ref this.lastGpsPresentAtTicks, 0);
+            this.lastNoGpsAlarmAtTicks = 0;
+            this.lastGpsPresentAtTicks = 0;
             // initially we have no signal and we assume user starting the service pays attention 
             // to initial message "no signal"
-            Interlocked.Exchange(ref this.alarmCounter, 1);
+            this.alarmCounter = 1;
 
             this.timer = new Timer(_ => check());
             // we are setting it to timeout, not interval, because we could have such scenario
@@ -49,7 +49,7 @@ namespace TrackRadar
             Interlocked.Exchange(ref this.lastGpsPresentAtTicks, Stopwatch.GetTimestamp());
             if (Interlocked.Exchange(ref this.alarmCounter, 0) != 0)
             {
-                logger( LogLevel.Info,"GPS signal acquired");
+                logger(LogLevel.Verbose, "GPS signal acquired");
                 if (canAlarm)
                     gpsOnAlarm();
             }
@@ -62,13 +62,15 @@ namespace TrackRadar
                 TimeSpan due_time;
                 if (HasGpsSignal)
                 {
-                    logger( LogLevel.Info, $"Signal timer for has gps {this.lastGpsPresentAtTicks}");
-                    due_time = tryRaiseAlarm(ref this.lastGpsPresentAtTicks, this.noGpsFirstTimeout());
+                    // this field can be changed from external thread
+                    long last_gps_at = Interlocked.CompareExchange(ref lastGpsPresentAtTicks, 0, 0);
+                    logger(LogLevel.Verbose, $"{nameof(SignalTimer)} Last gps update at {last_gps_at}");
+                    due_time = tryRaiseAlarm(last_gps_at, this.noGpsFirstTimeout());
                 }
                 else
                 {
-                    logger( LogLevel.Info,$"Signal timer for no gps {this.lastNoGpsAlarmAtTicks}");
-                    due_time = tryRaiseAlarm(ref this.lastNoGpsAlarmAtTicks, this.noGpsAgainInterval());
+                    logger(LogLevel.Verbose, $"{nameof(SignalTimer)} Last no-gps alarm at {this.lastNoGpsAlarmAtTicks}");
+                    due_time = tryRaiseAlarm(lastNoGpsAlarmAtTicks, this.noGpsAgainInterval());
                 }
 
                 this.timer.Change(due_time, Timeout.InfiniteTimeSpan);
@@ -80,26 +82,25 @@ namespace TrackRadar
             }
         }
 
-        private TimeSpan tryRaiseAlarm(ref long lastEventAtTicks, TimeSpan alarmAfter)
+        private TimeSpan tryRaiseAlarm(long lastEventAtTicks, TimeSpan alarmAfter)
         {
             long now = Stopwatch.GetTimestamp();
-            TimeSpan repeat = defaultCheckInterval;
+            TimeSpan interval = defaultCheckInterval;
 
-            TimeSpan passed = TimeSpan.FromSeconds((now - Interlocked.CompareExchange(ref lastEventAtTicks, 0, 0)) * 1.0
-                / Stopwatch.Frequency);
+            TimeSpan passed = TimeSpan.FromSeconds((now - lastEventAtTicks) * 1.0 / Stopwatch.Frequency);
             TimeSpan delay = alarmAfter - passed;
-            this.logger( LogLevel.Info, $"GPS signal check alarm-after {alarmAfter.Minutes} pass {passed.TotalSeconds} delay " + delay.TotalSeconds.ToString());
+            this.logger(LogLevel.Verbose, $"GPS signal check alarm-after {alarmAfter.Minutes} passed {passed.TotalSeconds} delay " + delay.TotalSeconds.ToString());
 
-            if (delay <= TimeSpan.Zero)
+            if (delay <= TimeSpan.Zero) // we passed the alarm timeout
             {
-                Interlocked.Exchange(ref this.lastNoGpsAlarmAtTicks, now);
+                this.lastNoGpsAlarmAtTicks = now;
                 Interlocked.Increment(ref this.alarmCounter);
 
                 gpsOffAlarm();
-                delay = repeat;
+                delay = interval;
             }
-            else if (delay > repeat)
-                delay = repeat;
+            else if (delay > interval) // trim the value so we won't check for alarm too late
+                delay = interval;
 
             return delay;
         }

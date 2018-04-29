@@ -2,6 +2,7 @@
 {
     public enum LogLevel
     { 
+        Verbose,
         Info,
         Error
     }

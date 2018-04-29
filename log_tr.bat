@@ -1,0 +1,1 @@
+logcat.bar -s TrackRadar

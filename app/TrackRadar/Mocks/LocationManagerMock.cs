@@ -37,13 +37,23 @@ namespace TrackRadar.Mocks
 
         private void ping()
         {
-            var loc = new Location(provider.Value)
+            Location loc = createLocation();
+            this.listener.Value.OnLocationChanged(loc);
+            this.timer.Change(this.interval.Value, Timeout.Infinite);
+        }
+
+        private Location createLocation()
+        {
+            return new Location(provider.Value)
             {
                 Latitude = this.point.Latitude + (DateTime.Now.Ticks % 83) * 1.0 / 1000,
                 Longitude = this.point.Longitude + (DateTime.Now.Ticks % 83) * 1.0 / 1000
             };
-            this.listener.Value.OnLocationChanged(loc);
-            this.timer.Change(this.interval.Value, Timeout.Infinite);
+        }
+
+        internal Location GetLastKnownLocation(string gpsProvider)
+        {
+            return createLocation();
         }
     }
 }

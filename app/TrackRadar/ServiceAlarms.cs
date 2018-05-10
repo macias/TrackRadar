@@ -8,9 +8,9 @@ namespace TrackRadar
 {
     public sealed class ServiceAlarms : IDisposable
     {
-        MediaPlayer distancePlayer;
+        MediaPlayer offTrackPlayer;
         MediaPlayer gpsLostPlayer;
-        MediaPlayer gpsOnPlayer;
+        MediaPlayer gpsPositiveAcknowledgementPlayer;
         Vibrator vibrator;
 
         internal void Reset(Vibrator vibrator,
@@ -19,9 +19,9 @@ namespace TrackRadar
             MediaPlayer gpsOnPlayer)
         {
             Interlocked.Exchange(ref this.vibrator, vibrator);
-            Interlocked.Exchange(ref this.distancePlayer, distancePlayer);
+            Interlocked.Exchange(ref this.offTrackPlayer, distancePlayer);
             Interlocked.Exchange(ref this.gpsLostPlayer, gpsLostPlayer);
-            Interlocked.Exchange(ref this.gpsOnPlayer, gpsOnPlayer);
+            Interlocked.Exchange(ref this.gpsPositiveAcknowledgementPlayer, gpsOnPlayer);
         }
 
         internal void Go(Alarm alarm)
@@ -30,11 +30,11 @@ namespace TrackRadar
 
             MediaPlayer p;
             if (alarm == Alarm.OffTrack)
-                p = Interlocked.CompareExchange(ref this.distancePlayer, null, null);
+                p = Interlocked.CompareExchange(ref this.offTrackPlayer, null, null);
             else if (alarm == Alarm.GpsLost)
                 p = Interlocked.CompareExchange(ref this.gpsLostPlayer, null, null);
-            else if (alarm == Alarm.GpsOn)
-                p = Interlocked.CompareExchange(ref this.gpsOnPlayer, null, null);
+            else if (alarm == Alarm.PositiveAcknowledgement)
+                p = Interlocked.CompareExchange(ref this.gpsPositiveAcknowledgementPlayer, null, null);
             else
                 p = null;
 
@@ -48,9 +48,9 @@ namespace TrackRadar
 
         public void Dispose()
         {
-            Common.DestroyMediaPlayer(ref this.distancePlayer);
+            Common.DestroyMediaPlayer(ref this.offTrackPlayer);
             Common.DestroyMediaPlayer(ref this.gpsLostPlayer);
-            Common.DestroyMediaPlayer(ref this.gpsOnPlayer);
+            Common.DestroyMediaPlayer(ref this.gpsPositiveAcknowledgementPlayer);
         }
 
     }

@@ -42,10 +42,13 @@ namespace TrackRadar
             {
                 // https://stackoverflow.com/questions/704311/android-how-do-i-investigate-an-anr
                 // https://stackoverflow.com/questions/5513457/anr-keydispatchingtimedout-error/5513623#5513623
+                StrictMode.SetThreadPolicy(new StrictMode.ThreadPolicy.Builder()
+                           .DetectAll()
+                   .PenaltyLog()
+                   .Build());
                 StrictMode.SetVmPolicy(new StrictMode.VmPolicy.Builder()
                            .DetectAll()
                            .PenaltyLog()
-                           .PenaltyDeath()
                            .Build());
 
                 base.OnCreate(bundle);
@@ -188,7 +191,7 @@ namespace TrackRadar
                 {
                     // limit UI to small number of items on the list
                     if (this.adapter.Count == 100)
-                        this.adapter.Remove(this.adapter.GetItem(this.adapter.Count-1));
+                        this.adapter.Remove(this.adapter.GetItem(this.adapter.Count - 1));
                     this.adapter.Insert(message, 0);
                 }
             }

@@ -60,6 +60,8 @@
   <ItemGroup>
     <Compile Include="LogFile.cs" />
     <Compile Include="Alarm.cs" />
+    <Compile Include="RoundQueue.cs" />
+    <Compile Include="TimedGeoPoint.cs" />
     <Compile Include="Message.cs" />
     <Compile Include="Mocks\LocationManagerMock.cs" />
     <Compile Include="Settings2Activity.cs" />

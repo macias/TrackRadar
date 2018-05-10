@@ -1,3 +1,5 @@
+//#define MOCK
+
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -25,22 +27,39 @@ namespace TrackRadar
         private readonly ThreadSafe<IReadOnlyList<GpxTrackSegment>> trackSegments;
         private readonly ThreadSafe<SignalTimer> signalTimer;
 
+#if MOCK
+        private LocationManagerMock locationManager;
+#else
         private LocationManager locationManager;
-        //private LocationManagerMock locationManager;
+#endif
         private long lastAlarmAt;
-        private IGeoPoint lastOffTrackPoint;
+        private RoundQueue<TimedGeoPoint> lastPoints;
+        private bool lastIsRiding;
         private HandlerThread handler;
         private ServiceReceiver receiver;
         private readonly ThreadSafe<LogFile> serviceLog;
 
         public RadarService()
         {
+            StrictMode.SetThreadPolicy(new StrictMode.ThreadPolicy.Builder()
+                .DetectAll()
+                .PenaltyLog()
+                .Build());
+            StrictMode.SetVmPolicy(new StrictMode.VmPolicy.Builder()
+                       .DetectAll()
+                       .PenaltyLog()
+                       .Build());
+
             this.statistics = new Statistics();
             this.alarms = new ServiceAlarms();
             this.prefs = new ThreadSafe<Preferences>();
             this.trackSegments = new ThreadSafe<IReadOnlyList<GpxTrackSegment>>();
             this.signalTimer = new ThreadSafe<SignalTimer>();
             this.serviceLog = new ThreadSafe<LogFile>();
+            // keeping window of 3 points seems like a good balance for measuring travelled distance (and speed)
+            // too wide and we will not get proper speed value when rapidly stopping, 
+            // too small and gps accurracy will play major role
+            this.lastPoints = new RoundQueue<TimedGeoPoint>(size:3);
         }
 
         public override IBinder OnBind(Intent intent)
@@ -60,13 +79,16 @@ namespace TrackRadar
             logDebug(LogLevel.Verbose, trackSegments.Value.Count.ToString() + " segs, with "
                 + trackSegments.Value.Select(it => it.TrackPoints.Count()).Sum() + " points");
 
+#if MOCK
+            this.locationManager = new LocationManagerMock(trackSegments.Value.First().TrackPoints.EndPoint);
+#else
             this.locationManager = (LocationManager)GetSystemService(Context.LocationService);
-            // this.locationManager = new LocationManagerMock(trackSegments.Value.First().TrackPoints.EndPoint);
+#endif
 
             loadPreferences();
 
             { // start tracking
-                Interlocked.Exchange(ref this.lastAlarmAt, 0);
+                this.lastAlarmAt = 0;
                 this.statistics.Reset();
                 locationManager.RequestLocationUpdates(LocationManager.GpsProvider, 0, 0, this, this.handler.Looper);
             }
@@ -77,7 +99,7 @@ namespace TrackRadar
             this.signalTimer.Value = new SignalTimer(logDebug,
                 () => prefs.Value.NoGpsAlarmFirstTimeout,
                 () => prefs.Value.NoGpsAlarmAgainInterval,
-                () => alarms.Go(Alarm.GpsOn),
+                () => alarms.Go(Alarm.PositiveAcknowledgement),
               () =>
               {
                   logDebug(LogLevel.Verbose, "gps off");
@@ -113,7 +135,7 @@ namespace TrackRadar
 
         private void Receiver_InfoRequest(object sender, EventArgs e)
         {
-            logLocal( LogLevel.Verbose,"Received info request");
+            logLocal(LogLevel.Verbose, "Received info request");
             if (this.signalTimer.Value.HasGpsSignal)
                 MainReceiver.SendDistance(this, statistics.SignedDistance);
             else
@@ -215,21 +237,41 @@ namespace TrackRadar
         private double updateLocation(Location location)
         {
             double dist;
-            var point = new GeoPoint() { Latitude = location.Latitude, Longitude = location.Longitude };
+            long now = Stopwatch.GetTimestamp();
+            var point = new TimedGeoPoint(ticks: now) { Latitude = location.Latitude, Longitude = location.Longitude };
             bool on_track = isOnTrack(point, location.Accuracy, out dist);
 
+            bool is_riding;
+            if (!this.lastPoints.Any())
+                is_riding = false;
+            else
+            {
+                TimedGeoPoint last_point = this.lastPoints.Peek();
+
+                double time_s_passed = (now - last_point.Ticks) * 1.0 / Stopwatch.Frequency;
+
+                const double avg_walking_speed = 1.5; // in m/s: https://en.wikipedia.org/wiki/Walking
+                is_riding = point.GetDistance(last_point).Meters > avg_walking_speed * time_s_passed;
+            }
+
+            bool last_is_riding = this.lastIsRiding;
+            this.lastIsRiding = is_riding;
+
+            this.lastPoints.Enqueue(point);
+
             if (on_track)
+            {
+                if (last_is_riding && !is_riding)
+                    alarms.Go(Alarm.PositiveAcknowledgement);
+
                 return dist;
+            }
 
             // do not trigger alarm if we stopped moving
-            IGeoPoint last_point = Interlocked.CompareExchange(ref this.lastOffTrackPoint, null, null);
-            if (last_point != null && point.GetDistance(last_point).Meters < gpsAccuracy)
+            if (!is_riding)
                 return dist;
 
-            Interlocked.Exchange(ref this.lastOffTrackPoint, point);
-
-            var now = Stopwatch.GetTimestamp();
-            var passed = (now - Interlocked.CompareExchange(ref this.lastAlarmAt, 0, 0)) * 1.0 / Stopwatch.Frequency;
+            var passed = (now - this.lastAlarmAt) * 1.0 / Stopwatch.Frequency;
             if (passed < prefs.Value.OffTrackAlarmInterval.TotalSeconds)
                 return dist;
 
@@ -238,7 +280,7 @@ namespace TrackRadar
             // we are OFF THE TRACK and alarm the user about it -- user has info about environment, she/he sees if it possible
             // to take a shortcut, we don't see a thing
 
-            Interlocked.Exchange(ref this.lastAlarmAt, now);
+            this.lastAlarmAt = now;
 
             alarms.Go(Alarm.OffTrack);
 

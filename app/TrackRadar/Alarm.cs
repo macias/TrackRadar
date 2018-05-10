@@ -4,6 +4,6 @@
     {
         OffTrack,
         GpsLost,
-        GpsOn,
+        PositiveAcknowledgement,
     }
 }

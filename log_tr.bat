@@ -1,1 +1,1 @@
-logcat.bar -s TrackRadar
+logcat.bat -s TrackRadar

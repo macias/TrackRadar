@@ -60,6 +60,7 @@
   <ItemGroup>
     <Compile Include="LogFile.cs" />
     <Compile Include="Alarm.cs" />
+    <Compile Include="RadarService.Movement.cs" />
     <Compile Include="RoundQueue.cs" />
     <Compile Include="TimedGeoPoint.cs" />
     <Compile Include="Message.cs" />

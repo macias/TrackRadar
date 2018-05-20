@@ -2,7 +2,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Threading;
 using Android.App;
 using Android.Content;
 using Android.Locations;
@@ -11,12 +10,11 @@ using Android.Runtime;
 using Gpx;
 using System.Linq;
 using System.Diagnostics;
-using TrackRadar.Mocks;
 
 namespace TrackRadar
 {
     [Service]
-    internal sealed class RadarService : Service, ILocationListener
+    internal sealed partial class RadarService : Service, ILocationListener
     {
         private const double gpsAccuracy = 5; // meters
         private const string geoPointFormat = "0.000000";
@@ -34,7 +32,8 @@ namespace TrackRadar
 #endif
         private long lastAlarmAt;
         private RoundQueue<TimedGeoPoint> lastPoints;
-        private bool lastIsRiding;
+        private bool wasRiding;
+        private bool lastOnTrack;
         private HandlerThread handler;
         private ServiceReceiver receiver;
         private readonly ThreadSafe<LogFile> serviceLog;
@@ -59,7 +58,7 @@ namespace TrackRadar
             // keeping window of 3 points seems like a good balance for measuring travelled distance (and speed)
             // too wide and we will not get proper speed value when rapidly stopping, 
             // too small and gps accurracy will play major role
-            this.lastPoints = new RoundQueue<TimedGeoPoint>(size:3);
+            this.lastPoints = new RoundQueue<TimedGeoPoint>(size: 3);
         }
 
         public override IBinder OnBind(Intent intent)
@@ -234,6 +233,7 @@ namespace TrackRadar
             return $"{location.Latitude}, {location.Longitude},a: {(location.HasAccuracy ? location.Accuracy : 0f)}, dt {Common.FormatShortDateTime(Common.FromTimeStampMs(location.Time))}";
         }
 
+        /// <returns>negative value means on track</returns>
         private double updateLocation(Location location)
         {
             double dist;
@@ -241,9 +241,11 @@ namespace TrackRadar
             var point = new TimedGeoPoint(ticks: now) { Latitude = location.Latitude, Longitude = location.Longitude };
             bool on_track = isOnTrack(point, location.Accuracy, out dist);
 
-            bool is_riding;
+            Movement movement;
             if (!this.lastPoints.Any())
-                is_riding = false;
+            {
+                movement = Movement.Stopping;
+            }
             else
             {
                 TimedGeoPoint last_point = this.lastPoints.Peek();
@@ -251,24 +253,36 @@ namespace TrackRadar
                 double time_s_passed = (now - last_point.Ticks) * 1.0 / Stopwatch.Frequency;
 
                 const double avg_walking_speed = 1.5; // in m/s: https://en.wikipedia.org/wiki/Walking
-                is_riding = point.GetDistance(last_point).Meters > avg_walking_speed * time_s_passed;
+                const double avg_riding_speed = 3.5; // in m/s (between erderly and average): https://en.wikipedia.org/wiki/Bicycle_performance
+                double traveled = point.GetDistance(last_point).Meters;
+                if (traveled < avg_walking_speed * time_s_passed)
+                    movement = Movement.Stopping;
+                else if (traveled > avg_riding_speed * time_s_passed)
+                    movement = Movement.Riding;
+                else
+                    movement = Movement.Walking;
             }
 
-            bool last_is_riding = this.lastIsRiding;
-            this.lastIsRiding = is_riding;
+            bool was_riding = this.wasRiding;
+            // "stopping" resets "riding"
+            if (movement != Movement.Walking)
+                this.wasRiding = movement == Movement.Riding;
+
+            bool last_on_track = this.lastOnTrack;
+            this.lastOnTrack = on_track;
 
             this.lastPoints.Enqueue(point);
 
             if (on_track)
             {
-                if (last_is_riding && !is_riding)
+                if ((!last_on_track) || (was_riding && movement == Movement.Stopping))
                     alarms.Go(Alarm.PositiveAcknowledgement);
 
                 return dist;
             }
 
             // do not trigger alarm if we stopped moving
-            if (!is_riding)
+            if (movement == Movement.Stopping)
                 return dist;
 
             var passed = (now - this.lastAlarmAt) * 1.0 / Stopwatch.Frequency;
@@ -314,6 +328,7 @@ namespace TrackRadar
             }
         }
 
+        /// <param name="dist">negative value means on track</param>
         private bool isOnTrack(IGeoPoint point, float accuracy, out double dist)
         {
             Stopwatch watch = new Stopwatch();

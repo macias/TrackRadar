@@ -58,6 +58,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="HotWriter.cs" />
     <Compile Include="LogFile.cs" />
     <Compile Include="Alarm.cs" />
     <Compile Include="RadarService.Movement.cs" />

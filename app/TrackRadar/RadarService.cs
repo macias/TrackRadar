@@ -37,6 +37,7 @@ namespace TrackRadar
         private HandlerThread handler;
         private ServiceReceiver receiver;
         private readonly ThreadSafe<LogFile> serviceLog;
+        private readonly ThreadSafe<HotWriter> offTrackWriter;
 
         public RadarService()
         {
@@ -55,6 +56,7 @@ namespace TrackRadar
             this.trackSegments = new ThreadSafe<IReadOnlyList<GpxTrackSegment>>();
             this.signalTimer = new ThreadSafe<SignalTimer>();
             this.serviceLog = new ThreadSafe<LogFile>();
+            this.offTrackWriter = new ThreadSafe<HotWriter>();
             // keeping window of 3 points seems like a good balance for measuring travelled distance (and speed)
             // too wide and we will not get proper speed value when rapidly stopping, 
             // too small and gps accurracy will play major role
@@ -70,6 +72,7 @@ namespace TrackRadar
         public override StartCommandResult OnStartCommand(Intent intent, [GeneratedEnum] StartCommandFlags flags, int startId)
         {
             this.serviceLog.Value = new LogFile(this, "service.log", DateTime.UtcNow.AddDays(-2));
+            this.offTrackWriter.Value = new HotWriter(this, "off-track.log", DateTime.UtcNow.AddDays(-2));
 
             this.handler = new HandlerThread("GPSHandler");
             this.handler.Start();
@@ -192,6 +195,7 @@ namespace TrackRadar
                 logDebug(LogLevel.Verbose, "service destroyed " + statistics.ToString());
 
                 this.serviceLog.Value.Dispose();
+                this.offTrackWriter.Value.Dispose();
 
                 base.OnDestroy();
             }
@@ -297,6 +301,8 @@ namespace TrackRadar
             this.lastAlarmAt = now;
 
             alarms.Go(Alarm.OffTrack);
+            // it should be easier to make a GPX file out of it (we don't create it here because service crashes too often)
+            offTrackWriter.Value.WriteLine($"<wpt lat=\"{location.Latitude}\" lon=\"{location.Longitude}\"/>");
 
             return dist;
         }

@@ -1,4 +1,4 @@
-//#define MOCK
+#define MOCK
 
 using System;
 using System.Collections.Generic;
@@ -10,6 +10,7 @@ using Android.Runtime;
 using Gpx;
 using System.Linq;
 using System.Diagnostics;
+using TrackRadar.Mocks;
 
 namespace TrackRadar
 {
@@ -22,8 +23,8 @@ namespace TrackRadar
         private readonly Statistics statistics;
         private readonly ServiceAlarms alarms;
         private readonly ThreadSafe<Preferences> prefs;
-        private readonly ThreadSafe<IReadOnlyList<GpxTrackSegment>> trackSegments;
-        private readonly ThreadSafe<SignalTimer> signalTimer;
+        private IReadOnlyList<GpxTrackSegment> trackSegments;
+        private SignalTimer signalTimer;
 
 #if MOCK
         private LocationManagerMock locationManager;
@@ -36,8 +37,8 @@ namespace TrackRadar
         private bool lastOnTrack;
         private HandlerThread handler;
         private ServiceReceiver receiver;
-        private readonly ThreadSafe<LogFile> serviceLog;
-        private readonly ThreadSafe<HotWriter> offTrackWriter;
+        private LogFile serviceLog;
+        private HotWriter offTrackWriter;
 
         public RadarService()
         {
@@ -53,10 +54,6 @@ namespace TrackRadar
             this.statistics = new Statistics();
             this.alarms = new ServiceAlarms();
             this.prefs = new ThreadSafe<Preferences>();
-            this.trackSegments = new ThreadSafe<IReadOnlyList<GpxTrackSegment>>();
-            this.signalTimer = new ThreadSafe<SignalTimer>();
-            this.serviceLog = new ThreadSafe<LogFile>();
-            this.offTrackWriter = new ThreadSafe<HotWriter>();
             // keeping window of 3 points seems like a good balance for measuring travelled distance (and speed)
             // too wide and we will not get proper speed value when rapidly stopping, 
             // too small and gps accurracy will play major role
@@ -71,18 +68,30 @@ namespace TrackRadar
         [return: GeneratedEnum]
         public override StartCommandResult OnStartCommand(Intent intent, [GeneratedEnum] StartCommandFlags flags, int startId)
         {
-            this.serviceLog.Value = new LogFile(this, "service.log", DateTime.UtcNow.AddDays(-2));
-            this.offTrackWriter.Value = new HotWriter(this, "off-track.log", DateTime.UtcNow.AddDays(-2));
+            this.serviceLog = new LogFile(this, "service.log", DateTime.UtcNow.AddDays(-2));
+            {
+                this.offTrackWriter = new HotWriter(this, "off-track.gpx", DateTime.UtcNow.AddDays(-2), out bool appened);
+                if (!appened)
+                {
+                    this.offTrackWriter.WriteLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
+                    this.offTrackWriter.WriteLine("<gpx");
+                    this.offTrackWriter.WriteLine("version=\"1.0\"");
+                    this.offTrackWriter.WriteLine("creator=\"TrackRadar https://github.com/macias/TrackRadar\"");
+                    this.offTrackWriter.WriteLine("xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"");
+                    this.offTrackWriter.WriteLine("xmlns=\"http://www.topografix.com/GPX/1/0\"");
+                    this.offTrackWriter.WriteLine("xsi:schemaLocation=\"http://www.topografix.com/GPX/1/0 http://www.topografix.com/GPX/1/0/gpx.xsd\">");
+                    this.offTrackWriter.WriteLine("<!-- CLOSE gpx TAG MANUALLY -->");
+                }
+            }
 
             this.handler = new HandlerThread("GPSHandler");
             this.handler.Start();
 
-            this.trackSegments.Value = readGpx(Preferences.LoadTrackFileName(this));
-            logDebug(LogLevel.Verbose, trackSegments.Value.Count.ToString() + " segs, with "
-                + trackSegments.Value.Select(it => it.TrackPoints.Count()).Sum() + " points");
+            this.trackSegments = Common.ReadGpx(Preferences.LoadTrackFileName(this));
+            logDebug(LogLevel.Info, $"{trackSegments.Count} segs, with {trackSegments.Select(it => it.TrackPoints.Count()).Sum()} points");
 
 #if MOCK
-            this.locationManager = new LocationManagerMock(trackSegments.Value.First().TrackPoints.EndPoint);
+            this.locationManager = new LocationManagerMock(trackSegments.First().TrackPoints.EndPoint);
 #else
             this.locationManager = (LocationManager)GetSystemService(Context.LocationService);
 #endif
@@ -98,7 +107,7 @@ namespace TrackRadar
             // push Android to update us with gps positions
             getLastKnownPosition();
 
-            this.signalTimer.Value = new SignalTimer(logDebug,
+            this.signalTimer = new SignalTimer(logDebug,
                 () => prefs.Value.NoGpsAlarmFirstTimeout,
                 () => prefs.Value.NoGpsAlarmAgainInterval,
                 () => alarms.Go(Alarm.PositiveAcknowledgement),
@@ -138,7 +147,7 @@ namespace TrackRadar
         private void Receiver_InfoRequest(object sender, EventArgs e)
         {
             logLocal(LogLevel.Verbose, "Received info request");
-            if (this.signalTimer.Value.HasGpsSignal)
+            if (this.signalTimer.HasGpsSignal)
                 MainReceiver.SendDistance(this, statistics.SignedDistance);
             else
                 MainReceiver.SendAlarm(this, Message.NoSignalText);
@@ -168,7 +177,7 @@ namespace TrackRadar
             {
                 logDebug(LogLevel.Info, "destroying service");
 
-                this.signalTimer.Value.Dispose();
+                this.signalTimer.Dispose();
 
                 logDebug(LogLevel.Verbose, "removing events handlers");
 
@@ -194,8 +203,8 @@ namespace TrackRadar
 
                 logDebug(LogLevel.Verbose, "service destroyed " + statistics.ToString());
 
-                this.serviceLog.Value.Dispose();
-                this.offTrackWriter.Value.Dispose();
+                this.serviceLog.Dispose();
+                this.offTrackWriter.Dispose();
 
                 base.OnDestroy();
             }
@@ -213,7 +222,7 @@ namespace TrackRadar
             {
                 // don't alarm because we have already computing distance and it will sends the proper info
                 // about if GPS-on alarm is OK
-                this.signalTimer.Value.Update(canAlarm: false);
+                this.signalTimer.Update(canAlarm: false);
                 return;
             }
 
@@ -225,7 +234,7 @@ namespace TrackRadar
             finally
             {
                 // alarm about GPS only if there is no off-track alarm
-                this.signalTimer.Value.Update(canAlarm: dist <= 0);
+                this.signalTimer.Update(canAlarm: dist <= 0);
 
                 statistics.UpdateCompleted(dist, location.Accuracy);
                 MainReceiver.SendDistance(this, statistics.SignedDistance);
@@ -302,7 +311,7 @@ namespace TrackRadar
 
             alarms.Go(Alarm.OffTrack);
             // it should be easier to make a GPX file out of it (we don't create it here because service crashes too often)
-            offTrackWriter.Value.WriteLine($"<wpt lat=\"{location.Latitude}\" lon=\"{location.Longitude}\"/>");
+            offTrackWriter.WriteLine($"<wpt lat=\"{location.Latitude}\" lon=\"{location.Longitude}\"/>");
 
             return dist;
         }
@@ -326,7 +335,7 @@ namespace TrackRadar
             {
                 if (level > LogLevel.Verbose)
                     Common.Log(message);
-                this.serviceLog.Value.WriteLine(level, message);
+                this.serviceLog.WriteLine(level, message);
             }
             catch (Exception ex)
             {
@@ -345,9 +354,9 @@ namespace TrackRadar
 
             //float accuracy_offset = Math.Max(0, location.Accuracy-statistics.Accuracy);
 
-            for (int t = 0; t < trackSegments.Value.Count; ++t)
+            for (int t = 0; t < trackSegments.Count; ++t)
             {
-                GpxTrackSegment seg = trackSegments.Value[t];
+                GpxTrackSegment seg = trackSegments[t];
                 for (int s = seg.TrackPoints.Count - 1; s > 0; --s)
                 {
                     double d = Math.Max(0, point.GetDistanceToArcSegment(seg.TrackPoints[s - 1],
@@ -356,9 +365,10 @@ namespace TrackRadar
                     if (dist > d)
                     {
                         dist = d;
-                        closest_segment = s;
                         closest_track = t;
+                        closest_segment = s;
                     }
+
                     if (d <= prefs.Value.OffTrackAlarmDistance)
                     {
                         watch.Stop();
@@ -372,9 +382,9 @@ namespace TrackRadar
 
 
             watch.Stop();
-            this.serviceLog.Value.WriteLine(LogLevel.Verbose, $"dist {dist.ToString("0.0")} point {point.ToString(geoPointFormat)}"
-                + $" segment {trackSegments.Value[closest_track].TrackPoints[closest_segment - 1].ToString(geoPointFormat)}"
-                + $" -- {trackSegments.Value[closest_track].TrackPoints[closest_segment].ToString(geoPointFormat)}");
+            this.serviceLog.WriteLine(LogLevel.Verbose, $"dist {dist.ToString("0.0")} point {point.ToString(geoPointFormat)}"
+                + $" segment {trackSegments[closest_track].TrackPoints[closest_segment - 1].ToString(geoPointFormat)}"
+                + $" -- {trackSegments[closest_track].TrackPoints[closest_segment].ToString(geoPointFormat)}");
             logDebug(LogLevel.Verbose, $"Off [{closest_segment}]" + dist.ToString("0.0") + " in " + watch.Elapsed.ToString());
             return false;
         }
@@ -394,35 +404,5 @@ namespace TrackRadar
             logDebug(LogLevel.Verbose, "GPS change on service " + status);
         }
 
-        private static List<GpxTrackSegment> readGpx(string filename)
-        {
-            var result = new List<GpxTrackSegment>();
-
-            using (var input = new System.IO.FileStream(filename, System.IO.FileMode.Open, System.IO.FileAccess.Read))
-            {
-                using (GpxReader reader = new GpxReader(input))
-                {
-                    while (reader.Read())
-                    {
-                        switch (reader.ObjectType)
-                        {
-                            case GpxObjectType.Metadata:
-                                break;
-                            case GpxObjectType.WayPoint:
-                                break;
-                            case GpxObjectType.Route:
-                                break;
-                            case GpxObjectType.Track:
-                                result.AddRange(reader.Track.Segments);
-                                break;
-                        }
-                    }
-
-                }
-
-            }
-
-            return result;
-        }
     }
 }

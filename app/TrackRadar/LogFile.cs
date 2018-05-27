@@ -10,7 +10,7 @@ namespace TrackRadar
 
         public LogFile(ContextWrapper ctx, string filename, DateTime expires)
         {
-            this.writer = new HotWriter(ctx, filename, expires);
+            this.writer = new HotWriter(ctx, filename, expires,out bool dummy);
         }
 
         public void Dispose()

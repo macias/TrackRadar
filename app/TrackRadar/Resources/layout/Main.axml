@@ -50,6 +50,7 @@
         android:layout_height="wrap_content"
         android:id="@+id/TrackInfoTextView"
         android:paddingTop="2sp"
+        android:textColor="#ffff00"
         android:paddingBottom="2sp"
         android:paddingLeft="4sp"
         android:paddingRight="4sp" />
@@ -58,6 +59,7 @@
         android:textAppearance="?android:attr/textAppearanceSmall"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:textColor="#ffff00"
         android:id="@+id/AlarmInfoTextView"
         android:paddingBottom="2sp"
         android:paddingTop="2sp"
@@ -69,6 +71,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:id="@+id/GpsInfoTextView"
+        android:textColor="#ffff00"
         android:paddingTop="2sp"
         android:paddingBottom="2sp"
         android:paddingLeft="4sp"

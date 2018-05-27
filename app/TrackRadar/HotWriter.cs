@@ -10,20 +10,19 @@ namespace TrackRadar
     {
         private readonly StreamWriter writer;
 
-        public HotWriter(ContextWrapper ctx, string filename, DateTime expires)
+        public HotWriter(ContextWrapper ctx, string filename, DateTime expires,out bool appended)
         {
-            bool append;
             string path;
 
             using (var file = new Java.IO.File(ctx.GetExternalFilesDir(null), filename))
             //            using (var file = ctx.GetFileStreamPath(log_filename))
             {
                 path = file.AbsolutePath;
-                append = file != null && file.Exists()
+                appended = file != null && file.Exists()
                     // check if last modification to file was after experition
                     && Common.FromTimeStampMs(file.LastModified()) > expires;
             }
-            this.writer = new StreamWriter(path, append);
+            this.writer = new StreamWriter(path, appended);
             //            this.writer = new StreamWriter(ctx.OpenFileOutput(log_filename, FileCreationMode.WorldReadable | (append ? FileCreationMode.Append : 0)));
         }
 

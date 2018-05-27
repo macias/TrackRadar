@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using Android.Content;
 using Android.Media;
 using Android.OS;
+using Gpx;
 
 namespace TrackRadar
 {
@@ -69,6 +71,37 @@ namespace TrackRadar
             int maxVolume = 100;
             float log1 = (float)(Math.Log10(maxVolume - currVolume) / Math.Log10(maxVolume));
             player.SetVolume(1 - log1, 1 - log1);
+        }
+
+        public static List<GpxTrackSegment> ReadGpx(string filename)
+        {
+            var result = new List<GpxTrackSegment>();
+
+            using (var input = new System.IO.FileStream(filename, System.IO.FileMode.Open, System.IO.FileAccess.Read))
+            {
+                using (GpxReader reader = new GpxReader(input))
+                {
+                    while (reader.Read())
+                    {
+                        switch (reader.ObjectType)
+                        {
+                            case GpxObjectType.Metadata:
+                                break;
+                            case GpxObjectType.WayPoint:
+                                break;
+                            case GpxObjectType.Route:
+                                break;
+                            case GpxObjectType.Track:
+                                result.AddRange(reader.Track.Segments);
+                                break;
+                        }
+                    }
+
+                }
+
+            }
+
+            return result;
         }
 
 

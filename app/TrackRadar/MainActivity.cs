@@ -8,6 +8,7 @@ using Android.Locations;
 using Android.Runtime;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace TrackRadar
 {
@@ -19,8 +20,8 @@ namespace TrackRadar
 
         private Button enableButton;
         private TextView trackFileNameTextView;
-        private TextView gpsInfoTextView;
         private TextView trackInfoTextView;
+        private TextView gpsInfoTextView;
         private TextView alarmInfoTextView;
         private TextView infoTextView;
         private ArrayAdapter<string> adapter;
@@ -68,6 +69,7 @@ namespace TrackRadar
                 this.gpsInfoTextView = FindViewById<TextView>(Resource.Id.GpsInfoTextView);
                 this.trackInfoTextView = FindViewById<TextView>(Resource.Id.TrackInfoTextView);
                 this.alarmInfoTextView = FindViewById<TextView>(Resource.Id.AlarmInfoTextView);
+                
                 this.infoTextView = FindViewById<TextView>(Resource.Id.InfoTextView);
                 this.adapter = new ArrayAdapter<string>(this, Resource.Layout.ListViewItem, new List<string>());
                 ListAdapter = this.adapter;
@@ -246,10 +248,22 @@ namespace TrackRadar
             {
                 var prefs = Preferences.Load(this);
                 this.alarmInfoTextView.Visibility = prefs.PrimaryAlarmEnabled ? ViewStates.Gone : ViewStates.Visible;
-                string track = Preferences.LoadTrackFileName(this);
-                bool track_enabled = track != null && System.IO.File.Exists(track);
+                string track_path = Preferences.LoadTrackFileName(this);
+                bool track_enabled = track_path != null && System.IO.File.Exists(track_path);
+                this.trackFileNameTextView.Text = track_path;
+                if (!track_enabled)
+                    this.trackInfoTextView.Text = "Track is not available.";
+                else
+                {
+                    int count = Common.ReadGpx(track_path).Sum(it => it.TrackPoints.Count);
+                    if (count < 1)
+                    {
+                        track_enabled = false;
+                        this.trackInfoTextView.Text = "Empty track.";
+                    }
+                }
+
                 this.trackInfoTextView.Visibility = track_enabled ? ViewStates.Gone : ViewStates.Visible;
-                this.trackFileNameTextView.Text = track;
 
                 LocationManager lm = (LocationManager)GetSystemService(Context.LocationService);
                 bool gps_enabled = lm.IsProviderEnabled(LocationManager.GpsProvider);

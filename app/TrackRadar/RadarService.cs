@@ -288,7 +288,12 @@ namespace TrackRadar
 
             if (on_track)
             {
-                if ((!last_on_track) || (was_riding && movement == Movement.Stopping))
+                if (!last_on_track)
+                {
+                    bool played = alarms.Go(Alarm.PositiveAcknowledgement);
+                    logLocal(LogLevel.Verbose, $"Back on track, played {played}");
+                }
+                else if (was_riding && movement == Movement.Stopping)
                     alarms.Go(Alarm.PositiveAcknowledgement);
 
                 return dist;

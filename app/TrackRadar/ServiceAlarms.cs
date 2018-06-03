@@ -24,7 +24,7 @@ namespace TrackRadar
             Interlocked.Exchange(ref this.gpsPositiveAcknowledgementPlayer, gpsOnPlayer);
         }
 
-        internal void Go(Alarm alarm)
+        internal bool Go(Alarm alarm)
         {
             // https://developer.android.com/reference/android/media/MediaPlayer.html
 
@@ -38,12 +38,19 @@ namespace TrackRadar
             else
                 p = null;
 
+            bool started = false;
+
             if (p != null && !p.IsPlaying)
+            {
                 p.Start();
+                started = true;
+            }
 
             var v = Interlocked.CompareExchange(ref this.vibrator, null, null);
             if (v != null)
                 Common.VibrateAlarm(v);
+
+            return started;
         }
 
         public void Dispose()

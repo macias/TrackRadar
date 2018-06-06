@@ -115,7 +115,8 @@ namespace TrackRadar
               {
                   logDebug(LogLevel.Verbose, "gps off");
                   MainReceiver.SendAlarm(this, Message.NoSignalText);
-                  alarms.Go(Alarm.GpsLost);
+                  if (!alarms.Go(Alarm.GpsLost))
+                      logDebug( LogLevel.Error, "Audio alarm didn't started");
 
                   // weird, but RequestLocationUpdates does not force GPS provider to actually start providing updates
                   // thus such try -- we will see if requesting single update will start it

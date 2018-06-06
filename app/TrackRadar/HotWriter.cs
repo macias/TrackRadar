@@ -8,6 +8,8 @@ namespace TrackRadar
     // Android/data/TrackRadar.TrackRadar/
     public sealed class HotWriter : IDisposable
     {
+        private readonly object threadLock = new object();
+
         private readonly StreamWriter writer;
 
         public HotWriter(ContextWrapper ctx, string filename, DateTime expires,out bool appended)
@@ -33,8 +35,11 @@ namespace TrackRadar
 
         internal void WriteLine(string message)
         {
-            this.writer.WriteLine(message);
-            this.writer.Flush();
+            lock (this.threadLock)
+            {
+                this.writer.WriteLine(message);
+                this.writer.Flush();
+            }
         }
     }
 

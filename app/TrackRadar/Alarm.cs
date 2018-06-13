@@ -5,5 +5,6 @@
         OffTrack,
         GpsLost,
         PositiveAcknowledgement,
+        Crossroads,
     }
 }

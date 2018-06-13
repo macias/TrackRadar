@@ -62,6 +62,7 @@ namespace TrackRadar
 
         public override IBinder OnBind(Intent intent)
         {
+            logDebug(LogLevel.Error, $"{nameof(OnBind)} called");
             throw null;
         }
 
@@ -163,7 +164,8 @@ namespace TrackRadar
             this.alarms.Reset(p.UseVibration ? (Vibrator)GetSystemService(Context.VibratorService) : null,
                 p.AudioDistanceEnabled ? Common.CreateMediaPlayer(this, p.DistanceAudioFileName, Preferences.OffTrackDefaultAudioId) : null,
                 p.AudioGpsLostEnabled ? Common.CreateMediaPlayer(this, p.GpsLostAudioFileName, Preferences.GpsLostDefaultAudioId) : null,
-                p.AudioGpsOnEnabled ? Common.CreateMediaPlayer(this, p.GpsOnAudioFileName, Preferences.GpsOnDefaultAudioId) : null
+                p.AudioGpsOnEnabled ? Common.CreateMediaPlayer(this, p.GpsOnAudioFileName, Preferences.GpsOnDefaultAudioId) : null,
+                p.AudioCrossroadsEnabled ? Common.CreateMediaPlayer(this, p.CrossroadsAudioFileName, Preferences.CrossroadsDefaultAudioId) : null
                 );
         }
         private void Receiver_UpdatePrefs(object sender, EventArgs e)

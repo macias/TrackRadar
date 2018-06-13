@@ -19,12 +19,14 @@ namespace TrackRadar
         AudioSettings distanceSettings;
         AudioSettings gpsLostSettings;
         AudioSettings gpsOnSettings;
+        AudioSettings crossroadsSettings;
 
         Vibrator vibrator;
 
         private const int SelectDistanceAudioCode = 1;
         private const int SelectGpsLostAudioCode = 2;
         private const int SelectGpsOnAudioCode = 3;
+        private const int SelectCrossroadsAudioCode = 4;
 
         bool playbackInitialized;
 
@@ -55,6 +57,14 @@ namespace TrackRadar
                 Resource.Id.GpsOnAudioFileNameTextView,
                 Resource.Id.GpsOnPlayButton,
                 Resource.Id.GpsOnAudioFileNameButton);
+            this.crossroadsSettings = new AudioSettings(this, Preferences.CrossroadsDefaultAudioId,
+                SelectCrossroadsAudioCode,
+                () => this.playbackInitialized,
+                Resource.Id.CrossroadsVolumeSeekBar,
+                Resource.Id.CrossroadsVolumeTextView,
+                Resource.Id.CrossroadsAudioFileNameTextView,
+                Resource.Id.CrossroadsPlayButton,
+                Resource.Id.CrossroadsAudioFileNameButton);
             this.gpsLostSettings = new AudioSettings(this, Preferences.GpsLostDefaultAudioId,
                 SelectGpsLostAudioCode,
                 () => this.playbackInitialized,
@@ -88,6 +98,7 @@ namespace TrackRadar
             this.distanceSettings.Update(prefs.DistanceAudioVolume, prefs.DistanceAudioFileName);
             this.gpsLostSettings.Update(prefs.GpsLostAudioVolume, prefs.GpsLostAudioFileName);
             this.gpsOnSettings.Update(prefs.GpsOnAudioVolume, prefs.GpsOnAudioFileName);
+            this.crossroadsSettings.Update(prefs.CrossroadsAudioVolume, prefs.CrossroadsAudioFileName);
 
             this.playbackInitialized = true;
         }
@@ -105,6 +116,8 @@ namespace TrackRadar
                 this.gpsLostSettings.AudioFileSelected(intent.Data);
             else if (requestCode == SelectGpsOnAudioCode)
                 this.gpsOnSettings.AudioFileSelected(intent.Data);
+            else if (requestCode == SelectCrossroadsAudioCode)
+                this.crossroadsSettings.AudioFileSelected(intent.Data);
         }
 
 
@@ -129,11 +142,14 @@ namespace TrackRadar
                 GpsLostAudioFileName = this.gpsLostSettings.AudioFileName,
                 GpsOnAudioVolume = this.gpsOnSettings.Volume,
                 GpsOnAudioFileName = this.gpsOnSettings.AudioFileName,
+                CrossroadsAudioVolume = this.crossroadsSettings.Volume,
+                CrossroadsAudioFileName = this.crossroadsSettings.AudioFileName,
             });
 
             this.gpsLostSettings.Destroy();
             this.distanceSettings.Destroy();
             this.gpsOnSettings.Destroy();
+            this.crossroadsSettings.Destroy();
 
             ServiceReceiver.SendUpdatePrefs(this);
 

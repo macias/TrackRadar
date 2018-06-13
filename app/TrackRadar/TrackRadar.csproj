@@ -92,6 +92,8 @@
     <AndroidResource Include="Resources\layout\Settings.axml">
       <SubType>Designer</SubType>
     </AndroidResource>
+    <AndroidResource Include="Resources\raw\KDE_Dialog_Appear.ogg" />
+    <AndroidResource Include="Resources\raw\Message_Ringtone_Guitar_2_Markdarszs_Gms9qEWnqrM.ogg" />
   </ItemGroup>
   <ItemGroup>
     <AndroidResource Include="Resources\layout\Main.axml">
@@ -113,7 +115,6 @@
       <SubType>Designer</SubType>
     </AndroidResource>
     <AndroidResource Include="Resources\raw\KDE_Error.ogg" />
-    <AndroidResource Include="Resources\raw\KDE_Dialog_Appear.ogg" />
   </ItemGroup>
   <ItemGroup>
     <AndroidResource Include="Resources\layout\Preferences.xml" />

@@ -2,7 +2,7 @@
 
 namespace TrackRadar
 {
-    public class TimedGeoPoint : GeoPoint
+    public sealed class TimedGeoPoint : GeoPoint
     {
         public long Ticks { get; }
 

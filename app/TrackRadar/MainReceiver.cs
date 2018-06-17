@@ -29,9 +29,9 @@ namespace TrackRadar
         {
             if (intent.Action == Message.Dist)
                 DistanceUpdate?.Invoke(this, new DistanceEventArgs(intent.GetDoubleExtra(Message.ValueKey, -1)));
-            if (intent.Action == Message.Dbg)
+            else if (intent.Action == Message.Dbg)
                 DebugUpdate?.Invoke(this, new MessageEventArgs(intent.GetStringExtra(Message.ValueKey)));
-            if (intent.Action == Message.Alarm)
+            else if (intent.Action == Message.Alarm)
                 AlarmUpdate?.Invoke(this, new MessageEventArgs(intent.GetStringExtra(Message.ValueKey)));
         }
 
@@ -42,6 +42,7 @@ namespace TrackRadar
             intent.PutExtra(Message.ValueKey, message);
             context.SendBroadcast(intent);
         }
+
         internal static void SendAlarm(Context context, string message)
         {
             var intent = new Intent();
@@ -49,6 +50,7 @@ namespace TrackRadar
             intent.PutExtra(Message.ValueKey, message);
             context.SendBroadcast(intent);
         }
+
         internal static void SendDistance(Context context, double distance)
         {
             var intent = new Intent();

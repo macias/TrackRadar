@@ -1,4 +1,4 @@
-// #define MOCK
+//#define MOCK
 
 using System;
 using System.Collections.Generic;
@@ -87,12 +87,14 @@ namespace TrackRadar
 
             this.handler = new HandlerThread("GPSHandler");
             this.handler.Start();
-
-            this.trackSegments = Common.ReadGpx(Preferences.LoadTrackFileName(this));
-            logDebug(LogLevel.Info, $"{trackSegments.Count} segs, with {trackSegments.Select(it => it.TrackPoints.Count()).Sum()} points");
+            {
+                long now = Stopwatch.GetTimestamp();
+                this.trackSegments = Common.ReadGpx(Preferences.LoadTrackFileName(this));
+                logDebug(LogLevel.Info, $"{trackSegments.Count} segs, with {trackSegments.Select(it => it.TrackPoints.Count()).Sum()} points in {(Stopwatch.GetTimestamp()-now-0.0)/Stopwatch.Frequency}s");
+            }
 
 #if MOCK
-            this.locationManager = new LocationManagerMock(trackSegments.First().TrackPoints.EndPoint);
+            this.locationManager = new LocationManagerMock(trackSegments.First().TrackPoints.Last());
 #else
             this.locationManager = (LocationManager)GetSystemService(Context.LocationService);
 #endif
@@ -219,7 +221,7 @@ namespace TrackRadar
 
         public void OnLocationChanged(Location location)
         {
-            logDebug(LogLevel.Verbose, $"new loc {locationToString(location)}");
+//            logDebug(LogLevel.Verbose, $"new loc {locationToString(location)}");
 
             if (!statistics.CanUpdate())
             {
@@ -294,7 +296,7 @@ namespace TrackRadar
                 if (!last_on_track)
                 {
                     bool played = alarms.Go(Alarm.PositiveAcknowledgement);
-                    logLocal(LogLevel.Verbose, $"Back on track, played {played}");
+                    logDebug(LogLevel.Verbose, $"Back on track, played {played}");
                 }
                 else if (was_riding && movement == Movement.Stopping)
                     alarms.Go(Alarm.PositiveAcknowledgement);
@@ -352,7 +354,7 @@ namespace TrackRadar
         }
 
         /// <param name="dist">negative value means on track</param>
-        private bool isOnTrack(IGeoPoint point, float accuracy, out double dist)
+        private bool isOnTrack(TimedGeoPoint point, float accuracy, out double dist)
         {
             Stopwatch watch = new Stopwatch();
             watch.Start();
@@ -380,8 +382,8 @@ namespace TrackRadar
                     if (d <= prefs.Value.OffTrackAlarmDistance)
                     {
                         watch.Stop();
-                        logDebug(LogLevel.Verbose, $"On [{s}]" + d.ToString("0.0") + " (" + seg.TrackPoints[s - 1].ToString(geoPointFormat) + " -- "
-                            + seg.TrackPoints[s].ToString(geoPointFormat) + ") in " + watch.Elapsed.ToString());
+                        //logDebug(LogLevel.Verbose, $"On [{s}]" + d.ToString("0.0") + " (" + seg.TrackPoints[s - 1].ToString(geoPointFormat) + " -- "
+                          //  + seg.TrackPoints[s].ToString(geoPointFormat) + ") in " + watch.Elapsed.ToString());
                         dist = -dist;
                         return true;
                     }
@@ -390,10 +392,10 @@ namespace TrackRadar
 
 
             watch.Stop();
-            this.serviceLog.WriteLine(LogLevel.Verbose, $"dist {dist.ToString("0.0")} point {point.ToString(geoPointFormat)}"
-                + $" segment {trackSegments[closest_track].TrackPoints[closest_segment - 1].ToString(geoPointFormat)}"
-                + $" -- {trackSegments[closest_track].TrackPoints[closest_segment].ToString(geoPointFormat)}");
-            logDebug(LogLevel.Verbose, $"Off [{closest_segment}]" + dist.ToString("0.0") + " in " + watch.Elapsed.ToString());
+            //this.serviceLog.WriteLine(LogLevel.Verbose, $"dist {dist.ToString("0.0")} point {point.ToString(geoPointFormat)}"
+              //  + $" segment {trackSegments[closest_track].TrackPoints[closest_segment - 1].ToString(geoPointFormat)}"
+               // + $" -- {trackSegments[closest_track].TrackPoints[closest_segment].ToString(geoPointFormat)}");
+            //logDebug(LogLevel.Verbose, $"Off [{closest_segment}]" + dist.ToString("0.0") + " in " + watch.Elapsed.ToString());
             return false;
         }
 

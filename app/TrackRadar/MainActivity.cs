@@ -79,9 +79,6 @@ namespace TrackRadar
                 this.trackButton.Click += trackSelectionClicked;
 
                 this.receiver = MainReceiver.Create(this);
-                this.receiver.DistanceUpdate += Receiver_DistanceUpdate;
-                this.receiver.AlarmUpdate += Receiver_AlarmUpdate;
-                this.receiver.DebugUpdate += Receiver_DebugUpdate;
 
                 this.logDebug(LogLevel.Verbose, "Done OnCreate");
             }
@@ -145,6 +142,10 @@ namespace TrackRadar
                 LocationManager lm = (LocationManager)GetSystemService(Context.LocationService);
                 lm.AddGpsStatusListener(this);
 
+                this.receiver.DistanceUpdate += Receiver_DistanceUpdate;
+                this.receiver.AlarmUpdate += Receiver_AlarmUpdate;
+                this.receiver.DebugUpdate += Receiver_DebugUpdate;
+
                 if (updateReadiness()) // gps could be switched meanwhile
                 {
                     showAlarm("running", Android.Graphics.Color.GreenYellow);
@@ -164,6 +165,10 @@ namespace TrackRadar
             try
             {
                 this.logDebug(LogLevel.Verbose, "Entering OnPause");
+
+                this.receiver.AlarmUpdate -= Receiver_AlarmUpdate;
+                this.receiver.DistanceUpdate -= Receiver_DistanceUpdate;
+                this.receiver.DebugUpdate -= Receiver_DebugUpdate;
 
                 logDebug(LogLevel.Verbose, "app paused");
                 LocationManager lm = (LocationManager)GetSystemService(Context.LocationService);
@@ -224,9 +229,6 @@ namespace TrackRadar
             {
                 logDebug(LogLevel.Verbose, "app destroyed");
 
-                this.receiver.AlarmUpdate -= Receiver_AlarmUpdate;
-                this.receiver.DistanceUpdate -= Receiver_DistanceUpdate;
-                this.receiver.DebugUpdate -= Receiver_DebugUpdate;
                 UnregisterReceiver(this.receiver);
 
                 log_writer?.Dispose();

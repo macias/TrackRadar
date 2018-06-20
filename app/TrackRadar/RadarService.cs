@@ -356,8 +356,6 @@ namespace TrackRadar
         /// <param name="dist">negative value means on track</param>
         private bool isOnTrack(TimedGeoPoint point, float accuracy, out double dist)
         {
-            Stopwatch watch = new Stopwatch();
-            watch.Start();
             dist = double.MaxValue;
             int closest_track = 0;
             int closest_segment = 0;
@@ -381,7 +379,6 @@ namespace TrackRadar
 
                     if (d <= prefs.Value.OffTrackAlarmDistance)
                     {
-                        watch.Stop();
                         //logDebug(LogLevel.Verbose, $"On [{s}]" + d.ToString("0.0") + " (" + seg.TrackPoints[s - 1].ToString(geoPointFormat) + " -- "
                           //  + seg.TrackPoints[s].ToString(geoPointFormat) + ") in " + watch.Elapsed.ToString());
                         dist = -dist;
@@ -391,7 +388,6 @@ namespace TrackRadar
             }
 
 
-            watch.Stop();
             //this.serviceLog.WriteLine(LogLevel.Verbose, $"dist {dist.ToString("0.0")} point {point.ToString(geoPointFormat)}"
               //  + $" segment {trackSegments[closest_track].TrackPoints[closest_segment - 1].ToString(geoPointFormat)}"
                // + $" -- {trackSegments[closest_track].TrackPoints[closest_segment].ToString(geoPointFormat)}");
@@ -411,7 +407,7 @@ namespace TrackRadar
 
         public void OnStatusChanged(string provider, [GeneratedEnum] Availability status, Bundle extras)
         {
-            logDebug(LogLevel.Verbose, "GPS change on service " + status);
+            logDebug(LogLevel.Verbose, $"{provider} change on service {status}");
         }
 
     }

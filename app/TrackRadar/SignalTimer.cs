@@ -15,11 +15,11 @@ namespace TrackRadar
         private readonly Func<TimeSpan> noGpsFirstTimeout;
         // consecutive counts of reports when there is no signal
         // 0 -- means we have signal
-        private int alarmCounter;
+        private int noGpsSignalCounter;
         private readonly Action<LogLevel, string> logger;
         private TimeSpan defaultCheckInterval => TimeSpan.FromTicks(Math.Min(this.noGpsAgainInterval().Ticks, noGpsFirstTimeout().Ticks));
 
-        public bool HasGpsSignal => Interlocked.CompareExchange(ref this.alarmCounter, 0, 0) == 0;
+        public bool HasGpsSignal => Interlocked.CompareExchange(ref this.noGpsSignalCounter, 0, 0) == 0;
 
         public SignalTimer(Action<LogLevel, string> logger, Func<TimeSpan> noGpsTimeoutFactory, Func<TimeSpan> noGpsIntervalFactory,
             Action gpsOnAlarm, Action gpsOffAlarm)
@@ -34,7 +34,7 @@ namespace TrackRadar
             this.lastGpsPresentAtTicks = 0;
             // initially we have no signal and we assume user starting the service pays attention 
             // to initial message "no signal"
-            this.alarmCounter = 1;
+            this.noGpsSignalCounter = 1;
 
             this.timer = new Timer(_ => check());
             // we are setting it to timeout, not interval, because we could have such scenario
@@ -47,7 +47,7 @@ namespace TrackRadar
         public void Update(bool canAlarm)
         {
             Interlocked.Exchange(ref this.lastGpsPresentAtTicks, Stopwatch.GetTimestamp());
-            if (Interlocked.Exchange(ref this.alarmCounter, 0) != 0)
+            if (Interlocked.Exchange(ref this.noGpsSignalCounter, 0) != 0)
             {
                 logger(LogLevel.Verbose, "GPS signal acquired");
                 if (canAlarm)
@@ -94,7 +94,7 @@ namespace TrackRadar
             if (delay <= TimeSpan.Zero) // we passed the alarm timeout
             {
                 this.lastNoGpsAlarmAtTicks = now;
-                Interlocked.Increment(ref this.alarmCounter);
+                Interlocked.Increment(ref this.noGpsSignalCounter);
 
                 gpsOffAlarm();
                 delay = interval;

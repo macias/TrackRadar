@@ -33,6 +33,8 @@ namespace TrackRadar
                 DebugUpdate?.Invoke(this, new MessageEventArgs(intent.GetStringExtra(Message.ValueKey)));
             else if (intent.Action == Message.Alarm)
                 AlarmUpdate?.Invoke(this, new MessageEventArgs(intent.GetStringExtra(Message.ValueKey)));
+
+            intent.Dispose();
         }
 
         internal static void SendDebug(Context context, string message)

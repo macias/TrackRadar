@@ -297,11 +297,13 @@ namespace TrackRadar
             {
                 this.logDebug(LogLevel.Verbose, "Entering trackSelectionClicked");
 
-                var intent = new Intent();
-                intent.SetType("application/gpx+xml");
-                intent.SetAction(Intent.ActionGetContent);
-                StartActivityForResult(
-                    Intent.CreateChooser(intent, "Select gpx file"), SelectTrackCode);
+                using (var intent = new Intent())
+                {
+                    intent.SetType("application/gpx+xml");
+                    intent.SetAction(Intent.ActionGetContent);
+                    StartActivityForResult(
+                        Intent.CreateChooser(intent, "Select gpx file"), SelectTrackCode);
+                }
 
                 this.logDebug(LogLevel.Verbose, "Done trackSelectionClicked");
             }

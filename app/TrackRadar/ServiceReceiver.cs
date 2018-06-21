@@ -31,6 +31,8 @@ namespace TrackRadar
                 UpdatePrefs?.Invoke(this, new EventArgs());
             else if (intent.Action == Message.Req)
                 InfoRequest?.Invoke(this, new EventArgs());
+
+            intent.Dispose();
         }
         internal static void SendUpdatePrefs(Context context)
         {

@@ -33,7 +33,7 @@ namespace TrackRadar
             this.writer.Dispose();
         }
 
-        internal void WriteLine(string message)
+        public void WriteLine(string message)
         {
             lock (this.threadLock)
             {

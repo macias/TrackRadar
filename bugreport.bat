@@ -1,0 +1,1 @@
+adb.bat bugreport

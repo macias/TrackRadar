@@ -18,7 +18,7 @@ namespace TrackRadar
         // off-track distances are stored as >0 values
         // on-track distances as <= 0 values
         double signedCurrDist;
-        long computingTime;
+        long totalComputingTime;
         float currAccuracy;
 
         // "signed" means -- negative values are considered on the track, positive ones -- off the track
@@ -40,7 +40,7 @@ namespace TrackRadar
                 this.minDist = this.maxDist = this.avgDist = this.signedCurrDist = 0;
                 totalIdle = 0;
                 lastUpdate = Stopwatch.GetTimestamp();
-                computingTime = 0;
+                totalComputingTime = 0;
             }
         }
 
@@ -57,7 +57,7 @@ namespace TrackRadar
                 if (result)
                 {
                     this.isComputing = true;
-                    computingTime -= Stopwatch.GetTimestamp();
+                    totalComputingTime -= Stopwatch.GetTimestamp();
                 }
                 else
                     ++this.skippedComputing;
@@ -84,7 +84,7 @@ namespace TrackRadar
                 }
 
                 this.isComputing = false;
-                computingTime += Stopwatch.GetTimestamp();
+                totalComputingTime += Stopwatch.GetTimestamp();
             }
         }
 
@@ -92,7 +92,7 @@ namespace TrackRadar
         {
             lock (threadLock)
             {
-                long time = computingTime;
+                long time = totalComputingTime;
                 if (this.isComputing)
                     time += Stopwatch.GetTimestamp();
 

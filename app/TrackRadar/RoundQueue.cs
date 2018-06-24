@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace TrackRadar
 {
-    public class RoundQueue<T> : IEnumerable<T>
+    public sealed class RoundQueue<T> : IEnumerable<T>
     {
         private readonly int size;
         private readonly Queue<T> buffer;

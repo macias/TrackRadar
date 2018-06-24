@@ -64,7 +64,7 @@ namespace TrackRadar
                 {
                     // this field can be changed from external thread
                     long last_gps_at = Interlocked.CompareExchange(ref lastGpsPresentAtTicks, 0, 0);
-                    logger(LogLevel.Verbose, $"{nameof(SignalTimer)} Last gps update at {last_gps_at}");
+                   // logger(LogLevel.Verbose, $"{nameof(SignalTimer)} Last gps update at {last_gps_at}");
                     due_time = tryRaiseAlarm(last_gps_at, this.noGpsFirstTimeout());
                 }
                 else
@@ -89,7 +89,7 @@ namespace TrackRadar
 
             TimeSpan passed = TimeSpan.FromSeconds((now - lastEventAtTicks) * 1.0 / Stopwatch.Frequency);
             TimeSpan delay = alarmAfter - passed;
-            this.logger(LogLevel.Verbose, $"GPS signal check alarm-after {alarmAfter.Minutes} passed {passed.TotalSeconds} delay " + delay.TotalSeconds.ToString());
+            // this.logger(LogLevel.Verbose, $"GPS signal check alarm-after {alarmAfter.Minutes} passed {passed.TotalSeconds} delay " + delay.TotalSeconds.ToString());
 
             if (delay <= TimeSpan.Zero) // we passed the alarm timeout
             {

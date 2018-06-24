@@ -39,6 +39,7 @@ namespace TrackRadar
         private ServiceReceiver receiver;
         private LogFile serviceLog;
         private HotWriter offTrackWriter;
+        private int gpsLastStatus;
 
         public RadarService()
         {
@@ -70,6 +71,11 @@ namespace TrackRadar
         public override StartCommandResult OnStartCommand(Intent intent, [GeneratedEnum] StartCommandFlags flags, int startId)
         {
             this.serviceLog = new LogFile(this, "service.log", DateTime.UtcNow.AddDays(-2));
+
+            if (!(Java.Lang.Thread.DefaultUncaughtExceptionHandler is CustomExceptionHandler))
+                Java.Lang.Thread.DefaultUncaughtExceptionHandler 
+                    = new CustomExceptionHandler(Java.Lang.Thread.DefaultUncaughtExceptionHandler, this.serviceLog);
+
             {
                 this.offTrackWriter = new HotWriter(this, "off-track.gpx", DateTime.UtcNow.AddDays(-2), out bool appened);
                 if (!appened)
@@ -87,10 +93,11 @@ namespace TrackRadar
 
             this.handler = new HandlerThread("GPSHandler");
             this.handler.Start();
+
             {
                 long now = Stopwatch.GetTimestamp();
                 this.trackSegments = Common.ReadGpx(Preferences.LoadTrackFileName(this));
-                logDebug(LogLevel.Info, $"{trackSegments.Count} segs, with {trackSegments.Select(it => it.TrackPoints.Count()).Sum()} points in {(Stopwatch.GetTimestamp()-now-0.0)/Stopwatch.Frequency}s");
+                logDebug(LogLevel.Info, $"{trackSegments.Count} segs, with {trackSegments.Select(it => it.TrackPoints.Count()).Sum()} points in {(Stopwatch.GetTimestamp() - now - 0.0) / Stopwatch.Frequency}s");
             }
 
 #if MOCK
@@ -119,7 +126,7 @@ namespace TrackRadar
                   logDebug(LogLevel.Verbose, "gps off");
                   MainReceiver.SendAlarm(this, Message.NoSignalText);
                   if (!alarms.Go(Alarm.GpsLost))
-                      logDebug( LogLevel.Error, "Audio alarm didn't started");
+                      logDebug(LogLevel.Error, "Audio alarm didn't started");
 
                   // weird, but RequestLocationUpdates does not force GPS provider to actually start providing updates
                   // thus such try -- we will see if requesting single update will start it
@@ -221,7 +228,7 @@ namespace TrackRadar
 
         public void OnLocationChanged(Location location)
         {
-//            logDebug(LogLevel.Verbose, $"new loc {locationToString(location)}");
+            //            logDebug(LogLevel.Verbose, $"new loc {locationToString(location)}");
 
             if (!statistics.CanUpdate())
             {
@@ -380,7 +387,7 @@ namespace TrackRadar
                     if (d <= prefs.Value.OffTrackAlarmDistance)
                     {
                         //logDebug(LogLevel.Verbose, $"On [{s}]" + d.ToString("0.0") + " (" + seg.TrackPoints[s - 1].ToString(geoPointFormat) + " -- "
-                          //  + seg.TrackPoints[s].ToString(geoPointFormat) + ") in " + watch.Elapsed.ToString());
+                        //  + seg.TrackPoints[s].ToString(geoPointFormat) + ") in " + watch.Elapsed.ToString());
                         dist = -dist;
                         return true;
                     }
@@ -389,8 +396,8 @@ namespace TrackRadar
 
 
             //this.serviceLog.WriteLine(LogLevel.Verbose, $"dist {dist.ToString("0.0")} point {point.ToString(geoPointFormat)}"
-              //  + $" segment {trackSegments[closest_track].TrackPoints[closest_segment - 1].ToString(geoPointFormat)}"
-               // + $" -- {trackSegments[closest_track].TrackPoints[closest_segment].ToString(geoPointFormat)}");
+            //  + $" segment {trackSegments[closest_track].TrackPoints[closest_segment - 1].ToString(geoPointFormat)}"
+            // + $" -- {trackSegments[closest_track].TrackPoints[closest_segment].ToString(geoPointFormat)}");
             //logDebug(LogLevel.Verbose, $"Off [{closest_segment}]" + dist.ToString("0.0") + " in " + watch.Elapsed.ToString());
             return false;
         }
@@ -407,7 +414,8 @@ namespace TrackRadar
 
         public void OnStatusChanged(string provider, [GeneratedEnum] Availability status, Bundle extras)
         {
-            logDebug(LogLevel.Verbose, $"{provider} change on service {status}");
+            if (provider == "gps" && System.Threading.Interlocked.Exchange(ref this.gpsLastStatus, (int)status) != (int)status)
+                logDebug(LogLevel.Verbose, $"{provider} change on service {status}");
         }
 
     }

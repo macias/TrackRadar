@@ -52,6 +52,8 @@ namespace TrackRadar
                 logger(LogLevel.Verbose, "GPS signal acquired");
                 if (canAlarm)
                     gpsOnAlarm();
+                else
+                    logger(LogLevel.Verbose, "GPS-ON, Skipping alarming");
             }
         }
 

@@ -26,12 +26,14 @@ namespace TrackRadar.Mocks
         {
             this.listener.Value = listener;
             this.provider.Value = provider;
-            this.timer.Change(this.interval.Value = 1000, Timeout.Infinite);
+            this.interval.Value = 1000;
+            this.timer.Change(dueTime: this.interval.Value, period: Timeout.Infinite);
         }
 
         internal void RemoveUpdates(ILocationListener listener)
         {
-            this.timer.Change(this.interval.Value = Timeout.Infinite, Timeout.Infinite);
+            this.interval.Value = Timeout.Infinite;
+            this.timer.Change(this.interval.Value, Timeout.Infinite);
             this.listener.Value = null;
         }
 

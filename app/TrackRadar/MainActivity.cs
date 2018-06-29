@@ -142,6 +142,9 @@ namespace TrackRadar
                 LocationManager lm = (LocationManager)GetSystemService(Context.LocationService);
                 lm.AddGpsStatusListener(this);
 
+                if (this.isServiceRunning())
+                    ServiceReceiver.SendSubscribe(this);
+
                 this.receiver.DistanceUpdate += Receiver_DistanceUpdate;
                 this.receiver.AlarmUpdate += Receiver_AlarmUpdate;
                 this.receiver.DebugUpdate += Receiver_DebugUpdate;
@@ -165,6 +168,9 @@ namespace TrackRadar
             try
             {
                 this.logDebug(LogLevel.Verbose, "Entering OnPause");
+
+                if (this.isServiceRunning())
+                    ServiceReceiver.SendUnsubscribe(this);
 
                 this.receiver.AlarmUpdate -= Receiver_AlarmUpdate;
                 this.receiver.DistanceUpdate -= Receiver_DistanceUpdate;

@@ -9,6 +9,8 @@ namespace TrackRadar
     {
         public event EventHandler UpdatePrefs;
         public event EventHandler InfoRequest;
+        public event EventHandler Subscribe;
+        public event EventHandler Unsubscribe;
 
         public ServiceReceiver()
         {
@@ -31,6 +33,10 @@ namespace TrackRadar
                 UpdatePrefs?.Invoke(this, new EventArgs());
             else if (intent.Action == Message.Req)
                 InfoRequest?.Invoke(this, new EventArgs());
+            else if (intent.Action == Message.Sub)
+                Subscribe?.Invoke(this, new EventArgs());
+            else if (intent.Action == Message.Unsub)
+                Unsubscribe?.Invoke(this, new EventArgs());
 
             intent.Dispose();
         }
@@ -44,6 +50,18 @@ namespace TrackRadar
         {
             var intent = new Intent();
             intent.SetAction(Message.Req);
+            context.SendBroadcast(intent);
+        }
+        internal static void SendSubscribe(Context context)
+        {
+            var intent = new Intent();
+            intent.SetAction(Message.Sub);
+            context.SendBroadcast(intent);
+        }
+        internal static void SendUnsubscribe(Context context)
+        {
+            var intent = new Intent();
+            intent.SetAction(Message.Unsub);
             context.SendBroadcast(intent);
         }
 

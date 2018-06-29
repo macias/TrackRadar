@@ -9,6 +9,8 @@
         public const string Alarm = nameof(TrackRadar) + "." + nameof(Alarm);
         public const string Prefs = nameof(TrackRadar) + "." + nameof(Prefs);
         public const string Req = nameof(TrackRadar) + "." + nameof(Req);
+        public const string Sub = nameof(TrackRadar) + "." + nameof(Sub);
+        public const string Unsub = nameof(TrackRadar) + "." + nameof(Unsub);
 
         public const string ValueKey = "key";
 

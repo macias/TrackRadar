@@ -11,6 +11,7 @@ using Gpx;
 using System.Linq;
 using System.Diagnostics;
 using TrackRadar.Mocks;
+using System.Threading;
 
 namespace TrackRadar
 {
@@ -40,6 +41,8 @@ namespace TrackRadar
         private LogFile serviceLog;
         private HotWriter offTrackWriter;
         private int gpsLastStatus;
+        private int subsriptions;
+        private bool hasSubscribers => Interlocked.CompareExchange(ref this.subsriptions, 0, 0) > 0;
 
         public RadarService()
         {
@@ -70,10 +73,11 @@ namespace TrackRadar
         [return: GeneratedEnum]
         public override StartCommandResult OnStartCommand(Intent intent, [GeneratedEnum] StartCommandFlags flags, int startId)
         {
+            this.subsriptions = 1;
             this.serviceLog = new LogFile(this, "service.log", DateTime.UtcNow.AddDays(-2));
 
             if (!(Java.Lang.Thread.DefaultUncaughtExceptionHandler is CustomExceptionHandler))
-                Java.Lang.Thread.DefaultUncaughtExceptionHandler 
+                Java.Lang.Thread.DefaultUncaughtExceptionHandler
                     = new CustomExceptionHandler(Java.Lang.Thread.DefaultUncaughtExceptionHandler, this.serviceLog);
 
             {
@@ -123,8 +127,10 @@ namespace TrackRadar
                 () => alarms.Go(Alarm.PositiveAcknowledgement),
               () =>
               {
-                  logDebug(LogLevel.Verbose, "gps off");
-                  MainReceiver.SendAlarm(this, Message.NoSignalText);
+                  logDebug(LogLevel.Verbose, "GPS OFF");
+                  if (this.hasSubscribers)
+                      MainReceiver.SendAlarm(this, Message.NoSignalText);
+
                   if (!alarms.Go(Alarm.GpsLost))
                       logDebug(LogLevel.Error, "Audio alarm didn't started");
 
@@ -139,6 +145,8 @@ namespace TrackRadar
             this.receiver = ServiceReceiver.Create(this);
             receiver.UpdatePrefs += Receiver_UpdatePrefs;
             receiver.InfoRequest += Receiver_InfoRequest;
+            receiver.Subscribe += Receiver_Subscribe;
+            receiver.Unsubscribe += Receiver_Unsubscribe;
 
             logDebug(LogLevel.Info, "service started (+testing log)");
 
@@ -153,6 +161,20 @@ namespace TrackRadar
                 logDebug(LogLevel.Verbose, $"didn't receive any location");
             else
                 logDebug(LogLevel.Verbose, $"last known pos {locationToString(loc)}");
+        }
+
+        private void Receiver_Subscribe(object sender, EventArgs e)
+        {
+            int sub = Interlocked.Increment(ref this.subsriptions);
+            if (sub != 1)
+                this.logLocal(LogLevel.Error, $"Something wrong with sub {sub}");
+        }
+
+        private void Receiver_Unsubscribe(object sender, EventArgs e)
+        {
+            int sub = Interlocked.Decrement(ref this.subsriptions);
+            if (sub != 0)
+                this.logLocal(LogLevel.Error, $"Something wrong with unsub {sub}");
         }
 
         private void Receiver_InfoRequest(object sender, EventArgs e)
@@ -195,6 +217,8 @@ namespace TrackRadar
 
                 this.receiver.UpdatePrefs -= Receiver_UpdatePrefs;
                 this.receiver.InfoRequest -= Receiver_InfoRequest;
+                this.receiver.Subscribe -= Receiver_Subscribe;
+                this.receiver.Unsubscribe -= Receiver_Unsubscribe;
 
                 logDebug(LogLevel.Verbose, "unregistering receiver");
 
@@ -249,9 +273,11 @@ namespace TrackRadar
                 this.signalTimer.Update(canAlarm: dist <= 0);
 
                 statistics.UpdateCompleted(dist, location.Accuracy);
-                MainReceiver.SendDistance(this, statistics.SignedDistance);
+                if (hasSubscribers)
+                    MainReceiver.SendDistance(this, statistics.SignedDistance);
             }
         }
+
 
         private static string locationToString(Location location)
         {
@@ -338,7 +364,8 @@ namespace TrackRadar
             try
             {
                 logLocal(level, message);
-                MainReceiver.SendDebug(this, message);
+                if (this.hasSubscribers)
+                    MainReceiver.SendDebug(this, message);
             }
             catch (Exception ex)
             {

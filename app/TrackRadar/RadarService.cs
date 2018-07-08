@@ -34,15 +34,20 @@ namespace TrackRadar
 #endif
         private long lastAlarmAt;
         private RoundQueue<TimedGeoPoint> lastPoints;
-        private bool wasRiding;
-        private bool lastOnTrack;
+        // when we walk, we don't alter the speed (sic!)
+        private double ridingSpeed; // m/s
+        // asymmetric behavior for this flag -- when on track, set it right away, 
+        // but if off track, set in only when we trigger alarm
+        // rationale: when we are back on track playing ACK has only sense if we played OFF before
+        // otherwise we would surprise user with ACK against no  previously existing alarm
+        private bool lastReportedOnTrack;
         private HandlerThread handler;
         private ServiceReceiver receiver;
         private LogFile serviceLog;
         private HotWriter offTrackWriter;
         private int gpsLastStatus;
         private int subsriptions;
-        private bool hasSubscribers => Interlocked.CompareExchange(ref this.subsriptions, 0, 0) > 0;
+        private bool hasSubscribers => this.subsriptions > 0;
 
         public RadarService()
         {
@@ -166,6 +171,7 @@ namespace TrackRadar
         private void Receiver_Subscribe(object sender, EventArgs e)
         {
             int sub = Interlocked.Increment(ref this.subsriptions);
+            this.logLocal(LogLevel.Verbose, $"Subscribing");
             if (sub != 1)
                 this.logLocal(LogLevel.Error, $"Something wrong with sub {sub}");
         }
@@ -173,6 +179,7 @@ namespace TrackRadar
         private void Receiver_Unsubscribe(object sender, EventArgs e)
         {
             int sub = Interlocked.Decrement(ref this.subsriptions);
+            this.logLocal(LogLevel.Verbose, $"Unsubscribing");
             if (sub != 0)
                 this.logLocal(LogLevel.Error, $"Something wrong with unsub {sub}");
         }
@@ -292,10 +299,11 @@ namespace TrackRadar
             var point = new TimedGeoPoint(ticks: now) { Latitude = location.Latitude, Longitude = location.Longitude };
             bool on_track = isOnTrack(point, location.Accuracy, out dist);
 
-            Movement movement;
+            double prev_riding = this.ridingSpeed;
+
             if (!this.lastPoints.Any())
             {
-                movement = Movement.Stopping;
+                this.ridingSpeed = 0;
             }
             else
             {
@@ -305,40 +313,38 @@ namespace TrackRadar
 
                 const double avg_walking_speed = 1.5; // in m/s: https://en.wikipedia.org/wiki/Walking
                 const double avg_riding_speed = 3.5; // in m/s (between erderly and average): https://en.wikipedia.org/wiki/Bicycle_performance
-                double traveled = point.GetDistance(last_point).Meters;
-                if (traveled < avg_walking_speed * time_s_passed)
-                    movement = Movement.Stopping;
-                else if (traveled > avg_riding_speed * time_s_passed)
-                    movement = Movement.Riding;
-                else
-                    movement = Movement.Walking;
+
+                double curr_speed = point.GetDistance(last_point).Meters / time_s_passed;
+                if (curr_speed < avg_walking_speed)
+                    this.ridingSpeed = 0;
+                else if (curr_speed > avg_riding_speed)
+                    this.ridingSpeed = curr_speed;
             }
-
-            bool was_riding = this.wasRiding;
-            // "stopping" resets "riding"
-            if (movement != Movement.Walking)
-                this.wasRiding = movement == Movement.Riding;
-
-            bool last_on_track = this.lastOnTrack;
-            this.lastOnTrack = on_track;
 
             this.lastPoints.Enqueue(point);
 
+            bool last_on_track = this.lastReportedOnTrack;
+
             if (on_track)
             {
+                this.lastReportedOnTrack = true;
+
                 if (!last_on_track)
                 {
                     bool played = alarms.Go(Alarm.PositiveAcknowledgement);
                     logDebug(LogLevel.Verbose, $"Back on track, played {played}");
                 }
-                else if (was_riding && movement == Movement.Stopping)
+                else if (prev_riding > 0 && this.ridingSpeed == 0)
+                {
+                    logDebug(LogLevel.Verbose, $"Previously riding with speed {prev_riding}, current {this.ridingSpeed}");
                     alarms.Go(Alarm.PositiveAcknowledgement);
+                }
 
                 return dist;
             }
 
             // do not trigger alarm if we stopped moving
-            if (movement == Movement.Stopping)
+            if (this.ridingSpeed == 0)
                 return dist;
 
             var passed = (now - this.lastAlarmAt) * 1.0 / Stopwatch.Frequency;
@@ -351,6 +357,7 @@ namespace TrackRadar
             // to take a shortcut, we don't see a thing
 
             this.lastAlarmAt = now;
+            this.lastReportedOnTrack = false;
 
             alarms.Go(Alarm.OffTrack);
             // it should be easier to make a GPX file out of it (we don't create it here because service crashes too often)

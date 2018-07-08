@@ -57,7 +57,7 @@ namespace TrackRadar
                 if (result)
                 {
                     this.isComputing = true;
-                    totalComputingTime -= Stopwatch.GetTimestamp();
+                    totalComputingTime -= now;
                 }
                 else
                     ++this.skippedComputing;

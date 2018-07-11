@@ -129,7 +129,11 @@ namespace TrackRadar
             this.signalTimer = new SignalTimer(logDebug,
                 () => prefs.Value.NoGpsAlarmFirstTimeout,
                 () => prefs.Value.NoGpsAlarmAgainInterval,
-                () => alarms.Go(Alarm.PositiveAcknowledgement),
+                () =>
+                {
+                    bool played = alarms.Go(Alarm.PositiveAcknowledgement);
+                    logDebug(LogLevel.Info, $"ACK played {played} GPS back on");
+                },
               () =>
               {
                   logDebug(LogLevel.Verbose, "GPS OFF");
@@ -332,12 +336,12 @@ namespace TrackRadar
                 if (!last_on_track)
                 {
                     bool played = alarms.Go(Alarm.PositiveAcknowledgement);
-                    logDebug(LogLevel.Verbose, $"Back on track, played {played}");
+                    logDebug(LogLevel.Verbose, $"ACK played {played}, back on track");
                 }
                 else if (prev_riding > 0 && this.ridingSpeed == 0)
                 {
-                    logDebug(LogLevel.Verbose, $"Previously riding with speed {prev_riding}, current {this.ridingSpeed}");
-                    alarms.Go(Alarm.PositiveAcknowledgement);
+                    bool played = alarms.Go(Alarm.PositiveAcknowledgement);
+                    logDebug(LogLevel.Verbose, $"ACK played {played}, previously riding with speed {prev_riding}, current {this.ridingSpeed}");
                 }
 
                 return dist;

@@ -12,11 +12,12 @@ using System.Linq;
 using System.Diagnostics;
 using TrackRadar.Mocks;
 using System.Threading;
+using Android.Hardware;
 
 namespace TrackRadar
 {
     [Service]
-    internal sealed partial class RadarService : Service, ILocationListener
+    internal sealed partial class RadarService : Service, ILocationListener//, ISensorEventListener
     {
         private const double gpsAccuracy = 5; // meters
         private const string geoPointFormat = "0.000000";
@@ -47,6 +48,16 @@ namespace TrackRadar
         private HotWriter offTrackWriter;
         private int gpsLastStatus;
         private int subsriptions;
+/*
+        private SensorManager sensorManager;
+        private long lastShakeTime;
+        private long mLastForce;
+        private int mShakeCount;
+        private float mLastX;
+        private float mLastY;
+        private float mLastZ;
+        private long mLastTime;
+*/
         private bool hasSubscribers => this.subsriptions > 0;
 
         public RadarService()
@@ -85,6 +96,18 @@ namespace TrackRadar
                 Java.Lang.Thread.DefaultUncaughtExceptionHandler
                     = new CustomExceptionHandler(Java.Lang.Thread.DefaultUncaughtExceptionHandler, this.serviceLog);
 
+            /*{
+                // Get a sensor manager to listen for shakes
+                this.sensorManager = (SensorManager)GetSystemService(SensorService);
+
+                // Listen for shakes
+                Sensor accelerometer = sensorManager.GetDefaultSensor(SensorType.Accelerometer);
+                if (accelerometer != null)
+                {
+                    sensorManager.RegisterListener(this, accelerometer, SensorDelay.Normal);
+                }
+            }
+            */
             {
                 this.offTrackWriter = new HotWriter(this, "off-track.gpx", DateTime.UtcNow.AddDays(-2), out bool appened);
                 if (!appened)
@@ -162,6 +185,52 @@ namespace TrackRadar
             return StartCommandResult.Sticky;
         }
 
+        /*
+        // https://stackoverflow.com/questions/5271448/how-to-detect-shake-event-with-android
+        public void OnSensorChanged(SensorEvent evt)
+        {
+           const int SHAKE_TIMEOUT = 500;
+        const long min_time_between_shakes_secs = 1;
+            const float shake_threshold = 2.5f; // m/S**2
+            const float threshold_compare_value = (shake_threshold + SensorManager.GravityEarth) * (shake_threshold + SensorManager.GravityEarth);
+
+            if (evt.Sensor.Type != SensorType.Accelerometer)
+                return;
+
+            long now = Stopwatch.GetTimestamp();
+
+            if ((now - mLastForce) > SHAKE_TIMEOUT)
+                mShakeCount = 0;
+
+            float x = evt.Values[0];
+            float y = evt.Values[1];
+            float z = evt.Values[2];
+
+            long diff = now - mLastTime;
+            double acc = Math.Abs(SensorManager.GravityEarth - Math.Sqrt(Math.Pow(x - mLastX, 2) + Math.Pow(y - mLastY, 2) + Math.Pow(z - mLastZ, 2)));
+            float speed = acc / diff * 10000;
+            if (speed > FORCE_THRESHOLD)
+            {
+                if ((++mShakeCount >= SHAKE_COUNT) && (now - mLastShake > SHAKE_DURATION))
+                {
+                    mLastShake = now;
+                    mShakeCount = 0;
+                    logDebug(LogLevel.Verbose, "Shake, Rattle, and Roll");
+                    alarms.Go(Alarm.PositiveAcknowledgement);
+                }
+                mLastForce = now;
+            }
+            mLastTime = now;
+            this.mLastX = x;
+            this.mLastY = y;
+            this.mLastZ = z;
+        }
+
+        public void OnAccuracyChanged(Sensor sensor, [GeneratedEnum] SensorStatus accuracy)
+        {
+            ;
+        }*/
+
         private void getLastKnownPosition()
         {
             logDebug(LogLevel.Verbose, "Requesting last known position");
@@ -221,6 +290,8 @@ namespace TrackRadar
             try
             {
                 logDebug(LogLevel.Info, "destroying service");
+
+                //sensorManager.UnregisterListener(this);
 
                 this.signalTimer.Dispose();
 

@@ -9,6 +9,7 @@ using Android.Runtime;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Gpx;
 
 namespace TrackRadar
 {
@@ -263,12 +264,18 @@ namespace TrackRadar
                     this.trackInfoTextView.Text = "Track is not available.";
                 else
                 {
-                    int count = Common.ReadGpx(track_path).Sum(it => it.TrackPoints.Count);
+                    var gpx_data = GpxLoader.ReadGpx(track_path,
+                        Length.FromMeters(prefs.OffTrackAlarmDistance),
+                        ex => logDebug(LogLevel.Error, $"Error while loading GPX {ex.Message}"));
+
+                    int count = gpx_data.Tracks.Sum(it => it.TrackPoints.Count);
                     if (count < 1)
                     {
                         track_enabled = false;
                         this.trackInfoTextView.Text = "Empty track.";
                     }
+
+                    logUI($"Found {gpx_data.Crossroads.Count} crossroads");
                 }
 
                 this.trackInfoTextView.Visibility = track_enabled ? ViewStates.Gone : ViewStates.Visible;

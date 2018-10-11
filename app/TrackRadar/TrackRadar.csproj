@@ -58,6 +58,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="GpxLoader.Crossroad.cs" />
+    <Compile Include="GpxData.cs" />
+    <Compile Include="GpxLoader.CrossroadKind.cs" />
+    <Compile Include="GpxLoader.cs" />
     <Compile Include="HotWriter.cs" />
     <Compile Include="LogFile.cs" />
     <Compile Include="Alarm.cs" />

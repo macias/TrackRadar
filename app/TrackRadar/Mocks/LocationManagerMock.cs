@@ -48,8 +48,8 @@ namespace TrackRadar.Mocks
         {
             return new Location(provider.Value)
             {
-                Latitude = this.point.Latitude + (DateTime.Now.Ticks % 83) * 1.0 / 1000,
-                Longitude = this.point.Longitude + (DateTime.Now.Ticks % 83) * 1.0 / 1000
+                Latitude = this.point.Latitude.Degrees + (DateTime.Now.Ticks % 83) * 1.0 / 1000,
+                Longitude = this.point.Longitude.Degrees + (DateTime.Now.Ticks % 83) * 1.0 / 1000
             };
         }
 

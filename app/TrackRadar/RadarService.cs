@@ -48,16 +48,16 @@ namespace TrackRadar
         private HotWriter offTrackWriter;
         private int gpsLastStatus;
         private int subsriptions;
-/*
-        private SensorManager sensorManager;
-        private long lastShakeTime;
-        private long mLastForce;
-        private int mShakeCount;
-        private float mLastX;
-        private float mLastY;
-        private float mLastZ;
-        private long mLastTime;
-*/
+        /*
+                private SensorManager sensorManager;
+                private long lastShakeTime;
+                private long mLastForce;
+                private int mShakeCount;
+                private float mLastX;
+                private float mLastY;
+                private float mLastZ;
+                private long mLastTime;
+        */
         private bool hasSubscribers => this.subsriptions > 0;
 
         public RadarService()
@@ -126,9 +126,14 @@ namespace TrackRadar
             this.handler = new HandlerThread("GPSHandler");
             this.handler.Start();
 
+            loadPreferences();
+
             {
                 long now = Stopwatch.GetTimestamp();
-                this.trackSegments = Common.ReadGpx(Preferences.LoadTrackFileName(this));
+                var gpx_data = GpxLoader.ReadGpx(Preferences.LoadTrackFileName(this),
+                    Length.FromMeters(this.prefs.Value.OffTrackAlarmDistance),
+                    ex => logDebug(LogLevel.Error, $"Error while loading GPX {ex.Message}"));
+                this.trackSegments = gpx_data.Tracks;
                 logDebug(LogLevel.Info, $"{trackSegments.Count} segs, with {trackSegments.Select(it => it.TrackPoints.Count()).Sum()} points in {(Stopwatch.GetTimestamp() - now - 0.0) / Stopwatch.Frequency}s");
             }
 
@@ -137,8 +142,6 @@ namespace TrackRadar
 #else
             this.locationManager = (LocationManager)GetSystemService(Context.LocationService);
 #endif
-
-            loadPreferences();
 
             { // start tracking
                 this.lastAlarmAt = 0;
@@ -371,7 +374,11 @@ namespace TrackRadar
         {
             double dist;
             long now = Stopwatch.GetTimestamp();
-            var point = new TimedGeoPoint(ticks: now) { Latitude = location.Latitude, Longitude = location.Longitude };
+            var point = new TimedGeoPoint(ticks: now)
+            {
+                Latitude = Angle.FromDegrees(location.Latitude),
+                Longitude = Angle.FromDegrees(location.Longitude)
+            };
             bool on_track = isOnTrack(point, location.Accuracy, out dist);
 
             double prev_riding = this.ridingSpeed;

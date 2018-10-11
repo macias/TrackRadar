@@ -5,14 +5,14 @@ namespace TrackRadar
     public struct TimedGeoPoint : IGeoPoint
     {
         public long Ticks { get; }
-        public double Latitude { get; set; }
-        public double Longitude { get; set; }
+        public Angle Latitude { get; set; }
+        public Angle Longitude { get; set; }
 
         public TimedGeoPoint(long ticks)
         {
             this.Ticks = ticks;
-            this.Longitude = 0;
-            this.Latitude = 0;
+            this.Longitude = Angle.Zero;
+            this.Latitude = Angle.Zero;
         }
 
         public override string ToString()

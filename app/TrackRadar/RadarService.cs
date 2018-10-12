@@ -26,6 +26,8 @@ namespace TrackRadar
         private readonly ServiceAlarms alarms;
         private readonly ThreadSafe<Preferences> prefs;
         private IReadOnlyList<GpxTrackSegment> trackSegments;
+        private IReadOnlyList<IGeoPoint> trackCrossroads;
+        private List<bool> alarmedCrossroads;
         private SignalTimer signalTimer;
 
 #if MOCK
@@ -134,6 +136,8 @@ namespace TrackRadar
                     Length.FromMeters(this.prefs.Value.OffTrackAlarmDistance),
                     ex => logDebug(LogLevel.Error, $"Error while loading GPX {ex.Message}"));
                 this.trackSegments = gpx_data.Tracks;
+                this.trackCrossroads = gpx_data.Crossroads;
+                this.alarmedCrossroads = gpx_data.Crossroads.Select(_ => false).ToList();
                 logDebug(LogLevel.Info, $"{trackSegments.Count} segs, with {trackSegments.Select(it => it.TrackPoints.Count()).Sum()} points in {(Stopwatch.GetTimestamp() - now - 0.0) / Stopwatch.Frequency}s");
             }
 
@@ -379,6 +383,9 @@ namespace TrackRadar
                 Latitude = Angle.FromDegrees(location.Latitude),
                 Longitude = Angle.FromDegrees(location.Longitude)
             };
+
+            alarmAboutCrossroad(point);
+
             bool on_track = isOnTrack(point, location.Accuracy, out dist);
 
             double prev_riding = this.ridingSpeed;
@@ -409,12 +416,12 @@ namespace TrackRadar
 
             if (on_track)
             {
-                this.lastReportedOnTrack = true;
-
                 if (!last_on_track)
                 {
                     bool played = alarms.Go(Alarm.PositiveAcknowledgement);
                     logDebug(LogLevel.Verbose, $"ACK played {played}, back on track");
+
+                    this.lastReportedOnTrack = played;
                 }
                 else if (prev_riding > 0 && this.ridingSpeed == 0)
                 {
@@ -438,10 +445,11 @@ namespace TrackRadar
             // we are OFF THE TRACK and alarm the user about it -- user has info about environment, she/he sees if it possible
             // to take a shortcut, we don't see a thing
 
-            this.lastAlarmAt = now;
             this.lastReportedOnTrack = false;
 
-            alarms.Go(Alarm.OffTrack);
+            if (alarms.Go(Alarm.OffTrack))
+                this.lastAlarmAt = now;
+
             // it should be easier to make a GPX file out of it (we don't create it here because service crashes too often)
             offTrackWriter.WriteLine($"<wpt lat=\"{location.Latitude}\" lon=\"{location.Longitude}\"/>");
 
@@ -476,9 +484,33 @@ namespace TrackRadar
             }
         }
 
+        private void alarmAboutCrossroad(TimedGeoPoint point)
+        {
+            bool played = false;
+            int off_track_alarm_distance = prefs.Value.OffTrackAlarmDistance;
+
+            for (int i = 0; i < this.trackCrossroads.Count; ++i)
+            {
+                double dist = this.trackCrossroads[i].GetDistance(point).Meters;
+                if (dist > off_track_alarm_distance * 2)
+                {
+                    this.alarmedCrossroads[i] = false;
+                }
+                else if (dist < off_track_alarm_distance && !this.alarmedCrossroads[i])
+                {
+                    if (!played)
+                        played = alarms.Go(Alarm.Crossroads);
+
+                    this.alarmedCrossroads[i] = played;
+                }
+            }
+        }
+
         /// <param name="dist">negative value means on track</param>
         private bool isOnTrack(TimedGeoPoint point, float accuracy, out double dist)
         {
+            int off_track_alarm_distance = prefs.Value.OffTrackAlarmDistance;
+
             dist = double.MaxValue;
             int closest_track = 0;
             int closest_segment = 0;
@@ -500,7 +532,7 @@ namespace TrackRadar
                         closest_segment = s;
                     }
 
-                    if (d <= prefs.Value.OffTrackAlarmDistance)
+                    if (d <= off_track_alarm_distance)
                     {
                         //logDebug(LogLevel.Verbose, $"On [{s}]" + d.ToString("0.0") + " (" + seg.TrackPoints[s - 1].ToString(geoPointFormat) + " -- "
                         //  + seg.TrackPoints[s].ToString(geoPointFormat) + ") in " + watch.Elapsed.ToString());

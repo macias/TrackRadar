@@ -82,7 +82,7 @@ namespace TrackRadar
         }
         public void Destroy()
         {
-            Common.DestroyMediaPlayer(ref this.player);
+            this.player = Common.DestroyMediaPlayer(this.player);
         }
 
         private void updatePlaybackVolume()

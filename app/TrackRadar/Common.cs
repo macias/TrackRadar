@@ -41,7 +41,7 @@ namespace TrackRadar
         }
         public static void VibrateAlarm(Vibrator vibrator)
         {
-            vibrator.Vibrate(500); //ms
+            vibrator?.Vibrate(500); //ms
         }
         public static MediaPlayer CreateMediaPlayer(Context context, string filename, int resourceId)
         {
@@ -53,15 +53,15 @@ namespace TrackRadar
                 return null;
         }
 
-        public static void DestroyMediaPlayer(ref MediaPlayer player)
+        public static MediaPlayer DestroyMediaPlayer(MediaPlayer player)
         {
-            MediaPlayer p = Interlocked.Exchange(ref player, null);
-            if (p == null)
-                return;
+            if (player == null)
+                return player;
 
-            if (p.IsPlaying)
-                p.Stop();
-            p.Dispose();
+            if (player.IsPlaying)
+                player.Stop();
+            player.Dispose();
+            return null;
         }
         public static void SetVolume(MediaPlayer player, int currVolume)
         {

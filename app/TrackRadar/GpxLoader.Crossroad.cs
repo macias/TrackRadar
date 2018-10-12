@@ -5,13 +5,6 @@ namespace TrackRadar
 {
     internal partial class GpxLoader
     {
-        private enum CrossroadKind
-        {
-            Intersection, // true intersection, X
-            Extension, // -- * --
-            PassingBy, // distant "intersection", > * <
-        }
-
         private sealed class Crossroad
         {
             public IGeoPoint Point { get; internal set; }

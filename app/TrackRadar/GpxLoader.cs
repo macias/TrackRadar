@@ -179,6 +179,32 @@ namespace TrackRadar
                 throw new NotImplementedException($"Cannot decide which intersection to pick.");
         }
 
+        private static bool computeDistances(IGeoPoint cx, GpxTrackSegment track1, int idx1, GpxTrackSegment track2, int idx2,
+            Length len1_ex, ref Length len2_ex, Length limit,
+            Length cx_len1_0, ref Length cx_len1_1, ref Length cx_len2_0, ref Length cx_len2_1)
+        {
+            cx_len1_0 = cx.GetDistance(track1.TrackPoints[idx1 - 1]);
+            // those check are basics -- if the interesection is too far away, it is not really an intersection of the tracks
+            if (cx_len1_0 > len1_ex)
+                return false;
+
+            cx_len1_1 = cx.GetDistance(track1.TrackPoints[idx1]);
+            if (cx_len1_1 > len1_ex)
+                return false;
+
+            len2_ex = track2.TrackPoints[idx2 - 1].GetDistance(track2.TrackPoints[idx2]) + limit;
+
+            cx_len2_0 = cx.GetDistance(track2.TrackPoints[idx2 - 1]);
+            if (cx_len2_0 > len2_ex)
+                return false;
+
+            cx_len2_1 = cx.GetDistance(track2.TrackPoints[idx2]);
+            if (cx_len2_1 > len2_ex)
+                return false;
+
+            return true;
+        }
+
         private static IEnumerable<Crossroad> getIntersections(GpxTrackSegment track1, GpxTrackSegment track2, Length limit)
         {
             for (int idx1 = 1; idx1 < track1.TrackPoints.Count; ++idx1)
@@ -202,81 +228,136 @@ namespace TrackRadar
                         len1_ex = len1 + limit;
                     }
 
-                    // those check are basics -- if the interesection is too far away, it is not really an intersection of the tracks
-                    if (cx_len1_0 > len1_ex)
-                        continue;
+                    Length len2_ex = Length.Zero;
 
-                    Length cx_len1_1 = cx.GetDistance(track1.TrackPoints[idx1]);
-                    if (cx_len1_1 > len1_ex)
-                        continue;
+                    Length cx_len1_1 = Length.Zero;
+                    Length cx_len2_0 = Length.Zero;
+                    Length cx_len2_1 = Length.Zero;
 
+                    if (!computeDistances(cx, track1, idx1, track2, idx2, len1_ex, ref len2_ex, limit,
+                        cx_len1_0, ref cx_len1_1, ref cx_len2_0, ref cx_len2_1))
+                    {
+                        // finding near intersection failed, but maybe it is caused by two almost parallel segments
+                        // in such those two segments could be close to each other, but their intersection could be far away
+                        // like in |\
+                        // in such case we check distances between the endings of the segments
 
-                    Length len2 = track2.TrackPoints[idx2 - 1].GetDistance(track2.TrackPoints[idx2]);
-                    Length len2_ex = len2 + limit;
+                        // on success we don't report intersection kind, because we don't have real one
+                        bool middle1 = idx1 > 1 && idx1 < track1.TrackPoints.Count - 1;
+                        bool middle2 = idx2 > 1 && idx2 < track2.TrackPoints.Count - 1;
 
-                    Length cx_len2_0 = cx.GetDistance(track2.TrackPoints[idx2 - 1]);
-                    if (cx_len2_0 > len2_ex)
-                        continue;
-                    Length cx_len2_1 = cx.GetDistance(track2.TrackPoints[idx2]);
-                    if (cx_len2_1 > len2_ex)
-                        continue;
-
-                    var info = new Crossroad() { Point = cx };
-
-                    // here we have to decide if we have a case of intersection like as "X"
-                    // or if we have extensions of the tracks like "---- * -----"
-                    // extension can only happen at the end or start of the track
-                    Length diff1;
-                    bool middle1 = false;
-                    if (track1.TrackPoints.Count == 2)
-                        diff1 = Length.Max(cx_len1_0, cx_len1_1) - len1;
-                    else if (idx1 == 1)
-                        diff1 = cx_len1_1 - len1;
-                    else if (idx1 == track1.TrackPoints.Count - 1)
-                        diff1 = cx_len1_0 - len1;
+                        Length track_dist;
+                        track_dist = track1.TrackPoints[idx1 - 1].GetDistanceToArcSegment(track2.TrackPoints[idx2 - 1],
+                            track2.TrackPoints[idx2], out cx);
+                        if (track_dist < limit)
+                        {
+                            yield return new Crossroad()
+                            {
+                                Point = cx,
+                                Kind = middle1 || middle2 ? CrossroadKind.PassingBy : CrossroadKind.Extension
+                            };
+                        }
+                        else
+                        {
+                            track_dist = track1.TrackPoints[idx1].GetDistanceToArcSegment(track2.TrackPoints[idx2 - 1],
+                                track2.TrackPoints[idx2], out cx);
+                            if (track_dist < limit)
+                            {
+                                yield return new Crossroad()
+                                {
+                                    Point = cx,
+                                    Kind = middle1 || middle2 ? CrossroadKind.PassingBy : CrossroadKind.Extension
+                                };
+                            }
+                            else
+                            {
+                                track_dist = track2.TrackPoints[idx2 - 1].GetDistanceToArcSegment(track1.TrackPoints[idx1 - 1],
+                                    track1.TrackPoints[idx1], out cx);
+                                if (track_dist < limit)
+                                {
+                                    yield return new Crossroad()
+                                    {
+                                        Point = cx,
+                                        Kind = middle1 || middle2 ? CrossroadKind.PassingBy : CrossroadKind.Extension
+                                    };
+                                }
+                                else
+                                {
+                                    track_dist = track2.TrackPoints[idx2].GetDistanceToArcSegment(track1.TrackPoints[idx1 - 1],
+                                        track1.TrackPoints[idx1], out cx);
+                                    if (track_dist < limit)
+                                    {
+                                        yield return new Crossroad()
+                                        {
+                                            Point = cx,
+                                            Kind = middle1 || middle2 ? CrossroadKind.PassingBy : CrossroadKind.Extension
+                                        };
+                                    }
+                                }
+                            }
+                        }
+                    }
                     else
                     {
-                        diff1 = Length.Zero;
-                        middle1 = true;
-                    }
+                        Length len2 = len2_ex - limit;
 
-                    Length diff2;
-                    bool middle2 = false;
-                    if (track2.TrackPoints.Count == 2)
-                        diff2 = Length.Max(cx_len2_1, cx_len2_0) - len2;
-                    else if (idx2 == 1)
-                        diff2 = cx_len2_1 - len2;
-                    else if (idx2 == track2.TrackPoints.Count - 1)
-                        diff2 = cx_len2_0 - len2;
-                    else
-                    {
-                        diff2 = Length.Zero;
-                        middle2 = true;
-                    }
+                        var info = new Crossroad() { Point = cx };
 
-                    if (middle1 || middle2)
-                    {
-                        // if we are in the middle of track we can get such shape "> * <" or "- *|"
-                        // the overall distance cannot be too far...
-                        if (cx_len1_0 + cx_len1_1 - len1 + cx_len2_0 + cx_len2_1 - len2 > limit)
-                            continue;
-                        // and we have to detect passing by "> * <", if in both cases crossing point is outside
-                        // segment we have passing-by point
-                        else if (cx_len1_0 + cx_len1_1 - len1 > numericAccuracy && cx_len2_0 + cx_len2_1 - len2 > numericAccuracy)
-                            info.Kind = CrossroadKind.PassingBy;
-                    }
-                    // normally extension would look like: ---- x ----
-                    // but we need to give ourselves a little slack, the track can be inaccurate
-                    // so if we have intersection even within the segment but near the edge
-                    // we still consider it as a extension, not "real" intersection
-                    // we need 3 conditions to check the "slack" individually and as a sum
-                    // so there will be no case that one track "borrows" too much slack from the limit
-                    else if (diff1 > -limit && diff2 > -limit && diff1 + diff2 > -limit)
-                    {
-                        info.Kind = CrossroadKind.Extension;
-                    }
+                        // here we have to decide if we have a case of intersection like as "X"
+                        // or if we have extensions of the tracks like "---- * -----"
+                        // extension can only happen at the end or start of the track
+                        Length diff1;
+                        bool middle1 = false;
+                        if (track1.TrackPoints.Count == 2)
+                            diff1 = Length.Max(cx_len1_0, cx_len1_1) - len1;
+                        else if (idx1 == 1)
+                            diff1 = cx_len1_1 - len1;
+                        else if (idx1 == track1.TrackPoints.Count - 1)
+                            diff1 = cx_len1_0 - len1;
+                        else
+                        {
+                            diff1 = Length.Zero;
+                            middle1 = true;
+                        }
 
-                    yield return info;
+                        Length diff2;
+                        bool middle2 = false;
+                        if (track2.TrackPoints.Count == 2)
+                            diff2 = Length.Max(cx_len2_1, cx_len2_0) - len2;
+                        else if (idx2 == 1)
+                            diff2 = cx_len2_1 - len2;
+                        else if (idx2 == track2.TrackPoints.Count - 1)
+                            diff2 = cx_len2_0 - len2;
+                        else
+                        {
+                            diff2 = Length.Zero;
+                            middle2 = true;
+                        }
+
+                        if (middle1 || middle2)
+                        {
+                            // if we are in the middle of track we can get such shape "> * <" or "- *|"
+                            // the overall distance cannot be too far...
+                            if (cx_len1_0 + cx_len1_1 - len1 + cx_len2_0 + cx_len2_1 - len2 > limit)
+                                continue;
+                            // and we have to detect passing-by "> * <", if in both cases crossing point is outside
+                            // segment we have passing-by point
+                            else if (cx_len1_0 + cx_len1_1 - len1 > numericAccuracy && cx_len2_0 + cx_len2_1 - len2 > numericAccuracy)
+                                info.Kind = CrossroadKind.PassingBy;
+                        }
+                        // normally extension would look like: ---- x ----
+                        // but we need to give ourselves a little slack, the track can be inaccurate
+                        // so if we have intersection even within the segment but near the edge
+                        // we still consider it as a extension, not "real" intersection
+                        // we need 3 conditions to check the "slack" individually and as a sum
+                        // so there will be no case that one track "borrows" too much slack from the limit
+                        else if (diff1 > -limit && diff2 > -limit && diff1 + diff2 > -limit)
+                        {
+                            info.Kind = CrossroadKind.Extension;
+                        }
+
+                        yield return info;
+                    }
                 }
             }
         }

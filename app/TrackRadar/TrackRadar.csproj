@@ -62,6 +62,7 @@
     <Compile Include="GpxLoader.Crossroad.cs" />
     <Compile Include="GpxData.cs" />
     <Compile Include="GpxLoader.cs" />
+    <Compile Include="GpxWriter.cs" />
     <Compile Include="HotWriter.cs" />
     <Compile Include="LogFile.cs" />
     <Compile Include="Alarm.cs" />

@@ -73,7 +73,7 @@ namespace TrackRadar
             player.SetVolume(1 - log1, 1 - log1);
         }
 
-  /*@@@      public static List<GpxTrackSegment> ReadGpx(string filename)
+  /*      public static List<GpxTrackSegment> ReadGpx(string filename)
         {
             var result = new List<GpxTrackSegment>();
 

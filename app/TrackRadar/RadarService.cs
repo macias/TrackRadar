@@ -21,13 +21,13 @@ namespace TrackRadar
     {
         private const double gpsAccuracy = 5; // meters
         private const string geoPointFormat = "0.000000";
-
+        private const int crossroadsWarningLimit = 3;
         private readonly Statistics statistics;
         private readonly ServiceAlarms alarms;
         private readonly ThreadSafe<Preferences> prefs;
         private IReadOnlyList<GpxTrackSegment> trackSegments;
         private IReadOnlyList<IGeoPoint> trackCrossroads;
-        private List<bool> alarmedCrossroads;
+        private List<int> alarmedCrossroads;
         private SignalTimer signalTimer;
 
 #if MOCK
@@ -35,7 +35,8 @@ namespace TrackRadar
 #else
         private LocationManager locationManager;
 #endif
-        private long lastAlarmAt;
+        private long lastOffTrackAlarmAt;
+        private long lastCrossroadAlarmAt;
         private RoundQueue<TimedGeoPoint> lastPoints;
         // when we walk, we don't alter the speed (sic!)
         private double ridingSpeed; // m/s
@@ -47,7 +48,8 @@ namespace TrackRadar
         private HandlerThread handler;
         private ServiceReceiver receiver;
         private LogFile serviceLog;
-        private HotWriter offTrackWriter;
+        private GpxWriter offTrackWriter;
+        private GpxWriter crossroadsWriter;
         private int gpsLastStatus;
         private int subsriptions;
         /*
@@ -110,20 +112,9 @@ namespace TrackRadar
                 }
             }
             */
-            {
-                this.offTrackWriter = new HotWriter(this, "off-track.gpx", DateTime.UtcNow.AddDays(-2), out bool appened);
-                if (!appened)
-                {
-                    this.offTrackWriter.WriteLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
-                    this.offTrackWriter.WriteLine("<gpx");
-                    this.offTrackWriter.WriteLine("version=\"1.0\"");
-                    this.offTrackWriter.WriteLine("creator=\"TrackRadar https://github.com/macias/TrackRadar\"");
-                    this.offTrackWriter.WriteLine("xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"");
-                    this.offTrackWriter.WriteLine("xmlns=\"http://www.topografix.com/GPX/1/0\"");
-                    this.offTrackWriter.WriteLine("xsi:schemaLocation=\"http://www.topografix.com/GPX/1/0 http://www.topografix.com/GPX/1/0/gpx.xsd\">");
-                    this.offTrackWriter.WriteLine("<!-- CLOSE gpx TAG MANUALLY -->");
-                }
-            }
+
+            this.offTrackWriter = new GpxWriter(this, "off-track.gpx", DateTime.UtcNow.AddDays(-2));
+            this.crossroadsWriter = new GpxWriter(this, "crossroads.gpx", DateTime.UtcNow.AddDays(-2));
 
             this.handler = new HandlerThread("GPSHandler");
             this.handler.Start();
@@ -137,7 +128,7 @@ namespace TrackRadar
                     ex => logDebug(LogLevel.Error, $"Error while loading GPX {ex.Message}"));
                 this.trackSegments = gpx_data.Tracks;
                 this.trackCrossroads = gpx_data.Crossroads;
-                this.alarmedCrossroads = gpx_data.Crossroads.Select(_ => false).ToList();
+                this.alarmedCrossroads = gpx_data.Crossroads.Select(_ => 0).ToList();
                 logDebug(LogLevel.Info, $"{trackSegments.Count} segs, with {trackSegments.Select(it => it.TrackPoints.Count()).Sum()} points in {(Stopwatch.GetTimestamp() - now - 0.0) / Stopwatch.Frequency}s");
             }
 
@@ -148,7 +139,8 @@ namespace TrackRadar
 #endif
 
             { // start tracking
-                this.lastAlarmAt = 0;
+                this.lastOffTrackAlarmAt = 0;
+                this.lastCrossroadAlarmAt = 0;
                 this.statistics.Reset();
                 locationManager.RequestLocationUpdates(LocationManager.GpsProvider, 0, 0, this, this.handler.Looper);
             }
@@ -330,6 +322,7 @@ namespace TrackRadar
 
                 this.serviceLog.Dispose();
                 this.offTrackWriter.Dispose();
+                this.crossroadsWriter.Dispose();
 
                 base.OnDestroy();
             }
@@ -355,6 +348,11 @@ namespace TrackRadar
             try
             {
                 dist = updateLocation(location);
+            }
+            catch (Exception ex)
+            {
+                logDebug(LogLevel.Error, ex.Message);
+                offTrackWriter.WriteLocation(location, "crash");
             }
             finally
             {
@@ -384,7 +382,8 @@ namespace TrackRadar
                 Longitude = Angle.FromDegrees(location.Longitude)
             };
 
-            alarmAboutCrossroad(point);
+            if (alarmAboutCrossroad(point))
+                crossroadsWriter.WriteLocation(location);
 
             bool on_track = isOnTrack(point, location.Accuracy, out dist);
 
@@ -436,7 +435,7 @@ namespace TrackRadar
             if (this.ridingSpeed == 0)
                 return dist;
 
-            var passed = (now - this.lastAlarmAt) * 1.0 / Stopwatch.Frequency;
+            var passed = (now - this.lastOffTrackAlarmAt) * 1.0 / Stopwatch.Frequency;
             if (passed < prefs.Value.OffTrackAlarmInterval.TotalSeconds)
                 return dist;
 
@@ -448,10 +447,10 @@ namespace TrackRadar
             this.lastReportedOnTrack = false;
 
             if (alarms.Go(Alarm.OffTrack))
-                this.lastAlarmAt = now;
+                this.lastOffTrackAlarmAt = now;
 
             // it should be easier to make a GPX file out of it (we don't create it here because service crashes too often)
-            offTrackWriter.WriteLine($"<wpt lat=\"{location.Latitude}\" lon=\"{location.Longitude}\"/>");
+            offTrackWriter.WriteLocation(location);
 
             return dist;
         }
@@ -484,26 +483,38 @@ namespace TrackRadar
             }
         }
 
-        private void alarmAboutCrossroad(TimedGeoPoint point)
+        private bool alarmAboutCrossroad(TimedGeoPoint point)
         {
+            long now = point.Ticks;
+            var passed = (now - this.lastOffTrackAlarmAt) * 1.0 / Stopwatch.Frequency;
+
             bool played = false;
-            int off_track_alarm_distance = prefs.Value.OffTrackAlarmDistance;
-
-            for (int i = 0; i < this.trackCrossroads.Count; ++i)
+            if (passed < prefs.Value.OffTrackAlarmInterval.TotalSeconds)
             {
-                double dist = this.trackCrossroads[i].GetDistance(point).Meters;
-                if (dist > off_track_alarm_distance * 2)
-                {
-                    this.alarmedCrossroads[i] = false;
-                }
-                else if (dist < off_track_alarm_distance && !this.alarmedCrossroads[i])
-                {
-                    if (!played)
-                        played = alarms.Go(Alarm.Crossroads);
+                int off_track_alarm_distance = prefs.Value.OffTrackAlarmDistance;
 
-                    this.alarmedCrossroads[i] = played;
+                for (int i = 0; i < this.trackCrossroads.Count; ++i)
+                {
+                    double dist = this.trackCrossroads[i].GetDistance(point).Meters;
+                    if (dist > off_track_alarm_distance * 2)
+                    {
+                        this.alarmedCrossroads[i] = 0;
+                    }
+                    else if (dist < off_track_alarm_distance && this.alarmedCrossroads[i] < crossroadsWarningLimit)
+                    {
+                        if (!played)
+                            played = alarms.Go(Alarm.Crossroads);
+
+                        if (played)
+                        {
+                            this.lastCrossroadAlarmAt = now;
+                            ++this.alarmedCrossroads[i];
+                        }
+                    }
                 }
             }
+
+            return played;
         }
 
         /// <param name="dist">negative value means on track</param>

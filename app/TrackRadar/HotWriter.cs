@@ -41,6 +41,13 @@ namespace TrackRadar
                 this.writer.Flush();
             }
         }
+        public void Write(string message)
+        {
+            lock (this.threadLock)
+            {
+                this.writer.Write(message);
+            }
+        }
     }
 
 }

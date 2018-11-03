@@ -13,6 +13,7 @@ using System.Diagnostics;
 using TrackRadar.Mocks;
 using System.Threading;
 using Android.Hardware;
+using Geo;
 
 namespace TrackRadar
 {
@@ -25,7 +26,7 @@ namespace TrackRadar
         private readonly Statistics statistics;
         private readonly ServiceAlarms alarms;
         private readonly ThreadSafe<Preferences> prefs;
-        private IReadOnlyList<GpxTrackSegment> trackSegments;
+        private IGeoMap<Segment> trackMap;
         private IReadOnlyList<IGeoPoint> trackCrossroads;
         private List<int> alarmedCrossroads;
         private SignalTimer signalTimer;
@@ -126,10 +127,10 @@ namespace TrackRadar
                 var gpx_data = GpxLoader.ReadGpx(Preferences.LoadTrackFileName(this),
                     Length.FromMeters(this.prefs.Value.OffTrackAlarmDistance),
                     ex => logDebug(LogLevel.Error, $"Error while loading GPX {ex.Message}"));
-                this.trackSegments = gpx_data.Tracks;
+                this.trackMap = gpx_data.Map;
                 this.trackCrossroads = gpx_data.Crossroads;
                 this.alarmedCrossroads = gpx_data.Crossroads.Select(_ => 0).ToList();
-                logDebug(LogLevel.Info, $"{trackSegments.Count} segs, with {trackSegments.Select(it => it.TrackPoints.Count()).Sum()} points in {(Stopwatch.GetTimestamp() - now - 0.0) / Stopwatch.Frequency}s");
+                logDebug(LogLevel.Info, $"{trackMap.Segments.Count()} segments in {(Stopwatch.GetTimestamp() - now - 0.0) / Stopwatch.Frequency}s");
             }
 
 #if MOCK
@@ -520,45 +521,7 @@ namespace TrackRadar
         /// <param name="dist">negative value means on track</param>
         private bool isOnTrack(TimedGeoPoint point, float accuracy, out double dist)
         {
-            int off_track_alarm_distance = prefs.Value.OffTrackAlarmDistance;
-
-            dist = double.MaxValue;
-            int closest_track = 0;
-            int closest_segment = 0;
-
-            //float accuracy_offset = Math.Max(0, location.Accuracy-statistics.Accuracy);
-
-            for (int t = 0; t < trackSegments.Count; ++t)
-            {
-                GpxTrackSegment seg = trackSegments[t];
-                for (int s = seg.TrackPoints.Count - 1; s > 0; --s)
-                {
-                    double d = Math.Max(0, point.GetDistanceToArcSegment(seg.TrackPoints[s - 1],
-                        seg.TrackPoints[s]).Meters - accuracy);
-
-                    if (dist > d)
-                    {
-                        dist = d;
-                        closest_track = t;
-                        closest_segment = s;
-                    }
-
-                    if (d <= off_track_alarm_distance)
-                    {
-                        //logDebug(LogLevel.Verbose, $"On [{s}]" + d.ToString("0.0") + " (" + seg.TrackPoints[s - 1].ToString(geoPointFormat) + " -- "
-                        //  + seg.TrackPoints[s].ToString(geoPointFormat) + ") in " + watch.Elapsed.ToString());
-                        dist = -dist;
-                        return true;
-                    }
-                }
-            }
-
-
-            //this.serviceLog.WriteLine(LogLevel.Verbose, $"dist {dist.ToString("0.0")} point {point.ToString(geoPointFormat)}"
-            //  + $" segment {trackSegments[closest_track].TrackPoints[closest_segment - 1].ToString(geoPointFormat)}"
-            // + $" -- {trackSegments[closest_track].TrackPoints[closest_segment].ToString(geoPointFormat)}");
-            //logDebug(LogLevel.Verbose, $"Off [{closest_segment}]" + dist.ToString("0.0") + " in " + watch.Elapsed.ToString());
-            return false;
+            return PositionCalculator.IsOnTrack(point, trackMap, Length.FromMeters(prefs.Value.OffTrackAlarmDistance + accuracy), out dist);
         }
 
         public void OnProviderDisabled(string provider)

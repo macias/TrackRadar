@@ -70,7 +70,7 @@ namespace TrackRadar
                 this.gpsInfoTextView = FindViewById<TextView>(Resource.Id.GpsInfoTextView);
                 this.trackInfoTextView = FindViewById<TextView>(Resource.Id.TrackInfoTextView);
                 this.alarmInfoTextView = FindViewById<TextView>(Resource.Id.AlarmInfoTextView);
-                
+
                 this.infoTextView = FindViewById<TextView>(Resource.Id.InfoTextView);
                 this.adapter = new ArrayAdapter<string>(this, Resource.Layout.ListViewItem, new List<string>());
                 ListAdapter = this.adapter;
@@ -268,8 +268,7 @@ namespace TrackRadar
                         Length.FromMeters(prefs.OffTrackAlarmDistance),
                         ex => logDebug(LogLevel.Error, $"Error while loading GPX {ex.Message}"));
 
-                    int count = gpx_data.Tracks.Sum(it => it.TrackPoints.Count);
-                    if (count < 1)
+                    if (!gpx_data.Map.Segments.Any())
                     {
                         track_enabled = false;
                         this.trackInfoTextView.Text = "Empty track.";

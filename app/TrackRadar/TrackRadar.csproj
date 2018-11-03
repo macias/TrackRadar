@@ -58,6 +58,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="GpxLoader.NodePoint.cs" />
     <Compile Include="GpxLoader.CrossroadKind.cs" />
     <Compile Include="GpxLoader.Crossroad.cs" />
     <Compile Include="GpxData.cs" />
@@ -67,6 +68,7 @@
     <Compile Include="LogFile.cs" />
     <Compile Include="Alarm.cs" />
     <Compile Include="CustomExceptionHandler.cs" />
+    <Compile Include="PositionCalculator.cs" />
     <Compile Include="RoundQueue.cs" />
     <Compile Include="TimedGeoPoint.cs" />
     <Compile Include="Message.cs" />
@@ -132,6 +134,12 @@
   </ItemGroup>
   <ItemGroup>
     <AndroidResource Include="Resources\menu\MainMenu.xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Geo\Geo.csproj">
+      <Project>{9F6AC8F7-E396-43FD-8963-8A177F8D2D68}</Project>
+      <Name>Geo</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

@@ -1,8 +1,9 @@
 ﻿namespace TrackRadar
 {
-    internal partial class GpxLoader
+    public partial class GpxLoader
     {
-        private enum CrossroadKind
+        // todo: private
+        internal enum CrossroadKind
         {
             None, // regular point, not a crossroad
 

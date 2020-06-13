@@ -60,80 +60,68 @@ namespace TrackRadar
 		public partial class Id
 		{
 			
-			// aapt resource value: 0x7f080006
-			public const int AlarmInfoTextView = 2131230726;
-			
-			// aapt resource value: 0x7f08001b
-			public const int CrossroadsAudioFileNameButton = 2131230747;
-			
-			// aapt resource value: 0x7f08001c
-			public const int CrossroadsAudioFileNameTextView = 2131230748;
-			
-			// aapt resource value: 0x7f08001d
-			public const int CrossroadsPlayButton = 2131230749;
-			
-			// aapt resource value: 0x7f080020
-			public const int CrossroadsVolumeSeekBar = 2131230752;
-			
-			// aapt resource value: 0x7f080021
-			public const int CrossroadsVolumeTextView = 2131230753;
-			
-			// aapt resource value: 0x7f08003b
-			public const int DefaultItem = 2131230779;
-			
-			// aapt resource value: 0x7f08000b
-			public const int DistanceAudioFileNameButton = 2131230731;
-			
-			// aapt resource value: 0x7f08000c
-			public const int DistanceAudioFileNameTextView = 2131230732;
-			
-			// aapt resource value: 0x7f08002d
-			public const int DistanceEditText = 2131230765;
-			
-			// aapt resource value: 0x7f08000d
-			public const int DistancePlayButton = 2131230733;
+			// aapt resource value: 0x7f080017
+			public const int AlarmInfoTextView = 2131230743;
 			
 			// aapt resource value: 0x7f080010
-			public const int DistanceVolumeSeekBar = 2131230736;
+			public const int AverageSpeedTextView = 2131230736;
 			
-			// aapt resource value: 0x7f080011
-			public const int DistanceVolumeTextView = 2131230737;
+			// aapt resource value: 0x7f080062
+			public const int ClearStatsMenuItem = 2131230818;
 			
-			// aapt resource value: 0x7f080008
-			public const int EnableButton = 2131230728;
+			// aapt resource value: 0x7f080035
+			public const int CrossroadsAudioFileNameButton = 2131230773;
 			
-			// aapt resource value: 0x7f080007
-			public const int GpsInfoTextView = 2131230727;
+			// aapt resource value: 0x7f080036
+			public const int CrossroadsAudioFileNameTextView = 2131230774;
 			
-			// aapt resource value: 0x7f080013
-			public const int GpsLostAudioFileNameButton = 2131230739;
+			// aapt resource value: 0x7f080037
+			public const int CrossroadsPlayButton = 2131230775;
 			
-			// aapt resource value: 0x7f080014
-			public const int GpsLostAudioFileNameTextView = 2131230740;
+			// aapt resource value: 0x7f08003a
+			public const int CrossroadsVolumeSeekBar = 2131230778;
 			
-			// aapt resource value: 0x7f080015
-			public const int GpsLostPlayButton = 2131230741;
+			// aapt resource value: 0x7f08003b
+			public const int CrossroadsVolumeTextView = 2131230779;
 			
-			// aapt resource value: 0x7f080018
-			public const int GpsLostVolumeSeekBar = 2131230744;
+			// aapt resource value: 0x7f080065
+			public const int DefaultItem = 2131230821;
 			
 			// aapt resource value: 0x7f080019
-			public const int GpsLostVolumeTextView = 2131230745;
+			public const int EnableButton = 2131230745;
 			
-			// aapt resource value: 0x7f080023
-			public const int GpsOnAudioFileNameButton = 2131230755;
-			
-			// aapt resource value: 0x7f080024
-			public const int GpsOnAudioFileNameTextView = 2131230756;
+			// aapt resource value: 0x7f080018
+			public const int GpsInfoTextView = 2131230744;
 			
 			// aapt resource value: 0x7f080025
-			public const int GpsOnPlayButton = 2131230757;
+			public const int GpsLostAudioFileNameButton = 2131230757;
 			
-			// aapt resource value: 0x7f080028
-			public const int GpsOnVolumeSeekBar = 2131230760;
+			// aapt resource value: 0x7f080026
+			public const int GpsLostAudioFileNameTextView = 2131230758;
 			
-			// aapt resource value: 0x7f080029
-			public const int GpsOnVolumeTextView = 2131230761;
+			// aapt resource value: 0x7f080027
+			public const int GpsLostPlayButton = 2131230759;
+			
+			// aapt resource value: 0x7f08002a
+			public const int GpsLostVolumeSeekBar = 2131230762;
+			
+			// aapt resource value: 0x7f08002b
+			public const int GpsLostVolumeTextView = 2131230763;
+			
+			// aapt resource value: 0x7f08002d
+			public const int GpsOnAudioFileNameButton = 2131230765;
+			
+			// aapt resource value: 0x7f08002e
+			public const int GpsOnAudioFileNameTextView = 2131230766;
+			
+			// aapt resource value: 0x7f08002f
+			public const int GpsOnPlayButton = 2131230767;
+			
+			// aapt resource value: 0x7f080032
+			public const int GpsOnVolumeSeekBar = 2131230770;
+			
+			// aapt resource value: 0x7f080033
+			public const int GpsOnVolumeTextView = 2131230771;
 			
 			// aapt resource value: 0x7f080004
 			public const int InfoTextView = 2131230724;
@@ -141,14 +129,56 @@ namespace TrackRadar
 			// aapt resource value: 0x7f080000
 			public const int ListViewItem = 2131230720;
 			
-			// aapt resource value: 0x7f080038
-			public const int NoGpsIntervalEditText = 2131230776;
+			// aapt resource value: 0x7f080052
+			public const int NoGpsIntervalEditText = 2131230802;
 			
-			// aapt resource value: 0x7f080035
-			public const int NoGpsTimeoutEditText = 2131230773;
+			// aapt resource value: 0x7f08004f
+			public const int NoGpsTimeoutEditText = 2131230799;
 			
-			// aapt resource value: 0x7f080031
-			public const int OffTrackIntervalEditText = 2131230769;
+			// aapt resource value: 0x7f08001e
+			public const int OffTrackDistanceAudioFileNameButton = 2131230750;
+			
+			// aapt resource value: 0x7f08001f
+			public const int OffTrackDistanceAudioFileNameTextView = 2131230751;
+			
+			// aapt resource value: 0x7f08003f
+			public const int OffTrackDistanceEditText = 2131230783;
+			
+			// aapt resource value: 0x7f080020
+			public const int OffTrackDistancePlayButton = 2131230752;
+			
+			// aapt resource value: 0x7f080023
+			public const int OffTrackDistanceVolumeSeekBar = 2131230755;
+			
+			// aapt resource value: 0x7f080024
+			public const int OffTrackDistanceVolumeTextView = 2131230756;
+			
+			// aapt resource value: 0x7f080043
+			public const int OffTrackIntervalEditText = 2131230787;
+			
+			// aapt resource value: 0x7f08001b
+			public const int RequestGpsCheckBox = 2131230747;
+			
+			// aapt resource value: 0x7f080047
+			public const int RestThresholdEditText = 2131230791;
+			
+			// aapt resource value: 0x7f080008
+			public const int RidingDistanceTextView = 2131230728;
+			
+			// aapt resource value: 0x7f08004b
+			public const int RidingThresholdEditText = 2131230795;
+			
+			// aapt resource value: 0x7f080063
+			public const int SettingsMenuItem = 2131230819;
+			
+			// aapt resource value: 0x7f08001a
+			public const int ShowTurnAheadCheckBox = 2131230746;
+			
+			// aapt resource value: 0x7f080014
+			public const int TopSpeedTextView = 2131230740;
+			
+			// aapt resource value: 0x7f08000c
+			public const int TotalClimbsTextView = 2131230732;
 			
 			// aapt resource value: 0x7f080002
 			public const int TrackButton = 2131230722;
@@ -156,89 +186,185 @@ namespace TrackRadar
 			// aapt resource value: 0x7f080003
 			public const int TrackFileNameTextView = 2131230723;
 			
-			// aapt resource value: 0x7f080005
-			public const int TrackInfoTextView = 2131230725;
+			// aapt resource value: 0x7f080016
+			public const int TrackInfoTextView = 2131230742;
 			
-			// aapt resource value: 0x7f08003a
-			public const int UndoItem = 2131230778;
+			// aapt resource value: 0x7f080056
+			public const int TurnAheadDistanceEditText = 2131230806;
 			
-			// aapt resource value: 0x7f080009
-			public const int VibrateCheckBox = 2131230729;
+			// aapt resource value: 0x7f08005a
+			public const int TurnAheadIntervalEditText = 2131230810;
+			
+			// aapt resource value: 0x7f080061
+			public const int TurnAheadMenuItem = 2131230817;
+			
+			// aapt resource value: 0x7f08005d
+			public const int TurnAheadScreenTimeoutEditText = 2131230813;
+			
+			// aapt resource value: 0x7f080064
+			public const int UndoItem = 2131230820;
+			
+			// aapt resource value: 0x7f08001c
+			public const int VibrateCheckBox = 2131230748;
 			
 			// aapt resource value: 0x7f080001
 			public const int linearLayout1 = 2131230721;
 			
-			// aapt resource value: 0x7f080012
-			public const int linearLayout12 = 2131230738;
+			// aapt resource value: 0x7f08005f
+			public const int linearLayout111 = 2131230815;
 			
-			// aapt resource value: 0x7f080016
-			public const int linearLayout13 = 2131230742;
+			// aapt resource value: 0x7f080054
+			public const int linearLayout115 = 2131230804;
 			
-			// aapt resource value: 0x7f08002b
-			public const int linearLayout15 = 2131230763;
+			// aapt resource value: 0x7f080058
+			public const int linearLayout1151 = 2131230808;
 			
-			// aapt resource value: 0x7f08000a
-			public const int linearLayout2 = 2131230730;
+			// aapt resource value: 0x7f08005c
+			public const int linearLayout11517 = 2131230812;
 			
-			// aapt resource value: 0x7f080022
-			public const int linearLayout22 = 2131230754;
-			
-			// aapt resource value: 0x7f08001a
-			public const int linearLayout221 = 2131230746;
-			
-			// aapt resource value: 0x7f080026
-			public const int linearLayout23 = 2131230758;
-			
-			// aapt resource value: 0x7f08001e
-			public const int linearLayout231 = 2131230750;
+			// aapt resource value: 0x7f080006
+			public const int linearLayout115171 = 2131230726;
 			
 			// aapt resource value: 0x7f08000e
-			public const int linearLayout3 = 2131230734;
+			public const int linearLayout115172 = 2131230734;
 			
-			// aapt resource value: 0x7f08002f
-			public const int linearLayout4 = 2131230767;
+			// aapt resource value: 0x7f080012
+			public const int linearLayout115173 = 2131230738;
 			
-			// aapt resource value: 0x7f080033
-			public const int linearLayout46 = 2131230771;
+			// aapt resource value: 0x7f08000a
+			public const int linearLayout115174 = 2131230730;
 			
-			// aapt resource value: 0x7f080037
-			public const int linearLayout6 = 2131230775;
+			// aapt resource value: 0x7f080005
+			public const int linearLayout12 = 2131230725;
 			
-			// aapt resource value: 0x7f080039
-			public const int menu1 = 2131230777;
+			// aapt resource value: 0x7f080028
+			public const int linearLayout13 = 2131230760;
 			
-			// aapt resource value: 0x7f080017
-			public const int textView12 = 2131230743;
+			// aapt resource value: 0x7f08003d
+			public const int linearLayout15 = 2131230781;
 			
-			// aapt resource value: 0x7f08000f
-			public const int textView2 = 2131230735;
+			// aapt resource value: 0x7f08001d
+			public const int linearLayout2 = 2131230749;
 			
-			// aapt resource value: 0x7f080027
-			public const int textView22 = 2131230759;
+			// aapt resource value: 0x7f080045
+			public const int linearLayout202006051 = 2131230789;
 			
-			// aapt resource value: 0x7f08001f
-			public const int textView224 = 2131230751;
-			
-			// aapt resource value: 0x7f080030
-			public const int textView4 = 2131230768;
-			
-			// aapt resource value: 0x7f080034
-			public const int textView45 = 2131230772;
-			
-			// aapt resource value: 0x7f080036
-			public const int textView48 = 2131230774;
-			
-			// aapt resource value: 0x7f08002a
-			public const int textView49 = 2131230762;
+			// aapt resource value: 0x7f080049
+			public const int linearLayout202006052 = 2131230793;
 			
 			// aapt resource value: 0x7f08002c
-			public const int textView5 = 2131230764;
+			public const int linearLayout22 = 2131230764;
 			
-			// aapt resource value: 0x7f080032
-			public const int textView50 = 2131230770;
+			// aapt resource value: 0x7f080034
+			public const int linearLayout221 = 2131230772;
 			
-			// aapt resource value: 0x7f08002e
-			public const int textView8 = 2131230766;
+			// aapt resource value: 0x7f080030
+			public const int linearLayout23 = 2131230768;
+			
+			// aapt resource value: 0x7f080038
+			public const int linearLayout231 = 2131230776;
+			
+			// aapt resource value: 0x7f080021
+			public const int linearLayout3 = 2131230753;
+			
+			// aapt resource value: 0x7f080041
+			public const int linearLayout4 = 2131230785;
+			
+			// aapt resource value: 0x7f08004d
+			public const int linearLayout46 = 2131230797;
+			
+			// aapt resource value: 0x7f080051
+			public const int linearLayout6 = 2131230801;
+			
+			// aapt resource value: 0x7f080029
+			public const int textView12 = 2131230761;
+			
+			// aapt resource value: 0x7f080022
+			public const int textView2 = 2131230754;
+			
+			// aapt resource value: 0x7f080044
+			public const int textView202006051 = 2131230788;
+			
+			// aapt resource value: 0x7f080053
+			public const int textView20200605121 = 2131230803;
+			
+			// aapt resource value: 0x7f080046
+			public const int textView202006052 = 2131230790;
+			
+			// aapt resource value: 0x7f080048
+			public const int textView202006053 = 2131230792;
+			
+			// aapt resource value: 0x7f08004a
+			public const int textView202006054 = 2131230794;
+			
+			// aapt resource value: 0x7f080060
+			public const int textView211 = 2131230816;
+			
+			// aapt resource value: 0x7f080031
+			public const int textView22 = 2131230769;
+			
+			// aapt resource value: 0x7f080039
+			public const int textView224 = 2131230777;
+			
+			// aapt resource value: 0x7f080042
+			public const int textView4 = 2131230786;
+			
+			// aapt resource value: 0x7f08004e
+			public const int textView45 = 2131230798;
+			
+			// aapt resource value: 0x7f080050
+			public const int textView48 = 2131230800;
+			
+			// aapt resource value: 0x7f08003c
+			public const int textView49 = 2131230780;
+			
+			// aapt resource value: 0x7f08003e
+			public const int textView5 = 2131230782;
+			
+			// aapt resource value: 0x7f08004c
+			public const int textView50 = 2131230796;
+			
+			// aapt resource value: 0x7f080055
+			public const int textView556 = 2131230805;
+			
+			// aapt resource value: 0x7f080059
+			public const int textView5561 = 2131230809;
+			
+			// aapt resource value: 0x7f080007
+			public const int textView55617 = 2131230727;
+			
+			// aapt resource value: 0x7f08000f
+			public const int textView556172 = 2131230735;
+			
+			// aapt resource value: 0x7f080013
+			public const int textView556173 = 2131230739;
+			
+			// aapt resource value: 0x7f08000b
+			public const int textView556175 = 2131230731;
+			
+			// aapt resource value: 0x7f080009
+			public const int textView55617a = 2131230729;
+			
+			// aapt resource value: 0x7f08000d
+			public const int textView55617b = 2131230733;
+			
+			// aapt resource value: 0x7f080011
+			public const int textView55617c = 2131230737;
+			
+			// aapt resource value: 0x7f080015
+			public const int textView55617d = 2131230741;
+			
+			// aapt resource value: 0x7f080040
+			public const int textView8 = 2131230784;
+			
+			// aapt resource value: 0x7f080057
+			public const int textView881 = 2131230807;
+			
+			// aapt resource value: 0x7f08005b
+			public const int textView8812 = 2131230811;
+			
+			// aapt resource value: 0x7f08005e
+			public const int textView88127 = 2131230814;
 			
 			static Id()
 			{
@@ -264,6 +390,9 @@ namespace TrackRadar
 			
 			// aapt resource value: 0x7f030003
 			public const int Settings = 2130903043;
+			
+			// aapt resource value: 0x7f030004
+			public const int TurnAhead = 2130903044;
 			
 			static Layout()
 			{

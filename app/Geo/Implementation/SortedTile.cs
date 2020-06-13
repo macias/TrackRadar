@@ -1,25 +1,24 @@
-﻿using Gpx;
+﻿using MathUnit;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace Geo.Implementation
 {
-    internal sealed class SortedTile<T> : ITile<T>
-         where T : ISegment
+    internal sealed class SortedTile : ITile
     {
-        public IEnumerable<T> Segments => this.map.Values.SelectMany(lon => lon.Values.SelectMany(seg => seg)).Distinct();
+        public IEnumerable<ISegment> Segments => this.map.Values.SelectMany(lon => lon.Values.SelectMany(seg => seg)).Distinct();
 
         // latitude (vertical angle, north-south) -> longitude
-        private readonly SortedList<Angle, SortedList<Angle, List<T>>> map;
+        private readonly SortedList<Angle, SortedList<Angle, List<ISegment>>> map;
 
         /// <param name="segments">half-data, pass only A-B form, not A-B and B-A</param>
-        public SortedTile(IEnumerable<T> segments)
+        public SortedTile(IEnumerable<ISegment> segments)
         {
-            this.map = new SortedList<Angle, SortedList<Angle, List<T>>>(build(segments));
+            this.map = new SortedList<Angle, SortedList<Angle, List<ISegment>>>(build(segments));
         }
 
-        private static Dictionary<Angle, SortedList<Angle, List<T>>> build(IEnumerable<T> segments)
+        private static Dictionary<Angle, SortedList<Angle, List<ISegment>>> build(IEnumerable<ISegment> segments)
         {
             // insertion for SortedList is slow, O(n), so at top-level we initially use Dictionary to populate
             // entries all at once, but for lower level we gamble that the the number of entries is pretty low
@@ -27,9 +26,9 @@ namespace Geo.Implementation
             // Dictionary<Dictionary<...>> and transforming it to SortedList<SortedList<...>> gave 7 seconds
             // Dictionary<SortedList<...>> and pushing it directly to constructor (current approach) gave 4 seconds
 
-            var map = new Dictionary<Angle, SortedList<Angle, List<T>>>();
+            var map = new Dictionary<Angle, SortedList<Angle, List<ISegment>>>();
 
-            foreach (T seg in segments)
+            foreach (ISegment seg in segments)
             {
                 getTargets(map, seg.A).Add(seg);
                 getTargets(map, seg.B).Add(seg);
@@ -38,17 +37,17 @@ namespace Geo.Implementation
             return map;
         }
 
-        private static List<T> getTargets(Dictionary<Angle, SortedList<Angle, List<T>>> map, IGeoPoint point)
+        private static List<ISegment> getTargets(Dictionary<Angle, SortedList<Angle, List<ISegment>>> map, in GeoPoint point)
         {
-            if (!map.TryGetValue(point.Latitude, out SortedList<Angle, List<T>> lon))
+            if (!map.TryGetValue(point.Latitude, out SortedList<Angle, List<ISegment>> lon))
             {
-                lon = new SortedList<Angle, List<T>>();
+                lon = new SortedList<Angle, List<ISegment>>();
                 map.Add(point.Latitude, lon);
             }
 
-            if (!lon.TryGetValue(point.Longitude, out List<T> targets))
+            if (!lon.TryGetValue(point.Longitude, out List<ISegment> targets))
             {
-                targets = new List<T>();
+                targets = new List<ISegment>();
                 lon.Add(point.Longitude, targets);
             }
 
@@ -99,49 +98,55 @@ namespace Geo.Implementation
                 return idx;
         }
 
-        public bool FindCloseEnough<P>(P point, Length limit, ref T nearby, ref Length distance)
-            where P : IGeoPoint
+        public bool FindCloseEnough(in GeoPoint point, Length limit, ref ISegment nearby, ref Length? distance)
         {
             return find(point, limit, ref nearby, ref distance, returnFirst: false);
         }
 
-        public bool IsWithinLimit<P>(P point, Length limit, out Length distance)
-            where P : IGeoPoint
+        public bool FindClosest(in GeoPoint point, ref ISegment nearby, ref Length? distance)
         {
-            distance = Length.MaxValue;
-            T nearby = default(T);
+            return find(point, limit: Length.Zero, nearby: ref nearby, bestDistance: ref distance, returnFirst: false);
+        }
+
+        public bool IsWithinLimit(in GeoPoint point, Length limit, out Length? distance)
+        {
+            distance = null;
+            ISegment nearby = default(ISegment);
 
             return find(point, limit, ref nearby, ref distance, returnFirst: true);
         }
 
-        private bool find<P>(P point, Length limit, ref T nearby, ref Length bestDistance, bool returnFirst)
-            where P : IGeoPoint
+        private bool find(in GeoPoint point, Length limit, ref ISegment nearby, ref Length? bestDistance, bool returnFirst)
         {
             if (this.map.Count == 0)
                 return false;
 
-            var visited = new HashSet<T>();
+            var visited = new HashSet<ISegment>();
+
+            bool found = false;
 
             foreach (var lat_idx in sortedIndices(this.map.Keys, point.Latitude))
             {
                 foreach (var lon_idx in sortedIndices(this.map.Values[lat_idx].Keys, point.Longitude))
                 {
-                    foreach (T segment in this.map.Values[lat_idx].Values[lon_idx])
+                    foreach (ISegment segment in this.map.Values[lat_idx].Values[lon_idx])
                     {
                         if (!visited.Add(segment))
                             continue;
 
                         Length dist = point.GetDistanceToArcSegment(segment.A, segment.B);
 
-                        if (dist < bestDistance || (dist == bestDistance && segment.CompareImportance(nearby) == Ordering.Greater))
+                        if (bestDistance==null || dist < bestDistance || (dist == bestDistance && segment.CompareImportance(nearby) == Ordering.Greater))
                         {
                             bestDistance = dist;
                             nearby = segment;
+                            found = true;
                         }
 
                         // if we are below limit with our best
                         // and either we have to return fast, 
-                        // or we crossed the limits (but we already found something good), return
+                        // or we crossed the limits (but we already found something good) and we know it won't be better
+                        // return
                         if (bestDistance <= limit && (returnFirst || dist > limit))
                         {
                             return true;
@@ -151,7 +156,20 @@ namespace Geo.Implementation
                 }
             }
 
-            return false;
+            return found && limit == Length.Zero;
+        }
+
+        public IEnumerable<IMeasuredPinnedSegment> FindAll( GeoPoint point, Length limit)
+        {
+            foreach (ISegment segment in this.Segments)
+            {
+                Length dist = point.GetDistanceToArcSegment(segment.A, segment.B, out GeoPoint cx);
+
+                if (dist <= limit)
+                {
+                    yield return MeasuredPinnedSegment.Create(cx, segment, dist);
+                }
+            }
         }
     }
 }

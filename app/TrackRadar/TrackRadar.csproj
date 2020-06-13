@@ -33,6 +33,9 @@
     <EnableLLVM>false</EnableLLVM>
     <BundleAssemblies>false</BundleAssemblies>
     <EmbedAssembliesIntoApk>true</EmbedAssembliesIntoApk>
+    <NoWarn>CS0618</NoWarn>
+    <LangVersion>7.2</LangVersion>
+    <AndroidSupportedAbis>armeabi-v7a;x86;x86_64</AndroidSupportedAbis>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -45,11 +48,14 @@
     <WarningLevel>4</WarningLevel>
     <AndroidUseSharedRuntime>False</AndroidUseSharedRuntime>
     <AndroidLinkMode>SdkOnly</AndroidLinkMode>
+    <LangVersion>7.2</LangVersion>
+    <NoWarn>CS0618</NoWarn>
+    <AotAssemblies>false</AotAssemblies>
+    <EnableLLVM>false</EnableLLVM>
+    <BundleAssemblies>false</BundleAssemblies>
+    <AndroidSupportedAbis />
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Gpx">
-      <HintPath>..\Dll\Gpx.dll</HintPath>
-    </Reference>
     <Reference Include="Mono.Android" />
     <Reference Include="mscorlib" />
     <Reference Include="System" />
@@ -58,27 +64,39 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Implementation\GpxDirtyWriter.cs" />
+    <Compile Include="Implementation\Option.cs" />
+    <Compile Include="Implementation\LinqExtension.cs" />
+    <Compile Include="Implementation\WrapTimer.cs" />
+    <Compile Include="Implementation\ITimer.cs" />
+    <Compile Include="IPreferences.cs" />
+    <Compile Include="IRadarService.cs" />
+    <Compile Include="ITimeStamper.cs" />
+    <Compile Include="Implementation\TimeStamper.cs" />
+    <Compile Include="Implementation\RadarCore.cs" />
+    <Compile Include="Implementation\SignalChecker2.cs" />
+    <Compile Include="TurnAheadActivity.cs" />
+    <Compile Include="TrackRadarApp.cs" />
     <Compile Include="GpxLoader.NodePoint.cs" />
     <Compile Include="GpxLoader.CrossroadKind.cs" />
     <Compile Include="GpxLoader.Crossroad.cs" />
     <Compile Include="GpxData.cs" />
     <Compile Include="GpxLoader.cs" />
-    <Compile Include="GpxWriter.cs" />
+    <Compile Include="Implementation\GpxWriter.cs" />
     <Compile Include="HotWriter.cs" />
     <Compile Include="LogFile.cs" />
     <Compile Include="Alarm.cs" />
     <Compile Include="CustomExceptionHandler.cs" />
     <Compile Include="PositionCalculator.cs" />
-    <Compile Include="RoundQueue.cs" />
-    <Compile Include="TimedGeoPoint.cs" />
+    <Compile Include="Implementation\RoundQueue.cs" />
+    <Compile Include="TimeExtension.cs" />
     <Compile Include="Message.cs" />
-    <Compile Include="Mocks\LocationManagerMock.cs" />
     <Compile Include="Settings2Activity.cs" />
     <Compile Include="IntEditTextPreference.cs" />
     <Compile Include="AudioSettings.cs" />
     <Compile Include="LogLevel.cs" />
     <Compile Include="ThreadSafe.cs" />
-    <Compile Include="SignalTimer.cs" />
+    <Compile Include="Implementation\SignalChecker.cs" />
     <Compile Include="ServiceAlarms.cs" />
     <Compile Include="Statistics.cs" />
     <Compile Include="MessageEventArgs.cs" />
@@ -136,10 +154,24 @@
     <AndroidResource Include="Resources\menu\MainMenu.xml" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\..\Gpx\Gpx\Gpx.csproj">
+      <Project>{f9fd5690-412a-4d7f-97b1-d738418a276f}</Project>
+      <Name>Gpx</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\Gpx\MathUnit\MathUnit.csproj">
+      <Project>{bf2b89b3-a869-4b98-8ad3-efb157b9b57e}</Project>
+      <Name>MathUnit</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Geo\Geo.csproj">
-      <Project>{9F6AC8F7-E396-43FD-8963-8A177F8D2D68}</Project>
+      <Project>{3acbd9b2-3289-49de-a41f-c3d9edc4f990}</Project>
       <Name>Geo</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <AndroidResource Include="Resources\layout\TurnAhead.axml">
+      <Generator>MSBuild:UpdateGeneratedFiles</Generator>
+      <SubType>Designer</SubType>
+    </AndroidResource>
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

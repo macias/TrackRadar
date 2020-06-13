@@ -1,6 +1,4 @@
-﻿using Gpx;
-
-namespace Geo
+﻿namespace Geo
 {
     public enum Ordering
     {

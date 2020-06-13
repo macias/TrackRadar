@@ -4,6 +4,7 @@
     { 
         Verbose,
         Info,
+        Warning,
         Error
     }
 }

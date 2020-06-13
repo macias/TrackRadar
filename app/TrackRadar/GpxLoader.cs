@@ -1,36 +1,54 @@
 ﻿using Geo;
 using Gpx;
+using MathUnit;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using TrackRadar.Implementation;
 
 namespace TrackRadar
 {
-    internal partial class GpxLoader
+    public partial class GpxLoader
     {
+        private static GeoPoint FromGpx(IGpxPoint point)
+        {
+            return new GeoPoint(latitude: point.Latitude, longitude: point.Longitude);
+        }
+
         private static readonly Length numericAccuracy = Length.FromMeters(1);
+
+        /*public static GpxData ReadBasicGpx(string filename)
+        {
+            LoadGpxData(filename, out List<GpxTrackSegment> tracks, out List<IGpxPoint> waypoints);
+
+            var segments = new List<Segment>();
+            foreach (var track in tracks)
+                for (int i = 1; i < track.TrackPoints.Count; ++i)
+                    segments.Add(new Segment(GeoPoint.FromGpx(track.TrackPoints[i - 1]), GeoPoint.FromGpx(track.TrackPoints[i])));
+
+            return new GpxData(segments, waypoints);
+        }*/
 
         public static GpxData ReadGpx(string filename, Length offTrackDistance, Action<Exception> onError)
         {
-            return ReadGpxAsync(filename, offTrackDistance, onError).Result;
-        }
+            LoadGpxData(filename, out List<List<GpxLoader.NodePoint>> tracks, out List<GeoPoint> waypoints);
 
-        public static async Task<GpxData> ReadGpxAsync(string filename, Length offTrackDistance, Action<Exception> onError)
-        {
-            await LoadGpxDataAsync(filename, out List<GpxTrackSegment> tracks, out List<IGeoPoint> waypoints).ConfigureAwait(false);
+            // todo: bug -- this method swaps segments A-B into B-A
+            // List<List<GpxLoader.NodePoint>> rich_tracks = tracks
+            //   .Select(seg => seg.TrackPoints.Select((GpxTrackPoint p) => new GpxLoader.NodePoint() { Point = GeoPoint.FromGpx(p) })
+            // .ToList()).ToList();
 
-            List<List<NodePoint>> rich_tracks = tracks
-                .Select(seg => seg.TrackPoints.Select((IGeoPoint p) => new NodePoint() { Point = p })
-                .ToList()).ToList();
+            IEnumerable<Segment> segments = null;
 
-            IGeoMap<Segment> map = null;
+            //List<XGeoPoint> waypoints = gpx_waypoints.Select(it => GeoPoint.FromGpx(it)).ToList();
 
             try
             {
                 // add only distant intersections to user already marked waypoints
-                IEnumerable<IGeoPoint> crossroads = filterDistant(waypoints,
-                    findCrossroads(rich_tracks, offTrackDistance, out map),
+                IEnumerable<GeoPoint> crossroads = filterDistant(waypoints,
+                    findCrossroads(tracks, offTrackDistance, out segments),
                     offTrackDistance);
                 waypoints.AddRange(crossroads);
             }
@@ -39,138 +57,155 @@ namespace TrackRadar
                 onError?.Invoke(ex);
             }
 
-            return new GpxData() { Crossroads = waypoints, Map = map };
+            return new GpxData(segments, waypoints);
         }
 
-        public static Task LoadGpxDataAsync(string filename, out List<GpxTrackSegment> tracks, out List<IGeoPoint> waypoints)
+        internal static void LoadGpxData(string filename, out List<List<GpxLoader.NodePoint>> tracks, out List<GeoPoint> waypoints)
         {
-            tracks = new List<GpxTrackSegment>();
-            waypoints = new List<IGeoPoint>();
+            tracks = new List<List<GpxLoader.NodePoint>>();
+            waypoints = new List<GeoPoint>();
 
-            return loadGpxAsync(filename, tracks, waypoints);
+            loadGpx(filename, tracks, waypoints);
         }
 
-        private static async Task loadGpxAsync(string filename, List<GpxTrackSegment> tracks, List<IGeoPoint> waypoints)
+        private static void loadGpx(string filename, List<List<GpxLoader.NodePoint>> tracks, List<GeoPoint> waypoints)
         {
-            using (var input = new System.IO.FileStream(filename, System.IO.FileMode.Open, System.IO.FileAccess.Read))
+            using (GpxIOFactory.CreateReader(filename, out IGpxReader reader))
             {
-                using (IGpxReader reader = GpxReaderFactory.Create(input))
+                while (reader.Read(out GpxObjectType type))
                 {
-                    while (await reader.ReadAsync().ConfigureAwait(false))
+                    switch (type)
                     {
-                        switch (reader.ObjectType)
-                        {
-                            case GpxObjectType.Metadata:
-                                break;
-                            case GpxObjectType.WayPoint:
-                                waypoints.Add(reader.WayPoint);
-                                break;
-                            case GpxObjectType.Route:
-                                break;
-                            case GpxObjectType.Track:
-                                tracks.AddRange(reader.Track.Segments);
-                                break;
-                        }
+                        case GpxObjectType.Metadata:
+                            break;
+                        case GpxObjectType.WayPoint:
+                            waypoints.Add(FromGpx(reader.WayPoint));
+                            break;
+                        case GpxObjectType.Route:
+                            break;
+                        case GpxObjectType.Track:
+                            // todo: bug -- this method swaps segments A-B into B-A
+                            tracks.AddRange(reader.Track.Segments.Select(trk => trk.TrackPoints
+                                .Select(p => new GpxLoader.NodePoint() { Point = FromGpx(p) }).ToList()));
+                            break;
                     }
-
                 }
+
+
             }
         }
 
-        private static IEnumerable<IGeoPoint> filterDistant(IEnumerable<IGeoPoint> fixedPoints,
-            IEnumerable<IGeoPoint> incoming, Length limit)
+        private static IEnumerable<GeoPoint> filterDistant(IEnumerable<GeoPoint> fixedPoints,
+            IEnumerable<GeoPoint> incoming, Length limit)
         {
-            foreach (IGeoPoint pt in incoming)
-                if (fixedPoints.All(it => it.GetDistance(pt) > limit))
+            foreach (GeoPoint pt in incoming)
+                if (fixedPoints.All(it => GeoCalculator.GetDistance(it, pt) > limit))
                     yield return pt;
         }
 
-        private static IEnumerable<IGeoPoint> findCrossroads(List<List<NodePoint>> tracks,
-            Length offTrackDistance, out IGeoMap<Segment> map)
+        private static IEnumerable<GeoPoint> findCrossroads(List<List<GpxLoader.NodePoint>> tracks,
+            Length offTrackDistance, out IEnumerable<Segment> segments)
         {
-            var crossroads = new List<Crossroad>();
+            var crossroads = new List<GpxLoader.Crossroad>();
             for (int i = 0; i < tracks.Count; ++i)
                 for (int k = i + 1; k < tracks.Count; ++k)
                 {
                     // mark each intersection with source index, this will allow us better averaging the points
-                    crossroads.AddRange(getIntersections(tracks[i], tracks[k], offTrackDistance)
-                        .Select(it => { it.SourceIndex = Tuple.Create(i, k); return it; }));
+                    crossroads.AddRange(getTrackIntersections(tracks[i], tracks[k], offTrackDistance)
+                        .Select(it => { it.SourceIndex = new GpxLoader.TrackIndex(i, k); return it; }));
                 }
 
-            ;
+            removePassingBy(crossroads, offTrackDistance * 2);
 
             while (averageNearby(crossroads, offTrackDistance, onlySameTracks: true))
             {
                 ;
             }
 
-            ;
 
             while (averageNearby(crossroads, offTrackDistance, onlySameTracks: false))
             {
                 ;
             }
 
-
             // do not export extensions of the tracks, only true intersections or passing by "> * <"
             // which we treat as almost-intersection
             removeExtensions(tracks, crossroads);
 
-            map = buildMap(tracks);
+            segments = buildTrackSegments(tracks);
 
             return crossroads.Select(it => it.Node.Point);
         }
 
-        private static IGeoMap<Segment> buildMap(List<List<NodePoint>> tracks)
+        public static void WriteGpxPoints(string path, IEnumerable<GeoPoint> points)
+        {
+            using (var file = new GpxDirtyWriter(path))
+            {
+                foreach (var p in points)
+                    file.WritePoint(null, p);
+            }
+        }
+
+        public static void WriteGpxSegments(string path, IEnumerable<Segment> segments)
+        {
+            using (var file = new GpxDirtyWriter(path))
+            {
+                int count = 0;
+                foreach (Segment s in segments)
+                    file.WriteTrack($"seg{count++}", s.A, s.B);
+            }
+        }
+
+        private static IEnumerable<Segment> buildTrackSegments(List<List<GpxLoader.NodePoint>> tracks)
         {
             // extensions have to be removed at this point
 
-            var visited = new HashSet<NodePoint>();
+            var visited = new HashSet<GpxLoader.NodePoint>();
             var segments = new List<Segment>();
 
-            foreach (List<NodePoint> trk in tracks)
+            foreach (List<GpxLoader.NodePoint> trk in tracks)
             {
                 for (int i = 0; i < trk.Count; ++i)
                 {
-                    NodePoint p = trk[i];
+                    GpxLoader.NodePoint p = trk[i];
 
                     // segment as part of a track
                     if (i > 0)
-                        segments.Add(new Segment(p.Point, trk[i - 1].Point));
+                        segments.Add(new Segment(trk[i - 1].Point, p.Point));
 
                     // same point can come from two different tracks, because when they intersect
                     // the intersection point is added to both of them
-                    if (visited.Add(p))
+                    if (false && visited.Add(p))
                     {
                         // segments coming from intersections
-                        foreach (NodePoint neighbour in p.Neighbours)
+                        foreach (GpxLoader.NodePoint neighbour in p.Neighbours)
                             if (!visited.Contains(neighbour))
                                 segments.Add(new Segment(p.Point, neighbour.Point));
                     }
                 }
             }
 
-            return GeoMapFactory.Create(segments);
+            return segments;
         }
 
-        private static void removeExtensions(List<List<NodePoint>> tracks, List<Crossroad> crossroads)
+        private static void removeExtensions(List<List<GpxLoader.NodePoint>> tracks, List<GpxLoader.Crossroad> crossroads)
         {
-            var extensions = new HashSet<NodePoint>(crossroads
-                .Where(it => it.Kind == CrossroadKind.Extension)
+            var extensions = new HashSet<GpxLoader.NodePoint>(crossroads
+                .Where(it => it.Kind == GpxLoader.CrossroadKind.Extension)
                 .Select(it => it.Node));
 
-            foreach (List<NodePoint> trk in tracks)
+            foreach (List<GpxLoader.NodePoint> trk in tracks)
             {
                 for (int i = trk.Count - 1; i >= 0; --i)
                 {
-                    NodePoint ext = trk[i];
+                    GpxLoader.NodePoint ext = trk[i];
 
                     // given point can be duplicated on few tracks (by definition of intersection)
                     if (extensions.Remove(ext))
                     {
                         ext.ConnectThrough();
 
-                        foreach (NodePoint neighbour in ext.Neighbours)
+                        foreach (GpxLoader.NodePoint neighbour in ext.Neighbours)
                         {
                             if (i > 0)
                                 neighbour.Connect(trk[i - 1]);
@@ -181,28 +216,67 @@ namespace TrackRadar
 
                     // to remove extension from the track we need to check its kind directly
                     // (it might be removed from the set already)
-                    if (ext.Kind == CrossroadKind.Extension)
+                    if (ext.Kind == GpxLoader.CrossroadKind.Extension)
                         trk.RemoveAt(i);
                 }
             }
 
-            foreach (NodePoint ext in extensions)
+            foreach (GpxLoader.NodePoint ext in extensions)
             {
                 ext.ConnectThrough();
             }
 
-            crossroads.RemoveAll(it => it.Kind == CrossroadKind.Extension);
+            crossroads.RemoveAll(it => it.Kind == GpxLoader.CrossroadKind.Extension);
         }
 
-        private static bool averageNearby(List<Crossroad> crossroads, Length limit, bool onlySameTracks)
+
+        private static void removePassingBy(List<GpxLoader.Crossroad> crossroads, Length limit)
+        {
+            // this is weak but it was easy to implement and so far it works
+
+            // PROBLEM: some segment will give us "passing by", this is ok, but the following segments
+            // will give us intersection or extension. In such case we would like to invalidate
+            // the "passing by" point, and the problem is such point can lie in a distance from the intersection/extension
+
+            // IDEA: we could store cross point with info about segments points, this way we could check if passing-by
+            // point lies near intersection/extension or its originating segment, but this means 5 computations per
+            // one check
+
+            // HACK: simply use bigger distance limit when removing passing-by points and compare just against intersection/extension
+
+            var solid_points = crossroads
+                .Where(it => it.Kind != GpxLoader.CrossroadKind.PassingBy)
+                .Select(it => it.Node)
+                .ToArray();
+
+            for (int i = crossroads.Count - 1; i >= 0; --i)
+            {
+                GpxLoader.Crossroad passing_by = crossroads[i];
+
+                if (passing_by.Kind != GpxLoader.CrossroadKind.PassingBy)
+                    continue;
+
+                foreach (GpxLoader.NodePoint np in solid_points)
+                {
+                    if (GeoCalculator.GetDistance(passing_by.Node.Point, np.Point) < limit)
+                    {
+                        passing_by.Disconnect();
+                        crossroads.RemoveAt(i);
+                        break;
+                    }
+                }
+            }
+        }
+
+        private static bool averageNearby(List<GpxLoader.Crossroad> crossroads, Length limit, bool onlySameTracks)
         {
             bool changed = false;
 
             for (int i = 0; i < crossroads.Count; ++i)
                 for (int k = i + 1; k < crossroads.Count; ++k)
                 {
-                    Crossroad a = crossroads[i];
-                    Crossroad b = crossroads[k];
+                    GpxLoader.Crossroad a = crossroads[i];
+                    GpxLoader.Crossroad b = crossroads[k];
 
                     bool same_tracks = Object.Equals(a.SourceIndex, b.SourceIndex) && a.SourceIndex != null;
                     if (onlySameTracks && !same_tracks)
@@ -210,8 +284,8 @@ namespace TrackRadar
 
                     if (GeoCalculator.GetDistance(a.Node.Point, b.Node.Point) < limit)
                     {
-                        CrossroadKind kind = CrossroadKind.Intersection;
-                        if (same_tracks && a.Kind != CrossroadKind.Intersection && b.Kind != CrossroadKind.Intersection)
+                        GpxLoader.CrossroadKind kind = GpxLoader.CrossroadKind.Intersection;
+                        if (same_tracks)// && a.Kind != GpxLoader.CrossroadKind.Intersection && b.Kind != GpxLoader.CrossroadKind.Intersection)
                         {
                             // having two intersection nearby we check if those are from the same pairs of tracks
                             // if yes, we treat them as extension if just one of them is extension, this way we avoid
@@ -227,17 +301,17 @@ namespace TrackRadar
                             // as for the passing-by this condition simply says, that if there is extension and passing-by
                             // point nearby the outcome is extension, because that passing-by is the effect of the curve
                             // of the track (see picture above)
-                            if (a.Kind == CrossroadKind.Extension || b.Kind == CrossroadKind.Extension)
-                                kind = CrossroadKind.Extension;
+                            if (a.Kind == GpxLoader.CrossroadKind.Extension || b.Kind == GpxLoader.CrossroadKind.Extension)
+                                kind = GpxLoader.CrossroadKind.Extension;
                             // also we have to deal with passing-by points like in shape "> * <"
                             // this is actually "else" case but we add this condition as sanity check
-                            else if (a.Kind == CrossroadKind.PassingBy || b.Kind == CrossroadKind.PassingBy)
-                                kind = CrossroadKind.PassingBy;
-                            else
-                                throw new NotImplementedException($"This case is not possible, right? {a.Kind}, {b.Kind}");
+                            else if (a.Kind == GpxLoader.CrossroadKind.PassingBy && b.Kind == GpxLoader.CrossroadKind.PassingBy)
+                                kind = GpxLoader.CrossroadKind.PassingBy;
+                            //else
+                            //  throw new NotImplementedException($"This case is not possible, right? {a.Kind}, {b.Kind}");
                         }
 
-                        crossroads[i] = new Crossroad(a, b)
+                        crossroads[i] = new GpxLoader.Crossroad(a, b)
                         {
                             Kind = kind,
                             SourceIndex = same_tracks ? a.SourceIndex : null
@@ -253,90 +327,115 @@ namespace TrackRadar
             return changed;
         }
 
-        private static IGeoPoint getIntersection(IGeoPoint track10, IGeoPoint track11,
-            IGeoPoint track20, IGeoPoint track21, out Length cx_len1_0)
+        internal static bool TryGetSegmentIntersection(in GeoPoint point10, in GeoPoint point11,
+            in GeoPoint point20, in GeoPoint point21, out Length sig_cx_len1_0, out GeoPoint result)
         {
-            IGeoPoint cx1, cx2;
-            GeoCalculator.GetArcIntersection(track10, track11, track20, track21, out cx1, out cx2);
-            if (cx1 == null)
+            GeoPoint cx1;
+            if (!GeoCalculator.TryGetArcIntersection(point10, point11, point20, point21, out cx1))
             {
-                cx_len1_0 = Length.Zero;
-                return null;
+                sig_cx_len1_0 = Length.Zero;
+                result = default;
+                return false;
             }
 
-            Length cx1_len = cx1.GetDistance(track10);
-            Length cx2_len = cx2.GetDistance(track10);
-            if (cx1_len < cx2_len)
+            Length sig_cx1_len = GeoCalculator.GetSignedDistance(cx1, point10);
+            Length sig_cx2_len = GeoCalculator.OppositePointSignedDistance(sig_cx1_len);
+
+            if (sig_cx1_len.Abs() < sig_cx2_len.Abs())
             {
-                cx_len1_0 = cx1_len;
-                return cx1;
+                sig_cx_len1_0 = sig_cx1_len;
+                result = cx1;
+                return true;
             }
-            else if (cx1_len > cx2_len)
+            else if (sig_cx1_len.Abs() > sig_cx2_len.Abs())
             {
-                cx_len1_0 = cx2_len;
-                return cx2;
+                sig_cx_len1_0 = sig_cx2_len;
+                result = GeoCalculator.OppositePoint(cx1);
+                return true;
             }
             else
                 throw new NotImplementedException($"Cannot decide which intersection to pick.");
         }
 
-        private static bool computeDistances(IGeoPoint cx, List<NodePoint> track1, int idx1,
-            List<NodePoint> track2, int idx2,
-            Length len1_ex, ref Length len2_ex, Length limit,
+
+        private static bool isWithinLimit(Length sig_len, Length segment_len, Length limit)
+        {
+            if (sig_len.Sign() == segment_len.Sign())
+            {
+                return sig_len.Abs() <= segment_len.Abs() + limit;
+            }
+            else
+            {
+                return sig_len.Abs() <= limit;
+            }
+        }
+
+        internal static bool ComputeDistances(in GeoPoint cx,
+            in GeoPoint point11,
+            //IReadOnlyList<GpxLoader.NodePoint> track1, int idx1,
+            //IReadOnlyList<GpxLoader.NodePoint> track2, int idx2,
+            in GeoPoint point20, in GeoPoint point21,
+            Length sig_len1, ref Length sig_len2, Length limit,
             Length cx_len1_0, ref Length cx_len1_1, ref Length cx_len2_0, ref Length cx_len2_1)
         {
-            cx_len1_0 = cx.GetDistance(track1[idx1 - 1].Point);
-            // those check are basics -- if the interesection is too far away, it is not really an intersection of the tracks
-            if (cx_len1_0 > len1_ex)
+            // those check are basics -- if the interesection is too far away, 
+            // it is not really an intersection of the tracks
+            if (!isWithinLimit(-cx_len1_0, sig_len1, limit))
                 return false;
 
-            cx_len1_1 = cx.GetDistance(track1[idx1].Point);
-            if (cx_len1_1 > len1_ex)
+            // todo: we should be able to compute the distance by simple subtracting
+            cx_len1_1 = GeoCalculator.GetSignedDistance(cx, point11);
+
+            sig_len2 = GeoCalculator.GetSignedDistance(point20, point21);
+
+            cx_len2_0 = GeoCalculator.GetSignedDistance(cx, point20);
+            if (!isWithinLimit(-cx_len2_0, sig_len2, limit))
                 return false;
 
-            len2_ex = track2[idx2 - 1].Point.GetDistance(track2[idx2].Point) + limit;
-
-            cx_len2_0 = cx.GetDistance(track2[idx2 - 1].Point);
-            if (cx_len2_0 > len2_ex)
-                return false;
-
-            cx_len2_1 = cx.GetDistance(track2[idx2].Point);
-            if (cx_len2_1 > len2_ex)
-                return false;
+            cx_len2_1 = GeoCalculator.GetSignedDistance(cx, point21);
 
             return true;
         }
 
-        private static IEnumerable<Crossroad> getIntersections(List<NodePoint> track1,
-            List<NodePoint> track2, Length limit)
+        private static IEnumerable<GpxLoader.Crossroad> getTrackIntersections(IReadOnlyList<GpxLoader.NodePoint> track1,
+            IReadOnlyList<GpxLoader.NodePoint> track2, Length limit)
         {
             for (int idx1 = 1; idx1 < track1.Count; ++idx1)
             {
                 Length len1 = Length.Zero;
-                Length len1_ex = Length.Zero;
+
+                GpxLoader.NodePoint node10 = track1[idx1 - 1];
+                GpxLoader.NodePoint node11 = track1[idx1];
+                Length sig_len1 = GeoCalculator.GetSignedDistance(node10.Point, node11.Point);
 
                 for (int idx2 = 1; idx2 < track2.Count; ++idx2)
                 {
-                    IGeoPoint cx = getIntersection(track1[idx1 - 1].Point, track1[idx1].Point,
-                        track2[idx2 - 1].Point, track2[idx2].Point,
-                        out Length cx_len1_0);
-                    if (cx == null)
+
+                    GpxLoader.NodePoint node20 = track2[idx2 - 1];
+                    GpxLoader.NodePoint node21 = track2[idx2];
+                    if (!TryGetSegmentIntersection(node10.Point, node11.Point,
+                        node20.Point, node21.Point,
+                        out Length cx_len1_0, out GeoPoint cx))
                         continue;
 
-                    if (len1 == Length.Zero)
-                    {
-                        len1 = track1[idx1 - 1].Point.GetDistance(track1[idx1].Point);
-                        len1_ex = len1 + limit;
-                    }
+                    len1 = sig_len1.Abs();
 
-                    Length len2_ex = Length.Zero;
+                    Length sig_len2 = Length.Zero;
 
                     Length cx_len1_1 = Length.Zero;
                     Length cx_len2_0 = Length.Zero;
                     Length cx_len2_1 = Length.Zero;
 
-                    if (!computeDistances(cx, track1, idx1, track2, idx2, len1_ex, ref len2_ex, limit,
-                        cx_len1_0, ref cx_len1_1, ref cx_len2_0, ref cx_len2_1))
+                    bool is_nearby = ComputeDistances(cx, node11.Point, node20.Point, node21.Point,
+                        sig_len1, ref sig_len2, limit,
+                        cx_len1_0, ref cx_len1_1, ref cx_len2_0, ref cx_len2_1);
+
+                    cx_len1_0 = cx_len1_0.Abs();
+                    cx_len1_1 = cx_len1_1.Abs();
+                    cx_len2_0 = cx_len2_0.Abs();
+                    cx_len2_1 = cx_len2_1.Abs();
+
+                    if (!is_nearby)
                     {
                         // finding near intersection failed, but maybe it is caused by two almost parallel segments
                         // in such those two segments could be close to each other, but their intersection could be far away
@@ -347,97 +446,94 @@ namespace TrackRadar
                         bool middle1 = idx1 > 1 && idx1 < track1.Count - 1;
                         bool middle2 = idx2 > 1 && idx2 < track2.Count - 1;
 
-                        Length track_dist;
-                        track_dist = track1[idx1 - 1].Point.GetDistanceToArcSegment(track2[idx2 - 1].Point,
-                            track2[idx2].Point, out cx);
-                        if (track_dist < limit)
+                        Length track_track_dist;
+                        track_track_dist = node10.Point
+                            .GetDistanceToArcSegment(node20.Point, node21.Point, out cx);
+                        if (track_track_dist < limit)
                         {
-                            Crossroad crossroad = new Crossroad(cx)
+                            GpxLoader.Crossroad crossroad = new GpxLoader.Crossroad(cx)
                             {
-                                Kind = middle1 || middle2 ? CrossroadKind.PassingBy : CrossroadKind.Extension,
+                                Kind = middle1 || middle2 ? GpxLoader.CrossroadKind.PassingBy : GpxLoader.CrossroadKind.Extension,
                             }
-                            .Connected(track1[idx1 - 1]);
+                            .Connected(node10)
+                            ;
 
                             yield return crossroad;
 
-                            if (addInsertion(crossroad, track2, idx2))
-                                ++idx2;
+                            //   if (addInsertion(crossroad, track2, idx2))
+                            //     ++idx2;
                         }
                         else
                         {
-                            track_dist = track1[idx1].Point.GetDistanceToArcSegment(track2[idx2 - 1].Point,
-                                track2[idx2].Point, out cx);
-                            if (track_dist < limit)
+                            track_track_dist = node11.Point
+                                .GetDistanceToArcSegment(node20.Point, node21.Point, out cx);
+                            if (track_track_dist < limit)
                             {
-                                Crossroad crossroad = new Crossroad(cx)
+                                GpxLoader.Crossroad crossroad = new GpxLoader.Crossroad(cx)
                                 {
-                                    Kind = middle1 || middle2 ? CrossroadKind.PassingBy : CrossroadKind.Extension,
+                                    Kind = middle1 || middle2 ? GpxLoader.CrossroadKind.PassingBy : GpxLoader.CrossroadKind.Extension,
                                 }
-                                .Connected(track1[idx1]);
+                                .Connected(node11);
 
                                 yield return crossroad;
 
-                                if (addInsertion(crossroad, track2, idx2))
-                                    ++idx2;
+                                //  if (addInsertion(crossroad, track2, idx2))
+                                //    ++idx2;
                             }
                             else
                             {
-                                track_dist = track2[idx2 - 1].Point.GetDistanceToArcSegment(track1[idx1 - 1].Point,
-                                    track1[idx1].Point, out cx);
-                                if (track_dist < limit)
+                                track_track_dist = node20.Point
+                                    .GetDistanceToArcSegment(node10.Point, node11.Point, out cx);
+                                if (track_track_dist < limit)
                                 {
-                                    Crossroad crossroad = new Crossroad(cx)
+                                    GpxLoader.Crossroad crossroad = new GpxLoader.Crossroad(cx)
                                     {
-                                        Kind = middle1 || middle2 ? CrossroadKind.PassingBy : CrossroadKind.Extension,
+                                        Kind = middle1 || middle2 ? GpxLoader.CrossroadKind.PassingBy : GpxLoader.CrossroadKind.Extension,
                                     }
-                                    .Connected(track2[idx2 - 1]);
+                                    .Connected(node20);
 
                                     yield return crossroad;
 
-                                    if (addInsertion(crossroad, track1, idx1))
-                                    {
-                                        ++idx1;
-                                        len1 = Length.Zero;
-                                        len1_ex = Length.Zero;
-                                    }
+                                    /*  if (addInsertion(crossroad, track1, idx1))
+                                      {
+                                          ++idx1;
+                                          len1 = Length.Zero;
+                                      }*/
                                 }
                                 else
                                 {
-                                    track_dist = track2[idx2].Point.GetDistanceToArcSegment(track1[idx1 - 1].Point,
-                                        track1[idx1].Point, out cx);
-                                    if (track_dist < limit)
+                                    track_track_dist = node21.Point
+                                        .GetDistanceToArcSegment(node10.Point, node11.Point, out cx);
+                                    if (track_track_dist < limit)
                                     {
-                                        Crossroad crossroad = new Crossroad(cx)
+                                        GpxLoader.Crossroad crossroad = new GpxLoader.Crossroad(cx)
                                         {
-                                            Kind = middle1 || middle2 ? CrossroadKind.PassingBy : CrossroadKind.Extension,
+                                            Kind = middle1 || middle2 ? GpxLoader.CrossroadKind.PassingBy : GpxLoader.CrossroadKind.Extension,
                                         }
-                                        .Connected(track2[idx2]);
+                                        .Connected(node21);
 
                                         yield return crossroad;
 
-                                        if (addInsertion(crossroad, track1, idx1))
-                                        {
-                                            ++idx1;
-                                            len1 = Length.Zero;
-                                            len1_ex = Length.Zero;
-                                        }
+                                        /* if (addInsertion(crossroad, track1, idx1))
+                                         {
+                                             ++idx1;
+                                             len1 = Length.Zero;
+                                         }*/
                                     }
                                 }
                             }
                         }
                     }
-                    else
+                    else // we have near intersection
                     {
-                        Length len2 = len2_ex - limit;
+                        Length len2 = sig_len2.Abs();
 
-                        var crossroad = new Crossroad(cx);
-
-                        bool insertion = true;
-
+                        var crossroad = new GpxLoader.Crossroad(cx);
 
                         // here we have to decide if we have a case of intersection like as "X"
                         // or if we have extensions of the tracks like "---- * -----"
                         // extension can only happen at the end or start of the track
+
                         Length diff1;
                         bool middle1 = false;
                         if (track1.Count == 2)
@@ -470,16 +566,20 @@ namespace TrackRadar
                         {
                             // if we are in the middle of track we can get such shape "> * <" or "- *|"
                             // the overall distance cannot be too far...
-                            if (cx_len1_0 + cx_len1_1 - len1 + cx_len2_0 + cx_len2_1 - len2 > limit)
+                            // we divide by "2" because when we are in the middle of the segment the difference will be zero
+                            // but when we are outside without division we would count extension twice (from each of the points)
+                            Length len1_diff = (cx_len1_0 + cx_len1_1 - len1) / 2;
+                            Length len2_diff = (cx_len2_0 + cx_len2_1 - len2) / 2;
+                            Length diff_total = len1_diff + len2_diff;
+                            if (diff_total > limit)
                                 continue;
                             // and we have to detect passing-by "> * <", if in both cases crossing point is outside
                             // segment we have passing-by point
-                            else if (cx_len1_0 + cx_len1_1 - len1 > numericAccuracy && cx_len2_0 + cx_len2_1 - len2 > numericAccuracy)
+                            else if (len1_diff > numericAccuracy && len2_diff > numericAccuracy)
                             {
-                                crossroad.Kind = CrossroadKind.PassingBy;
-                                insertion = false;
-                                crossroad.Connected(cx_len1_0 > len1 ? track1[idx1] : track1[idx1 - 1]);
-                                crossroad.Connected(cx_len2_0 > len2 ? track2[idx2] : track2[idx2 - 1]);
+                                crossroad.Kind = GpxLoader.CrossroadKind.PassingBy;
+                                crossroad.Connected(cx_len1_0 > len1 ? node11 : node10);
+                                crossroad.Connected(cx_len2_0 > len2 ? node21 : node20);
                             }
                         }
                         // normally extension would look like: ---- x ----
@@ -490,39 +590,15 @@ namespace TrackRadar
                         // so there will be no case that one track "borrows" too much slack from the limit
                         else if (diff1 > -limit && diff2 > -limit && diff1 + diff2 > -limit)
                         {
-                            insertion = false;
-                            crossroad.Kind = CrossroadKind.Extension;
-                            crossroad.Connected(cx_len1_0 > len1 ? track1[idx1] : track1[idx1 - 1]);
-                            crossroad.Connected(cx_len2_0 > len2 ? track2[idx2] : track2[idx2 - 1]);
+                            crossroad.Kind = GpxLoader.CrossroadKind.Extension;
+                            crossroad.Connected(cx_len1_0 > len1 ? node11 : node10);
+                            crossroad.Connected(cx_len2_0 > len2 ? node21 : node20);
                         }
 
                         yield return crossroad;
-
-                        if (insertion)
-                        {
-                            if (addInsertion(crossroad, track2, idx2))
-                                ++idx2;
-                            if (addInsertion(crossroad, track1, idx1))
-                            {
-                                ++idx1;
-                                len1 = Length.Zero;
-                                len1_ex = Length.Zero;
-                            }
-                        }
                     }
                 }
             }
-        }
-
-        private static bool addInsertion(Crossroad crossroad, List<NodePoint> track, int idx)
-        {
-            // check against the case we have insertion point right at the beginning/end of the segment
-            if (track[idx].Point == crossroad.Node.Point || track[idx - 1].Point == crossroad.Node.Point)
-                return false;
-
-            track.Insert(idx, crossroad.Node);
-            crossroad.RegisterInsertion(track);
-            return true;
         }
     }
 }

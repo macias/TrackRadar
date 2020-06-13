@@ -1,13 +1,15 @@
 ﻿using System.Collections.Generic;
-using Gpx;
+using MathUnit;
 
 namespace Geo.Implementation
 {
-    internal interface ITile<T> where T : ISegment
+    internal interface ITile
     {
-        IEnumerable<T> Segments { get; }
+        IEnumerable<ISegment> Segments { get; }
 
-        bool FindCloseEnough<P>(P point, Length limit, ref T nearby, ref Length distance) where P : IGeoPoint;
-        bool IsWithinLimit<P>(P point, Length limit, out Length distance) where P : IGeoPoint;
+        bool FindCloseEnough(in GeoPoint point, Length limit, ref ISegment nearby, ref Length? distance);
+        bool FindClosest(in GeoPoint point, ref ISegment nearby, ref Length? distance);
+        bool IsWithinLimit(in GeoPoint point, Length limit, out Length? distance);
+        IEnumerable<IMeasuredPinnedSegment> FindAll( GeoPoint point, Length limit);
     }
 }

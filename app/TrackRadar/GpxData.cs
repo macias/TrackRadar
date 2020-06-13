@@ -1,16 +1,23 @@
 ﻿using Geo;
 using Gpx;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace TrackRadar
 {
-    internal sealed class GpxData
+    public sealed class GpxData
     {
-        public List<IGeoPoint> Crossroads { get; internal set; }
-        public IGeoMap<Segment> Map { get; internal set; }
+        public IEnumerable<ISegment> Segments { get; }
+        public IEnumerable<GeoPoint> Crossroads { get; }
 
-        public GpxData()
+        public GpxData(IEnumerable<ISegment> segments, IEnumerable<GeoPoint> crossroads)
         {
+            Segments = segments.ToArray();
+            Crossroads = crossroads.ToArray();
         }
+        /*public GpxData(IEnumerable<Segment> segments, IEnumerable<IGpxPoint> crossroads)
+            : this(segments, crossroads.Select(it =>  GeoPoint.FromGpx(it)))
+        {
+        }*/
     }
 }

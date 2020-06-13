@@ -27,8 +27,9 @@
             android:layout_gravity="center_vertical"
             android:padding="4sp" />
     </LinearLayout>
+
     <TextView
-        android:text="Large Text"
+        android:text="off track dist"
         android:textAppearance="?android:attr/textAppearanceLarge"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -36,6 +37,179 @@
         android:gravity="center_horizontal"
         android:padding="4sp"
         android:textSize="50sp" />
+
+  <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/linearLayout12">
+		
+		<LinearLayout
+            android:orientation="vertical"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:paddingLeft="4sp"
+            android:paddingRight="4sp"
+			android:layout_weight="1"
+            android:id="@+id/linearLayout115171">
+            <TextView
+                android:text="Distance"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:id="@+id/textView55617"
+                android:gravity="center_horizontal"
+                android:paddingBottom="2sp"
+				android:textStyle="bold"
+                android:paddingTop="4sp"
+                android:layout_weight="1" />
+            <TextView
+                android:text="100"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:id="@+id/RidingDistanceTextView"
+                android:gravity="center_horizontal"
+                android:paddingBottom="2sp"
+                android:paddingTop="4sp"
+                android:layout_weight="1" />
+            <TextView
+                android:text="km"
+                android:textAppearance="?android:attr/textAppearanceSmall"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:id="@+id/textView55617a"
+                android:gravity="center_horizontal"
+                android:paddingBottom="2sp"
+                android:paddingTop="2sp"
+                android:layout_weight="1" />
+        </LinearLayout>
+
+				<LinearLayout
+            android:orientation="vertical"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:paddingLeft="4sp"
+            android:paddingRight="4sp"
+			android:layout_weight="1"
+            android:id="@+id/linearLayout115174">
+            <TextView
+                android:text="Climbs"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:id="@+id/textView556175"
+                android:gravity="center_horizontal"
+                android:paddingBottom="2sp"
+				android:textStyle="bold"
+                android:paddingTop="4sp"
+                android:layout_weight="1" />
+            <TextView
+                android:text="450"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:id="@+id/TotalClimbsTextView"
+                android:gravity="center_horizontal"
+                android:paddingBottom="2sp"
+                android:paddingTop="4sp"
+                android:layout_weight="1" />
+            <TextView
+                android:text="m"
+                android:textAppearance="?android:attr/textAppearanceSmall"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:id="@+id/textView55617b"
+                android:gravity="center_horizontal"
+                android:paddingBottom="2sp"
+                android:paddingTop="2sp"
+                android:layout_weight="1" />
+        </LinearLayout>
+
+		<LinearLayout
+            android:orientation="vertical"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:paddingLeft="4sp"
+            android:paddingRight="4sp"
+     		android:layout_weight="1"
+		    android:id="@+id/linearLayout115172">
+            <TextView
+                android:text="Avg. speed"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:id="@+id/textView556172"
+                android:gravity="center_horizontal"
+           		android:textStyle="bold"
+				android:paddingBottom="2sp"
+                android:paddingTop="4sp"
+                android:layout_weight="1" />
+            <TextView
+                android:text="20"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:id="@+id/AverageSpeedTextView"
+                android:gravity="center_horizontal"
+                android:paddingBottom="2sp"
+                android:paddingTop="4sp"
+                android:layout_weight="1" />
+            <TextView
+                android:text="km/h"
+                android:textAppearance="?android:attr/textAppearanceSmall"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:id="@+id/textView55617c"
+                android:gravity="center_horizontal"
+                android:paddingBottom="2sp"
+                android:paddingTop="2sp"
+                android:layout_weight="1" />
+        </LinearLayout>
+
+		<LinearLayout
+            android:orientation="vertical"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:paddingLeft="4sp"
+            android:paddingRight="4sp"
+			android:layout_weight="1"
+            android:id="@+id/linearLayout115173">
+            <TextView
+                android:text="Top speed"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:id="@+id/textView556173"
+                android:gravity="center_horizontal"
+                android:paddingBottom="2sp"
+                android:paddingTop="4sp"
+				android:textStyle="bold"
+                android:layout_weight="1" />
+            <TextView
+                android:text="40"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:id="@+id/TopSpeedTextView"
+                android:gravity="center_horizontal"
+                android:paddingBottom="2sp"
+                android:paddingTop="4sp"
+                android:layout_weight="1" />
+            <TextView
+                android:text="km/h"
+                android:textAppearance="?android:attr/textAppearanceSmall"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:id="@+id/textView55617d"
+                android:gravity="center_horizontal"
+                android:paddingBottom="2sp"
+                android:paddingTop="2sp"
+                android:layout_weight="1" />
+        </LinearLayout>
+    </LinearLayout>
+
+
     <ListView
         android:minWidth="25px"
         android:minHeight="25px"

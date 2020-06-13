@@ -1,5 +1,6 @@
 ﻿using System;
 using Android.Content;
+using MathUnit;
 
 namespace TrackRadar
 {
@@ -28,11 +29,17 @@ namespace TrackRadar
         public override void OnReceive(Context context, Intent intent)
         {
             if (intent.Action == Message.Dist)
-                DistanceUpdate?.Invoke(this, new DistanceEventArgs(intent.GetDoubleExtra(Message.ValueKey, -1)));
+                DistanceUpdate?.Invoke(this, new DistanceEventArgs(
+                    intent.GetDoubleExtra(Message.DistanceKey, 0),
+                    Length.FromMeters(intent.GetDoubleExtra(Message.TotalClimbsMetersKey, 0)),
+                    Length.FromMeters(intent.GetDoubleExtra(Message.RidingDistanceMetersKey, 0)),
+                    TimeSpan.FromSeconds(intent.GetDoubleExtra(Message.RidingTimeSecondsKey, 0)),
+                    Speed.FromKilometersPerHour(intent.GetDoubleExtra(Message.TopSpeedKmPerHourKey, 0))
+                    ));
             else if (intent.Action == Message.Dbg)
-                DebugUpdate?.Invoke(this, new MessageEventArgs(intent.GetStringExtra(Message.ValueKey)));
+                DebugUpdate?.Invoke(this, new MessageEventArgs(intent.GetStringExtra(Message.DebugKey)));
             else if (intent.Action == Message.Alarm)
-                AlarmUpdate?.Invoke(this, new MessageEventArgs(intent.GetStringExtra(Message.ValueKey)));
+                AlarmUpdate?.Invoke(this, new MessageEventArgs(intent.GetStringExtra(Message.AlarmKey)));
 
             intent.Dispose();
         }
@@ -41,7 +48,7 @@ namespace TrackRadar
         {
             var intent = new Intent();
             intent.SetAction(Message.Dbg);
-            intent.PutExtra(Message.ValueKey, message);
+            intent.PutExtra(Message.DebugKey, message);
             context.SendBroadcast(intent);
         }
 
@@ -49,15 +56,20 @@ namespace TrackRadar
         {
             var intent = new Intent();
             intent.SetAction(Message.Alarm);
-            intent.PutExtra(Message.ValueKey, message);
+            intent.PutExtra(Message.AlarmKey, message);
             context.SendBroadcast(intent);
         }
 
-        internal static void SendDistance(Context context, double distance)
+        internal static void SendDistance(Context context, double distance,Length totalClimbs,
+            Length ridingDistance, TimeSpan ridingTime, Speed topSpeed)
         {
             var intent = new Intent();
             intent.SetAction(Message.Dist);
-            intent.PutExtra(Message.ValueKey, distance);
+            intent.PutExtra(Message.DistanceKey, distance);
+            intent.PutExtra(Message.TotalClimbsMetersKey, totalClimbs.Meters);
+            intent.PutExtra(Message.RidingDistanceMetersKey, ridingDistance.Meters);
+            intent.PutExtra(Message.RidingTimeSecondsKey, ridingTime.TotalSeconds);
+            intent.PutExtra(Message.TopSpeedKmPerHourKey, topSpeed.KilometersPerHour);
             context.SendBroadcast(intent);
         }
 

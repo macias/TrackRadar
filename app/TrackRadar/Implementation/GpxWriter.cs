@@ -2,9 +2,9 @@
 using Android.Content;
 using Android.Locations;
 
-namespace TrackRadar
+namespace TrackRadar.Implementation
 {
-    public sealed class GpxWriter : IDisposable
+    internal sealed class GpxWriter : IDisposable
     {
         private readonly HotWriter writer;
 
@@ -30,9 +30,9 @@ namespace TrackRadar
         }
 
 
-        public void WriteLocation(Location location,string name = "")
+        public void WriteLocation(double latitudeDegrees,double longitudeDegrees,string name = null)
         {
-            writer.Write($"<wpt lat=\"{location.Latitude}\" lon=\"{location.Longitude}\"");
+            writer.Write($"<wpt lat=\"{latitudeDegrees}\" lon=\"{longitudeDegrees}\"");
             if (name != null)
                 writer.Write($" name=\"{name}\"");
             writer.WriteLine($"/>");

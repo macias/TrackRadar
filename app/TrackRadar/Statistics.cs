@@ -15,14 +15,14 @@ namespace TrackRadar
         double minDist;
         double maxDist;
         double avgDist;
-        // off-track distances are stored as >0 values
-        // on-track distances as <= 0 values
-        double signedCurrDist;
+        double fenceCurrentDistance;
         long totalComputingTime;
         float currAccuracy;
 
-        // "signed" means -- negative values are considered on the track, positive ones -- off the track
-        public double SignedDistance { get { lock (this.threadLock) return this.signedCurrDist; } }
+        /// <summary>
+        /// inf -- far away, negative values are considered on the track, positive ones -- off the track
+        /// </summary>
+        public double FenceDistance { get { lock (this.threadLock) return this.fenceCurrentDistance; } }
         public float Accuracy { get { lock (this.threadLock) return this.currAccuracy; } }
 
         public Statistics()
@@ -37,7 +37,7 @@ namespace TrackRadar
                 this.isComputing = false;
                 skippedComputing = 0;
                 this.totalLocationUpdates = 0;
-                this.minDist = this.maxDist = this.avgDist = this.signedCurrDist = 0;
+                this.minDist = this.maxDist = this.avgDist = this.fenceCurrentDistance = 0;
                 totalIdle = 0;
                 lastUpdate = Stopwatch.GetTimestamp();
                 totalComputingTime = 0;
@@ -70,17 +70,21 @@ namespace TrackRadar
         {
             lock (threadLock)
             {
-                this.signedCurrDist = dist;
+                this.fenceCurrentDistance = dist;
                 this.currAccuracy = accuracy;
-                dist = Math.Abs(dist);
-                int computed = totalLocationUpdates - skippedComputing - 1;
-                if (computed == 0)
-                    this.minDist = this.maxDist = this.avgDist = dist;
-                else
+
+                if (!Double.IsInfinity(dist))
                 {
-                    this.minDist = Math.Min(dist, minDist);
-                    this.maxDist = Math.Max(dist, maxDist);
-                    this.avgDist = (this.avgDist * computed + dist) / (computed + 1);
+                    dist = Math.Abs(dist);
+                    int computed = totalLocationUpdates - skippedComputing - 1;
+                    if (computed == 0)
+                        this.minDist = this.maxDist = this.avgDist = dist;
+                    else
+                    {
+                        this.minDist = Math.Min(dist, minDist);
+                        this.maxDist = Math.Max(dist, maxDist);
+                        this.avgDist = (this.avgDist * computed + dist) / (computed + 1);
+                    }
                 }
 
                 this.isComputing = false;

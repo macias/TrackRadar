@@ -1,4 +1,4 @@
-﻿# TrackRadar
+# TrackRadar
 
 Xamarin/C# app for Android which helps you in your bicycle trips. It lets you load GPX track and then it plays audio whenever you are off-track 
 or you lost GPS signal.
@@ -17,7 +17,9 @@ Please use Visual Studio 2017 or compatible tool. You need GPX library: https://
 
 I need moderately priced, e-ink, around 5" device with GPS and ability to run custom apps. The problem is it does exist, there are some options like:
 
-* Yotaphone -- too expensive,
+* Yotaphone -- too expensive (as for 2020, dead end),
+
+* HiSense A5 -- AFAIK no compass,
 
 * dedicated bicycle GPS -- nano screens,
 

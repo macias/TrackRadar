@@ -8,8 +8,8 @@ using Android.Widget;
 
 namespace TrackRadar
 {
-    [Activity(Label = "Settings2Activity")]
-    public class Settings2Activity : PreferenceActivity
+   /* [Activity(Label = "Settings2Activity")]
+     public class Settings2Activity : PreferenceActivity
     {
      
         protected override void OnCreate(Bundle savedInstanceState)
@@ -19,5 +19,5 @@ namespace TrackRadar
             this.AddPreferencesFromResource(Resource.Layout.Preferences);
         }
 
-      }
+      }*/
 }

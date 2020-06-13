@@ -1,15 +1,26 @@
-﻿using Gpx;
+﻿using MathUnit;
 using System.Collections.Generic;
 
 namespace Geo
 {
-    public interface IGeoMap<T> where T : ISegment
+    public interface IGeoMap
     {
-        IEnumerable<T> Segments { get; }
+        IEnumerable<Geo.ISegment> Segments { get; }
 
-        bool FindCloseEnough<P>(P point, Length limit, out T nearby, out Length distance)
-            where P : IGeoPoint;
-        bool IsWithinLimit<P>(P point, Length limit, out Length distance)
-            where P : IGeoPoint;
+        bool FindClosest(in GeoPoint point,out Geo.ISegment nearby, out Length? distance);
+        bool FindCloseEnough(in GeoPoint point, Length limit, out ISegment nearby, out Length? distance);
+        bool IsWithinLimit(in GeoPoint point, Length limit, out Length? distance);
+        IEnumerable<IMeasuredPinnedSegment> FindAll( GeoPoint point, Length limit);
+        IEnumerable<Geo.ISegment> GetFromRegion(Angle westmost, Angle eastmost, Angle northmost, Angle southmost);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="node">has to be existing node in the map</param>
+        /// <returns></returns>
+        IEnumerable<GeoPoint> GetAdjacent(in GeoPoint node);
+
+       // GeoPoint GetReference(Angle latitude,Angle longitude);
+        IEnumerable<Geo.ISegment> GetNearby(in GeoPoint point, Length limit);
     }
 }

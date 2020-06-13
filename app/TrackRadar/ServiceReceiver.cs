@@ -40,12 +40,14 @@ namespace TrackRadar
 
             intent.Dispose();
         }
+
         internal static void SendUpdatePrefs(Context context)
         {
             var intent = new Intent();
             intent.SetAction(Message.Prefs);
             context.SendBroadcast(intent);
         }
+
         internal static void SendInfoRequest(Context context)
         {
             var intent = new Intent();

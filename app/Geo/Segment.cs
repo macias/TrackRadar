@@ -1,22 +1,29 @@
-﻿using Gpx;
-using System;
+﻿using System;
 
 namespace Geo
 {
     public sealed class Segment : ISegment
     {
-        public IGeoPoint A { get; }
-        public IGeoPoint B { get; }
+        public GeoPoint A { get; }
+        public GeoPoint B { get; }
 
-        public Segment(IGeoPoint a, IGeoPoint b)
+        public Segment(in GeoPoint a, in GeoPoint b)
         {
-            A = a ?? throw new ArgumentNullException(nameof(a));
-            B = b ?? throw new ArgumentNullException(nameof(b));
+            A = a;
+            B = b;
         }
 
-        public bool IsMoreImportant(ISegment other)
+        public Ordering CompareImportance(ISegment other)
         {
-            return false;
+            if (other is Segment seg)
+                return Ordering.Equal;
+            else
+                throw new ArgumentException();
+        }
+
+        public override string ToString()
+        {
+            return $"{A} » {B}";
         }
 
     }

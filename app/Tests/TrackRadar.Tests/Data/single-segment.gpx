@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx
+  version="1.0"
+  creator="GPSBabel - http://www.gpsbabel.org"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://www.topografix.com/GPX/1/0"
+  xsi:schemaLocation="http://www.topografix.com/GPX/1/0 http://www.topografix.com/GPX/1/0/gpx.xsd">
+<time>2020-05-08T09:18:49Z</time>
+<trk>
+  <name>route</name>
+<trkseg>
+<trkpt lat="10.836126000" lon="10.903761000">
+  <ele>0.000000</ele>
+</trkpt>
+<trkpt lat="10.836110000" lon="10.903779000">
+  <ele>0.000000</ele>
+</trkpt>
+</trkseg>
+</trk>
+</gpx>

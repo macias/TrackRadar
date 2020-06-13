@@ -35,10 +35,30 @@ namespace TrackRadar
             return Android.Provider.Settings.Secure.GetInt(context.ContentResolver, Android.Provider.Settings.Secure.AdbEnabled, 0) == 1;
         }
 
-        public static void Log(string message)
+        public static void Log(LogLevel level,string message)
         {
-            Android.Util.Log.Debug(Common.appTag, Common.FormatShortDateTime(DateTime.Now) + " " + message);
+            Android.Util.LogPriority priority;
+            switch (level)
+            {
+                case LogLevel.Error:
+                    priority = Android.Util.LogPriority.Error;
+                    break;
+                case LogLevel.Warning:
+                    priority = Android.Util.LogPriority.Warn;
+                    break;
+                case LogLevel.Info:
+                    priority = Android.Util.LogPriority.Info;
+                    break;
+                case LogLevel.Verbose:
+                    priority = Android.Util.LogPriority.Verbose;
+                    break;
+                default:
+                    priority = Android.Util.LogPriority.Error;
+                    break;
+            }
+            Android.Util.Log.WriteLine(priority, Common.appTag, Common.FormatShortDateTime(DateTime.Now) + " " + message);
         }
+
         public static void VibrateAlarm(Vibrator vibrator)
         {
             vibrator?.Vibrate(500); //ms
@@ -73,37 +93,37 @@ namespace TrackRadar
             player.SetVolume(1 - log1, 1 - log1);
         }
 
-  /*      public static List<GpxTrackSegment> ReadGpx(string filename)
-        {
-            var result = new List<GpxTrackSegment>();
+        /*      public static List<GpxTrackSegment> ReadGpx(string filename)
+              {
+                  var result = new List<GpxTrackSegment>();
 
-            using (var input = new System.IO.FileStream(filename, System.IO.FileMode.Open, System.IO.FileAccess.Read))
-            {
-                using (GpxReader reader = new GpxReader(input))
-                {
-                    while (reader.Read())
-                    {
-                        switch (reader.ObjectType)
-                        {
-                            case GpxObjectType.Metadata:
-                                break;
-                            case GpxObjectType.WayPoint:
-                                break;
-                            case GpxObjectType.Route:
-                                break;
-                            case GpxObjectType.Track:
-                                result.AddRange(reader.Track.Segments);
-                                break;
-                        }
-                    }
+                  using (var input = new System.IO.FileStream(filename, System.IO.FileMode.Open, System.IO.FileAccess.Read))
+                  {
+                      using (GpxReader reader = new GpxReader(input))
+                      {
+                          while (reader.Read())
+                          {
+                              switch (reader.ObjectType)
+                              {
+                                  case GpxObjectType.Metadata:
+                                      break;
+                                  case GpxObjectType.WayPoint:
+                                      break;
+                                  case GpxObjectType.Route:
+                                      break;
+                                  case GpxObjectType.Track:
+                                      result.AddRange(reader.Track.Segments);
+                                      break;
+                              }
+                          }
 
-                }
+                      }
 
-            }
+                  }
 
-            return result;
-        }
-*/
+                  return result;
+              }
+      */
 
     }
 }

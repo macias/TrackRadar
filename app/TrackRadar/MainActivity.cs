@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Gpx;
+using MathUnit;
 
 namespace TrackRadar
 {
@@ -24,6 +25,10 @@ namespace TrackRadar
         private TextView trackInfoTextView;
         private TextView gpsInfoTextView;
         private TextView alarmInfoTextView;
+        private TextView ridingDistanceTextView;
+        private TextView averageSpeedTextView;
+        private TextView topSpeedTextView;
+        private TextView totalClimbsTextView;
         private TextView infoTextView;
         private ArrayAdapter<string> adapter;
         private Button trackButton;
@@ -33,6 +38,8 @@ namespace TrackRadar
 
         private Intent radarIntent;
         private MainReceiver receiver;
+
+        private TrackRadarApp app => (TrackRadarApp)Application;
 
         public MainActivity()
         {
@@ -71,6 +78,11 @@ namespace TrackRadar
                 this.trackInfoTextView = FindViewById<TextView>(Resource.Id.TrackInfoTextView);
                 this.alarmInfoTextView = FindViewById<TextView>(Resource.Id.AlarmInfoTextView);
 
+                this.ridingDistanceTextView = FindViewById<TextView>(Resource.Id.RidingDistanceTextView);
+                this.averageSpeedTextView = FindViewById<TextView>(Resource.Id.AverageSpeedTextView);
+                this.topSpeedTextView = FindViewById<TextView>(Resource.Id.TopSpeedTextView);
+                this.totalClimbsTextView = FindViewById<TextView>(Resource.Id.TotalClimbsTextView);
+
                 this.infoTextView = FindViewById<TextView>(Resource.Id.InfoTextView);
                 this.adapter = new ArrayAdapter<string>(this, Resource.Layout.ListViewItem, new List<string>());
                 ListAdapter = this.adapter;
@@ -81,7 +93,11 @@ namespace TrackRadar
 
                 this.receiver = MainReceiver.Create(this);
 
-                this.logDebug(LogLevel.Verbose, "Done OnCreate");
+                //loadTrack();
+                updateTrackInfo();
+                updateStatistics(totalClimbs: app.Prefs.TotalClimbs, ridingDistance: app.Prefs.RidingDistance, ridingTime: app.Prefs.RidingTime, topSpeed: app.Prefs.TopSpeed);
+
+                this.logDebug(LogLevel.Verbose, $"Done OnCreate");
             }
             catch (Exception ex)
             {
@@ -90,19 +106,103 @@ namespace TrackRadar
 
         }
 
+        protected override void OnResume()
+        {
+            try
+            {
+                this.logDebug(LogLevel.Verbose, "Entering OnResume");
+
+                lastGpsEvent_debug = GpsEvent.Stopped;
+
+                base.OnResume();
+
+                logDebug(LogLevel.Verbose, "RESUMED");
+                LocationManager lm = (LocationManager)GetSystemService(Context.LocationService);
+                lm.AddGpsStatusListener(this);
+
+                if (this.isServiceRunning())
+                {
+                    this.receiver.DistanceUpdate += Receiver_DistanceUpdate;
+                    ServiceReceiver.SendSubscribe(this);
+                }
+                this.receiver.AlarmUpdate += Receiver_AlarmUpdate;
+                this.receiver.DebugUpdate += Receiver_DebugUpdate;
+
+                if (updateReadiness()) // gps could be switched meanwhile
+                {
+                    showAlarm("running", Android.Graphics.Color.GreenYellow);
+                    ServiceReceiver.SendInfoRequest(this);
+                }
+
+                this.logDebug(LogLevel.Verbose, "Done OnResume");
+            }
+            catch (Exception ex)
+            {
+                this.logDebug(LogLevel.Error, "OnResume " + ex.ToString());
+            }
+
+        }
+
+        protected override void OnPause()
+        {
+            try
+            {
+                this.logDebug(LogLevel.Verbose, "Entering OnPause");
+
+                if (this.isServiceRunning())
+                {
+                    this.receiver.DistanceUpdate -= Receiver_DistanceUpdate;
+                    ServiceReceiver.SendUnsubscribe(this);
+                }
+
+                this.receiver.AlarmUpdate -= Receiver_AlarmUpdate;
+                this.receiver.DebugUpdate -= Receiver_DebugUpdate;
+
+                logDebug(LogLevel.Verbose, "app paused");
+                LocationManager lm = (LocationManager)GetSystemService(Context.LocationService);
+                lm.RemoveGpsStatusListener(this);
+
+                base.OnPause();
+
+                this.logDebug(LogLevel.Verbose, "Done OnPause");
+            }
+            catch (Exception ex)
+            {
+                this.logDebug(LogLevel.Error, "OnPause " + ex.ToString());
+            }
+
+        }
+
+
         private void Receiver_DistanceUpdate(object sender, DistanceEventArgs e)
         {
             try
             {
-                bool off_track = e.Distance > 0;
+                bool off_track = Double.IsInfinity(e.FenceDistance) || e.FenceDistance > 0;
                 this.infoTextView.SetTextColor(off_track ? Android.Graphics.Color.OrangeRed : Android.Graphics.Color.Green);
-                this.infoTextView.Text = Math.Abs(e.Distance).ToString("0.0") + "m " + (off_track ? "off" : "on");
+                if (Double.IsInfinity(e.FenceDistance))
+                    this.infoTextView.Text = "far away";
+                else
+                    this.infoTextView.Text = Math.Abs(e.FenceDistance).ToString("0.0") + "m " + (off_track ? "off" : "on");
+
+                updateStatistics(totalClimbs: e.TotalClimbs, ridingDistance: e.RidingDistance, ridingTime: e.RidingTime, topSpeed: e.TopSpeed);
             }
             catch (Exception ex)
             {
                 this.logDebug(LogLevel.Error, "Receiver_DistanceUpdate " + ex.ToString());
             }
 
+        }
+
+        private void updateStatistics(Length totalClimbs, Length ridingDistance, TimeSpan ridingTime, Speed topSpeed)
+        {
+            this.totalClimbsTextView.Text = totalClimbs.Meters.ToString("0");
+            this.ridingDistanceTextView.Text = ridingDistance.Kilometers.ToString("0.0");
+            if (ridingTime == TimeSpan.Zero)
+                this.averageSpeedTextView.Text = "0.0";
+            else
+                this.averageSpeedTextView.Text = (ridingDistance / ridingTime).KilometersPerHour.ToString("0.0");
+            this.topSpeedTextView.Text = topSpeed.KilometersPerHour.ToString("0.0");
         }
 
         private void Receiver_AlarmUpdate(object sender, MessageEventArgs e)
@@ -129,69 +229,6 @@ namespace TrackRadar
             this.infoTextView.Text = message;
         }
 
-        protected override void OnResume()
-        {
-            try
-            {
-                this.logDebug(LogLevel.Verbose, "Entering OnResume");
-
-                lastGpsEvent_debug = GpsEvent.Stopped;
-
-                base.OnResume();
-
-                logDebug(LogLevel.Verbose, "RESUMED");
-                LocationManager lm = (LocationManager)GetSystemService(Context.LocationService);
-                lm.AddGpsStatusListener(this);
-
-                if (this.isServiceRunning())
-                    ServiceReceiver.SendSubscribe(this);
-
-                this.receiver.DistanceUpdate += Receiver_DistanceUpdate;
-                this.receiver.AlarmUpdate += Receiver_AlarmUpdate;
-                this.receiver.DebugUpdate += Receiver_DebugUpdate;
-
-                if (updateReadiness()) // gps could be switched meanwhile
-                {
-                    showAlarm("running", Android.Graphics.Color.GreenYellow);
-                    ServiceReceiver.SendInfoRequest(this);
-                }
-
-                this.logDebug(LogLevel.Verbose, "Done OnResume");
-            }
-            catch (Exception ex)
-            {
-                this.logDebug(LogLevel.Error, "OnResume " + ex.ToString());
-            }
-
-        }
-        protected override void OnPause()
-        {
-            try
-            {
-                this.logDebug(LogLevel.Verbose, "Entering OnPause");
-
-                if (this.isServiceRunning())
-                    ServiceReceiver.SendUnsubscribe(this);
-
-                this.receiver.AlarmUpdate -= Receiver_AlarmUpdate;
-                this.receiver.DistanceUpdate -= Receiver_DistanceUpdate;
-                this.receiver.DebugUpdate -= Receiver_DebugUpdate;
-
-                logDebug(LogLevel.Verbose, "app paused");
-                LocationManager lm = (LocationManager)GetSystemService(Context.LocationService);
-                lm.RemoveGpsStatusListener(this);
-
-                base.OnPause();
-
-                this.logDebug(LogLevel.Verbose, "Done OnPause");
-            }
-            catch (Exception ex)
-            {
-                this.logDebug(LogLevel.Error, "OnPause " + ex.ToString());
-            }
-
-        }
-
         private void Receiver_DebugUpdate(object sender, MessageEventArgs e)
         {
             logUI(e.Message);
@@ -211,7 +248,7 @@ namespace TrackRadar
             }
             catch (Exception ex)
             {
-                Common.Log($"CRASH logUI {ex}");
+                Common.Log(LogLevel.Error, $"CRASH logUI {ex}");
             }
         }
 
@@ -219,14 +256,13 @@ namespace TrackRadar
         {
             try
             {
-                if (level > LogLevel.Verbose)
-                    Common.Log(message);
+                Common.Log(level, message);
                 log_writer?.WriteLine(level, message);
                 logUI(message);
             }
             catch (Exception ex)
             {
-                Common.Log($"CRASH log {ex}");
+                Common.Log(LogLevel.Error, $"CRASH log {ex}");
             }
         }
 
@@ -255,37 +291,19 @@ namespace TrackRadar
         {
             try
             {
-                var prefs = Preferences.Load(this);
-                this.alarmInfoTextView.Visibility = prefs.PrimaryAlarmEnabled ? ViewStates.Gone : ViewStates.Visible;
-                string track_path = Preferences.LoadTrackFileName(this);
-                bool track_enabled = track_path != null && System.IO.File.Exists(track_path);
-                this.trackFileNameTextView.Text = track_path;
-                if (!track_enabled)
-                    this.trackInfoTextView.Text = "Track is not available.";
-                else
-                {
-                    var gpx_data = GpxLoader.ReadGpx(track_path,
-                        Length.FromMeters(prefs.OffTrackAlarmDistance),
-                        ex => logDebug(LogLevel.Error, $"Error while loading GPX {ex.Message}"));
+                IPreferences prefs = app.Prefs;
+                this.alarmInfoTextView.Visibility = prefs.PrimaryAlarmEnabled() ? ViewStates.Gone : ViewStates.Visible;
 
-                    if (!gpx_data.Map.Segments.Any())
-                    {
-                        track_enabled = false;
-                        this.trackInfoTextView.Text = "Empty track.";
-                    }
+                bool is_running = isServiceRunning();
 
-                    logUI($"Found {gpx_data.Crossroads.Count} crossroads");
-                }
-
-                this.trackInfoTextView.Visibility = track_enabled ? ViewStates.Gone : ViewStates.Visible;
+                // bool track_enabled = loadTrack();// allowFileReload, prefs, is_running);
 
                 LocationManager lm = (LocationManager)GetSystemService(Context.LocationService);
                 bool gps_enabled = lm.IsProviderEnabled(LocationManager.GpsProvider);
                 logDebug(LogLevel.Verbose, $"gps provider enabled {gps_enabled}");
                 this.gpsInfoTextView.Visibility = gps_enabled ? ViewStates.Gone : ViewStates.Visible;
 
-                bool is_running = isServiceRunning();
-                bool can_start = (track_enabled && gps_enabled && prefs.PrimaryAlarmEnabled);
+                bool can_start = (app.TrackData != null && gps_enabled && prefs.PrimaryAlarmEnabled());
                 this.enableButton.Enabled = is_running || can_start;
                 this.enableButton.Text = Resources.GetString(is_running ? Resource.String.StopService : Resource.String.StartService);
 
@@ -302,6 +320,38 @@ namespace TrackRadar
                 throw;
             }
         }
+
+        /* private void loadTrack()
+         {
+             app.TrackData = null;
+
+             string track_path = Preferences.LoadTrackFileName(this);
+             bool track_enabled = track_path != null && System.IO.File.Exists(track_path);
+             this.trackFileNameTextView.Text = track_path;
+
+             if (!track_enabled)
+             {
+                 this.trackInfoTextView.Text = "Track is not available.";
+             }
+             else
+             {
+                 GpxData gpx_data = GpxLoader.ReadGpx(track_path,
+                      Length.FromMeters(app.Prefs.OffTrackAlarmDistance),
+                      ex => logDebug(LogLevel.Error, $"Error while loading GPX {ex.Message}"));
+
+                 if (gpx_data.Segments.Any())
+                     app.TrackData = gpx_data;
+                 else
+                 {
+                     track_enabled = false;
+                     this.trackInfoTextView.Text = "Empty track.";
+                 }
+
+                 logUI($"Found {gpx_data.Crossroads.Count()} crossroads");
+             }
+
+             this.trackInfoTextView.Visibility = track_enabled ? ViewStates.Gone : ViewStates.Visible;
+         }*/
 
         private void trackSelectionClicked(object sender, System.EventArgs e)
         {
@@ -337,9 +387,10 @@ namespace TrackRadar
                 {
                     if (intent.Data != null && intent.Data.Path != null)
                     {
-                        this.trackFileNameTextView.Text = intent.Data.Path;
-                        Preferences.SaveTrackFileName(this, intent.Data.Path);
+                        app.Prefs.SaveTrackFileName(this, intent.Data.Path);
 
+                        app.LoadTrack(onError: ex => logDebug(LogLevel.Error, $"Error while loading GPX {ex.Message}"));
+                        updateTrackInfo();
                         updateReadiness();
                     }
                 }
@@ -352,6 +403,16 @@ namespace TrackRadar
             }
         }
 
+        private void updateTrackInfo()
+        {
+            GpxData track_data = app.TrackData;
+            if (track_data != null)
+                logUI($"Found {track_data.Crossroads.Count()} crossroads");
+            this.trackInfoTextView.Visibility = track_data != null ? ViewStates.Gone : ViewStates.Visible;
+            this.trackFileNameTextView.Text = app.Prefs.TrackName;
+            this.trackInfoTextView.Text = app.TrackInfo;
+        }
+
         private void EnableButtonClicked(object sender, System.EventArgs e)
         {
             try
@@ -361,12 +422,15 @@ namespace TrackRadar
                 if (running)
                 {
                     this.logDebug(LogLevel.Verbose, "stopping service");
+                    this.receiver.DistanceUpdate -= Receiver_DistanceUpdate;
                     this.StopService(radarIntent);
                 }
                 else
                 {
                     this.logDebug(LogLevel.Verbose, "starting service service");
+
                     this.adapter.Clear();
+                    this.receiver.DistanceUpdate += Receiver_DistanceUpdate;
 
                     showAlarm("running", Android.Graphics.Color.GreenYellow);
 
@@ -375,6 +439,8 @@ namespace TrackRadar
                     this.StartService(radarIntent);
                 }
                 this.logDebug(LogLevel.Verbose, "updating UI");
+
+                // we can block reloading file because service does not do loading on its own
                 updateReadiness();
 
                 this.logDebug(LogLevel.Verbose, "Done EnableButtonClicked");
@@ -462,9 +528,22 @@ namespace TrackRadar
                 this.logDebug(LogLevel.Verbose, "Entering OnOptionsItemSelected");
                 // since we have only single item menu we blindly process further
 
-                maxOutSystemVolume(new Android.Media.VolumeNotificationFlags());
+                switch (item.ItemId)
+                {
+                    case Resource.Id.SettingsMenuItem:
+                        maxOutSystemVolume(new Android.Media.VolumeNotificationFlags());
+                        StartActivity(typeof(SettingsActivity));
+                        break;
 
-                StartActivity(typeof(SettingsActivity));
+                    case Resource.Id.TurnAheadMenuItem:
+                        StartActivity(typeof(TurnAheadActivity));
+                        break;
+
+                    case Resource.Id.ClearStatsMenuItem:
+                        app.Prefs.SaveRideStatistics(this, Length.Zero, Length.Zero, TimeSpan.Zero, Speed.Zero);
+                        updateStatistics(totalClimbs: app.Prefs.TotalClimbs, ridingDistance: app.Prefs.RidingDistance, ridingTime: app.Prefs.RidingTime, topSpeed: app.Prefs.TopSpeed);
+                        break;
+                }
 
                 this.logDebug(LogLevel.Verbose, "Done OnOptionsItemSelected");
             }

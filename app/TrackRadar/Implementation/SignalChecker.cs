@@ -2,10 +2,13 @@
 using System.Diagnostics;
 using System.Threading;
 
-namespace TrackRadar
+namespace TrackRadar.Implementation
 {
-    public sealed class SignalTimer : IDisposable
+    internal sealed class SignalChecker : IDisposable
     {
+        private readonly object threadLock = new object();
+
+        private bool isDisposed;
         private long lastGpsPresentAtTicks;
         private long lastNoGpsAlarmAtTicks;
         private readonly Timer timer;
@@ -17,11 +20,11 @@ namespace TrackRadar
         // 0 -- means we have signal
         private int noGpsSignalCounter;
         private readonly Action<LogLevel, string> logger;
-        private TimeSpan defaultCheckInterval => TimeSpan.FromTicks(Math.Min(this.noGpsAgainInterval().Ticks, noGpsFirstTimeout().Ticks));
+        private TimeSpan defaultCheckInterval => this.noGpsAgainInterval().Min(noGpsFirstTimeout());
 
         public bool HasGpsSignal => Interlocked.CompareExchange(ref this.noGpsSignalCounter, 0, 0) == 0;
 
-        public SignalTimer(Action<LogLevel, string> logger, Func<TimeSpan> noGpsTimeoutFactory, Func<TimeSpan> noGpsIntervalFactory,
+        public SignalChecker(Action<LogLevel, string> logger, Func<TimeSpan> noGpsTimeoutFactory, Func<TimeSpan> noGpsIntervalFactory,
             Action gpsOnAlarm, Action gpsOffAlarm)
         {
             this.logger = logger;
@@ -44,43 +47,54 @@ namespace TrackRadar
             this.timer.Change(dueTime: defaultCheckInterval, period: Timeout.InfiniteTimeSpan);
         }
 
-        public void Update(bool canAlarm)
+        public void Dispose()
         {
-            Interlocked.Exchange(ref this.lastGpsPresentAtTicks, Stopwatch.GetTimestamp());
-            if (Interlocked.Exchange(ref this.noGpsSignalCounter, 0) != 0)
+            lock (this.threadLock)
             {
-                logger(LogLevel.Verbose, "GPS signal acquired");
-                if (canAlarm)
-                    gpsOnAlarm();
-                else
-                    logger(LogLevel.Verbose, "GPS-ON, Skipping alarming");
+                if (this.isDisposed)
+                    return;
+                this.isDisposed = true;
+            }
+
+            using (var handle = new AutoResetEvent(false))
+            {
+
+                if (this.timer.Dispose(handle))
+                    handle.WaitOne();
             }
         }
 
         private void check()
         {
+            TimeSpan due_time;
             try
             {
-                TimeSpan due_time;
                 if (HasGpsSignal)
                 {
-                    // this field can be changed from external thread
+                    // here in theory we have signal, but if the signal was acquired some time ago 
+                    // it means we don't have signal after all
+
                     long last_gps_at = Interlocked.CompareExchange(ref lastGpsPresentAtTicks, 0, 0);
-                   // logger(LogLevel.Verbose, $"{nameof(SignalTimer)} Last gps update at {last_gps_at}");
+                    // logger(LogLevel.Verbose, $"{nameof(SignalTimer)} Last gps update at {last_gps_at}");
                     due_time = tryRaiseAlarm(last_gps_at, this.noGpsFirstTimeout());
                 }
                 else
                 {
-                    logger(LogLevel.Verbose, $"{nameof(SignalTimer)} Last no-gps alarm at {this.lastNoGpsAlarmAtTicks}");
+                    logger(LogLevel.Verbose, $"{nameof(SignalChecker)} Last no-gps alarm at {this.lastNoGpsAlarmAtTicks}");
                     due_time = tryRaiseAlarm(lastNoGpsAlarmAtTicks, this.noGpsAgainInterval());
                 }
 
-                this.timer.Change(due_time, Timeout.InfiniteTimeSpan);
             }
             catch (Exception ex)
             {
                 logger(LogLevel.Error, $"Timer action crash {ex}");
-                this.timer.Change(TimeSpan.FromSeconds(10), Timeout.InfiniteTimeSpan);
+                due_time = TimeSpan.FromSeconds(10);
+            }
+
+            lock (this.threadLock)
+            {
+                if (!this.isDisposed)
+                    this.timer.Change(due_time, Timeout.InfiniteTimeSpan);
             }
         }
 
@@ -99,21 +113,25 @@ namespace TrackRadar
                 Interlocked.Increment(ref this.noGpsSignalCounter);
 
                 gpsOffAlarm();
-                delay = interval;
+                return interval;
             }
-            else if (delay > interval) // trim the value so we won't check for alarm too late
-                delay = interval;
-
-            return delay;
+            else
+                // 1 second is arbitrary to avoid going overboard with trimming the time for the next check
+                return TimeSpan.FromSeconds(1).Max(interval.Min(delay)); // trim the value so we won't check for alarm too late
         }
 
-        public void Dispose()
+        public void UpdateGpsIsOn(bool canAlarm)
         {
-            using (var handle = new AutoResetEvent(false))
+            Interlocked.Exchange(ref this.lastGpsPresentAtTicks, Stopwatch.GetTimestamp());
+            if (Interlocked.Exchange(ref this.noGpsSignalCounter, 0) != 0)
             {
-                if (this.timer.Dispose(handle))
-                    handle.WaitOne();
-            };
+                logger(LogLevel.Verbose, "GPS signal acquired");
+                if (canAlarm)
+                    gpsOnAlarm();
+                else
+                    logger(LogLevel.Verbose, "GPS-ON, Skipping alarming");
+            }
         }
+
     }
 }

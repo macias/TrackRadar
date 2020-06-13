@@ -19,6 +19,16 @@
             android:minWidth="25px"
             android:minHeight="25px" />
         <CheckBox
+            android:text="Show turn ahead"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/ShowTurnAheadCheckBox" />
+        <CheckBox
+            android:text="Request GPS"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/RequestGpsCheckBox" />
+        <CheckBox
             android:text="Vibrate"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -32,13 +42,13 @@
                 android:text="Off-track"
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
-                android:id="@+id/DistanceAudioFileNameButton" />
+                android:id="@+id/OffTrackDistanceAudioFileNameButton" />
             <TextView
                 android:text="Medium Text"
                 android:textAppearance="?android:attr/textAppearanceMedium"
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
-                android:id="@+id/DistanceAudioFileNameTextView"
+                android:id="@+id/OffTrackDistanceAudioFileNameTextView"
                 android:gravity="center_vertical"
                 android:layout_weight="1"
                 android:ellipsize="start"
@@ -47,7 +57,7 @@
                 android:text="&gt;"
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
-                android:id="@+id/DistancePlayButton" />
+                android:id="@+id/OffTrackDistancePlayButton" />
         </LinearLayout>
         <LinearLayout
             android:orientation="horizontal"
@@ -64,7 +74,7 @@
             <SeekBar
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:id="@+id/DistanceVolumeSeekBar"
+                android:id="@+id/OffTrackDistanceVolumeSeekBar"
                 android:layout_weight="1"
                 android:max="100"
                 android:paddingLeft="4px"
@@ -74,7 +84,7 @@
                 android:textAppearance="?android:attr/textAppearanceMedium"
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
-                android:id="@+id/DistanceVolumeTextView"
+                android:id="@+id/OffTrackDistanceVolumeTextView"
                 android:minEms="3"
                 android:maxEms="3"
                 android:layout_gravity="center" />
@@ -139,62 +149,6 @@
             android:orientation="horizontal"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:id="@+id/linearLayout221">
-            <Button
-                android:text="Crossroads"
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:id="@+id/CrossroadsAudioFileNameButton" />
-            <TextView
-                android:text="Medium Text"
-                android:textAppearance="?android:attr/textAppearanceMedium"
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:id="@+id/CrossroadsAudioFileNameTextView"
-                android:gravity="center_vertical"
-                android:layout_weight="1"
-                android:ellipsize="start"
-                android:singleLine="true" />
-            <Button
-                android:text="&gt;"
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:id="@+id/CrossroadsPlayButton" />
-        </LinearLayout>
-        <LinearLayout
-            android:orientation="horizontal"
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content"
-            android:id="@+id/linearLayout231">
-            <TextView
-                android:text="Volume"
-                android:textAppearance="?android:attr/textAppearanceMedium"
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:id="@+id/textView224"
-                android:layout_gravity="center_vertical" />
-            <SeekBar
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:id="@+id/CrossroadsVolumeSeekBar"
-                android:layout_weight="1"
-                android:max="100"
-                android:paddingLeft="4px"
-                android:paddingRight="4px" />
-            <TextView
-                android:text="0"
-                android:textAppearance="?android:attr/textAppearanceMedium"
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:id="@+id/CrossroadsVolumeTextView"
-                android:minEms="3"
-                android:maxEms="3"
-                android:layout_gravity="center" />
-        </LinearLayout>
-        <LinearLayout
-            android:orientation="horizontal"
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content"
             android:id="@+id/linearLayout22">
             <Button
                 android:text="GPS on"
@@ -247,7 +201,65 @@
                 android:maxEms="3"
                 android:layout_gravity="center" />
         </LinearLayout>
-        <TextView
+
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/linearLayout221">
+            <Button
+                android:text="Turn ahead"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:id="@+id/CrossroadsAudioFileNameButton" />
+            <TextView
+                android:text="Medium Text"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:id="@+id/CrossroadsAudioFileNameTextView"
+                android:gravity="center_vertical"
+                android:layout_weight="1"
+                android:ellipsize="start"
+                android:singleLine="true" />
+            <Button
+                android:text="&gt;"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:id="@+id/CrossroadsPlayButton" />
+        </LinearLayout>
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/linearLayout231">
+            <TextView
+                android:text="Volume"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:id="@+id/textView224"
+                android:layout_gravity="center_vertical" />
+            <SeekBar
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/CrossroadsVolumeSeekBar"
+                android:layout_weight="1"
+                android:max="100"
+                android:paddingLeft="4px"
+                android:paddingRight="4px" />
+            <TextView
+                android:text="0"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:id="@+id/CrossroadsVolumeTextView"
+                android:minEms="3"
+                android:maxEms="3"
+                android:layout_gravity="center" />
+        </LinearLayout>
+        
+		<TextView
             android:text="Off the track"
             android:textAppearance="?android:attr/textAppearanceMedium"
             android:layout_width="match_parent"
@@ -279,7 +291,7 @@
                 android:layout_width="wrap_content"
                 android:layout_weight="0"
                 android:layout_height="wrap_content"
-                android:id="@+id/DistanceEditText"
+                android:id="@+id/OffTrackDistanceEditText"
                 android:paddingLeft="10sp"
                 android:paddingRight="10sp"
                 android:singleLine="true"
@@ -287,7 +299,7 @@
                 android:maxEms="4" />
         </LinearLayout>
         <TextView
-            android:text="How many meters to go off track to turn the alarm on."
+            android:text="Alarm when off the track by given distance [m]."
             android:textAppearance="?android:attr/textAppearanceSmall"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -329,7 +341,7 @@
                 android:minEms="4" />
         </LinearLayout>
         <TextView
-            android:text="How many seconds off the track before turning the alarm again."
+            android:text="Repeat alarm again when still off the track [s]."
             android:textAppearance="?android:attr/textAppearanceSmall"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -339,8 +351,102 @@
             android:paddingLeft="4sp"
             android:paddingRight="4sp"
             android:paddingTop="2sp" />
+        
+		<TextView
+            android:text="Movement"
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/textView202006051"
+            android:padding="4sp"
+            android:textStyle="bold" />
+        <View
+            style="@style/Divider" />
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="fill_parent"
+            android:paddingLeft="4sp"
+            android:paddingRight="4sp"
+            android:layout_height="wrap_content"
+            android:id="@+id/linearLayout202006051">
+            <TextView
+                android:text="Rest speed"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:id="@+id/textView202006052"
+                android:gravity="center_vertical"
+                android:paddingBottom="2sp"
+                android:paddingTop="4sp"
+                android:layout_weight="1" />
+            <EditText
+                android:inputType="number"
+                android:layout_width="wrap_content"
+                android:layout_weight="0"
+                android:layout_height="wrap_content"
+                android:id="@+id/RestThresholdEditText"
+                android:paddingLeft="10sp"
+                android:paddingRight="10sp"
+                android:singleLine="true"
+                android:minEms="4"
+                android:maxEms="4" />
+        </LinearLayout>
         <TextView
-            android:text="No signal"
+            android:text="Dropping below given speed disables alarm [km/h]."
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/textView202006053"
+            android:textColor="#87CEEB"
+            android:paddingBottom="2sp"
+            android:paddingLeft="4sp"
+            android:paddingRight="4sp"
+            android:paddingTop="2sp" />
+        <View
+            style="@style/Divider" />
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:paddingLeft="4sp"
+            android:paddingRight="4sp"
+            android:id="@+id/linearLayout202006052">
+            <TextView
+                android:text="Riding speed"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:id="@+id/textView202006054"
+                android:gravity="center_vertical"
+                android:paddingBottom="2sp"
+                android:paddingTop="4sp"
+                android:layout_weight="1" />
+            <EditText
+                android:inputType="number"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="0"
+                android:id="@+id/RidingThresholdEditText"
+                android:paddingLeft="10sp"
+                android:paddingRight="10sp"
+                android:singleLine="true"
+                android:maxEms="4"
+                android:minEms="4" />
+        </LinearLayout>
+        <TextView
+            android:text="Reaching given speed enables alarm again [km/h]."
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/textView202006054"
+            android:textColor="#87CEEB"
+            android:paddingBottom="2sp"
+            android:paddingLeft="4sp"
+            android:paddingRight="4sp"
+            android:paddingTop="2sp" />
+		
+		<TextView
+            android:text="No GPS signal"
             android:textAppearance="?android:attr/textAppearanceMedium"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -380,7 +486,7 @@
                 android:minEms="4" />
         </LinearLayout>
         <TextView
-            android:text="How many seconds with no GPS before turning the alarm on."
+            android:text="Alarm after given time without GPS signal [s]."
             android:textAppearance="?android:attr/textAppearanceSmall"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -423,7 +529,7 @@
                 android:minEms="4" />
         </LinearLayout>
         <TextView
-            android:text="How many minutes with no GPS to turn the alarm again."
+            android:text="Repeat alarm again without GPS signal [m]."
             android:textAppearance="?android:attr/textAppearanceSmall"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -433,5 +539,138 @@
             android:paddingLeft="4sp"
             android:paddingRight="4sp"
             android:paddingTop="2sp" />
+
+		<TextView
+            android:text="Turn ahead"
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/textView20200605121"
+            android:padding="4sp"
+            android:textStyle="bold" />
+        <View
+            style="@style/Divider" />
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="fill_parent"
+            android:paddingLeft="4sp"
+            android:paddingRight="4sp"
+            android:layout_height="wrap_content"
+            android:id="@+id/linearLayout115">
+            <TextView
+                android:text="Distance"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:id="@+id/textView556"
+                android:gravity="center_vertical"
+                android:paddingBottom="2sp"
+                android:paddingTop="4sp"
+                android:layout_weight="1" />
+            <EditText
+                android:inputType="number"
+                android:layout_width="wrap_content"
+                android:layout_weight="0"
+                android:layout_height="wrap_content"
+                android:id="@+id/TurnAheadDistanceEditText"
+                android:paddingLeft="10sp"
+                android:paddingRight="10sp"
+                android:singleLine="true"
+                android:minEms="4"
+                android:maxEms="4" />
+        </LinearLayout>
+        <TextView
+            android:text="Warn when coming to turn point [m]."
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/textView881"
+            android:textColor="#87CEEB"
+            android:paddingBottom="2sp"
+            android:paddingLeft="4sp"
+            android:paddingRight="4sp"
+            android:paddingTop="2sp" />
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="fill_parent"
+            android:paddingLeft="4sp"
+            android:paddingRight="4sp"
+            android:layout_height="wrap_content"
+            android:id="@+id/linearLayout1151">
+            <TextView
+                android:text="Interval"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:id="@+id/textView5561"
+                android:gravity="center_vertical"
+                android:paddingBottom="2sp"
+                android:paddingTop="4sp"
+                android:layout_weight="1" />
+            <EditText
+                android:inputType="number"
+                android:layout_width="wrap_content"
+                android:layout_weight="0"
+                android:layout_height="wrap_content"
+                android:id="@+id/TurnAheadIntervalEditText"
+                android:paddingLeft="10sp"
+                android:paddingRight="10sp"
+                android:singleLine="true"
+                android:minEms="4"
+                android:maxEms="4" />
+        </LinearLayout>
+        <TextView
+            android:text="Warn again when coming to turn point [s]."
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/textView8812"
+            android:textColor="#87CEEB"
+            android:paddingBottom="2sp"
+            android:paddingLeft="4sp"
+            android:paddingRight="4sp"
+            android:paddingTop="2sp" />
+
+		<LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="fill_parent"
+            android:paddingLeft="4sp"
+            android:paddingRight="4sp"
+            android:layout_height="wrap_content"
+            android:id="@+id/linearLayout11517">
+            <TextView
+                android:text="Screen timeout"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:id="@+id/textView55617"
+                android:gravity="center_vertical"
+                android:paddingBottom="2sp"
+                android:paddingTop="4sp"
+                android:layout_weight="1" />
+            <EditText
+                android:inputType="number"
+                android:layout_width="wrap_content"
+                android:layout_weight="0"
+                android:layout_height="wrap_content"
+                android:id="@+id/TurnAheadScreenTimeoutEditText"
+                android:paddingLeft="10sp"
+                android:paddingRight="10sp"
+                android:singleLine="true"
+                android:minEms="4"
+                android:maxEms="4" />
+        </LinearLayout>
+        <TextView
+            android:text="Show turn ahead screen for given period [s]."
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/textView88127"
+            android:textColor="#87CEEB"
+            android:paddingBottom="2sp"
+            android:paddingLeft="4sp"
+            android:paddingRight="4sp"
+            android:paddingTop="2sp" />
+
     </LinearLayout>
 </ScrollView>

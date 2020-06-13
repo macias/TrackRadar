@@ -1,15 +1,17 @@
-﻿using Gpx;
+﻿using Geo;
+using Gpx;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace TrackRadar
 {
-    internal partial class GpxLoader
+    public partial class GpxLoader
     {
-        private sealed class NodePoint
+        // todo: private
+        internal sealed class NodePoint
         {
-            public IGeoPoint Point { get; set; }
+            public GeoPoint Point { get; set; }
             public CrossroadKind Kind { get; set; }
             // extra info in cases like track-crossroad relation, we need to know which points are adjacent
             public HashSet<NodePoint> Neighbours { get; }
@@ -23,13 +25,14 @@ namespace TrackRadar
             {
                 this.Kind = CrossroadKind.Intersection;
                 this.Point = GeoCalculator.GetMidPoint(a.Point, b.Point);
+
                 foreach (NodePoint neighbour in new[] { a, b }.SelectMany(it => it.Neighbours).ToArray())
                     neighbour.Connect(this);
                 a.Disconnect();
                 b.Disconnect();
             }
 
-            private void Disconnect()
+            internal void Disconnect()
             {
                 foreach (NodePoint neighbour in this.Neighbours)
                     neighbour.Neighbours.Remove(this);

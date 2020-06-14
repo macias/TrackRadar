@@ -15,7 +15,7 @@ Please use Visual Studio 2017 or compatible tool. You need GPX library: https://
 
 ## Rationale
 
-I need moderately priced, e-ink, around 5" device with GPS and ability to run custom apps. The problem is it does exist, there are some options like:
+I need moderately priced, e-ink, around 5" device with GPS and ability to run custom apps. The problem is it does not exist, there are some options like:
 
 * Yotaphone -- too expensive (as for 2020, dead end),
 

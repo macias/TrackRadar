@@ -7,15 +7,14 @@ namespace Geo.Implementation
 {
     internal sealed class PlainTile : ITile
     {
-        public IEnumerable<ISegment> Segments => this.map;
+        public IEnumerable<ISegment> Segments => this.segments;
 
-        // latitude (vertical angle, north-south) -> longitude
-        private readonly IReadOnlyList<ISegment> map;
+        private readonly IReadOnlyList<ISegment> segments;
 
         /// <param name="segments">half-data, pass only A-B form, not A-B and B-A</param>
         public PlainTile(IEnumerable<ISegment> segments)
         {
-            this.map = segments.ToArray();
+            this.segments = segments.ToArray();
         }
 
         public bool FindCloseEnough(in Geo.GeoPoint point, Length limit, ref ISegment nearby, ref Length? distance)
@@ -31,7 +30,7 @@ namespace Geo.Implementation
         public bool IsWithinLimit(in Geo.GeoPoint point, Length limit, out Length? distance)
         {
             distance = null;
-            ISegment nearby = default(ISegment);
+            ISegment nearby = default;
 
             return find(point, limit, ref nearby, ref distance, returnFirst: true);
         }
@@ -40,7 +39,7 @@ namespace Geo.Implementation
         {
             bool found = false;
 
-            foreach (ISegment segment in this.map)
+            foreach (ISegment segment in this.segments)
             {
                 Length dist = point.GetDistanceToArcSegment(segment.A, segment.B);
 
@@ -63,7 +62,7 @@ namespace Geo.Implementation
 
         public IEnumerable<IMeasuredPinnedSegment> FindAll( Geo.GeoPoint point, Length limit)
         {
-            foreach (ISegment segment in this.map)
+            foreach (ISegment segment in this.segments)
             {
                 Length dist = point.GetDistanceToArcSegment(segment.A, segment.B,out Geo.GeoPoint cx);
 

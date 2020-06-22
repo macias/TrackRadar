@@ -229,7 +229,7 @@
         android:paddingLeft="4sp"
         android:paddingRight="4sp" />
     <TextView
-        android:text="Alarm is not available."
+        android:text="Incorrect/missing alarm(s)."
         android:textAppearance="?android:attr/textAppearanceSmall"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

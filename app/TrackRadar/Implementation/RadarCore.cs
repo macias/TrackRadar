@@ -14,7 +14,6 @@ namespace TrackRadar.Implementation
 
         // when we walk, we don't alter the speed (sic!)
         private Speed ridingSpeed;
-        private const int crossroadsWarningLimit = 3;
         private readonly IRadarService service;
         private readonly ITimeStamper timeStamper;
 
@@ -29,20 +28,14 @@ namespace TrackRadar.Implementation
 
         public long StartedAt { get; }
 
-
+        private readonly TurnLookout turn_lookout;
         private readonly RoundQueue<(GeoPoint point, Length? altitude, long timestamp)> lastPoints;
         private readonly IGeoMap trackMap;
-        private readonly IReadOnlyList<GeoPoint> trackCrossroads;
-        private long lastTurnAheadAlarmAt;
-        private readonly List<int> alarmedCrossroads;
-
-        // asymmetric behavior for this flag -- when on track, set it right away, 
-        // but if off track, set in only when we trigger alarm
-        // rationale: when we are back on track playing ACK has only sense if we played OFF before
-        // otherwise we would surprise user with ACK against no  previously existing alarm
-        private bool lastReportedOnTrack;
+        //private readonly IReadOnlyList<GeoPoint> trackCrossroads;
+        //private readonly IEnumerable<ISegment> segments;
         private long lastOffTrackAlarmAt;
-        private long ridingStarterAt;
+        private long lastOnTrackAlarmAt;
+        private long ridingStartedAt;
         private Length? lastAltitude;
 
         // todo: this is lame solution, I don't want to recompute the distance each time
@@ -53,7 +46,7 @@ namespace TrackRadar.Implementation
         {
             get
             {
-                if (this.ridingCount == 0)
+                if (this.ridingPieces == 0)
                     return this.startRidingDistance;
                 else
                     return this.startRidingDistance + this.overlappingRidingDistance / (this.ridingPieces * 1.0 / this.ridingCount);
@@ -63,10 +56,10 @@ namespace TrackRadar.Implementation
         {
             get
             {
-                if (this.ridingStarterAt == 0)
+                if (this.ridingStartedAt == timeStamper.GetBeforeTimeTimestamp())
                     return this.ridingTime;
                 else
-                    return this.ridingTime + TimeSpan.FromSeconds(timeStamper.GetSecondsSpan(ridingStarterAt));
+                    return this.ridingTime + TimeSpan.FromSeconds(timeStamper.GetSecondsSpan(ridingStartedAt));
 
             }
         }
@@ -86,22 +79,18 @@ namespace TrackRadar.Implementation
             this.startRidingDistance = startRidingDistance;
             this.overlappingRidingDistance = Length.Zero;
             this.ridingTime = ridingTime;
+            this.ridingStartedAt = timeStamper.GetBeforeTimeTimestamp();
             this.topSpeed = topSpeed;
             this.speedTicksWindow = 3 * timeStamper.Frequency; // 3 seconds is good time window
 
             this.StartedAt = timeStamper.GetTimestamp();
 
-            this.trackMap = GeoMapFactory.CreateGrid(gpxData.Segments,
-                (_, p) => p,
-                (_, a, b) => new Segment(a, b),
-                GeoMapFactory.GridLimit);
-            this.trackCrossroads = gpxData.Crossroads.ToList();
-            this.alarmedCrossroads = gpxData.Crossroads.Select(_ => 0).ToList();
+            this.trackMap = MapHelper.CreateDefaultGrid(gpxData.Segments);
+
+            this.turn_lookout = new TurnLookout(service, timeStamper, gpxData, this.trackMap);
 
             service.LogDebug(LogLevel.Info, $"{trackMap.Segments.Count()} segments in {timeStamper.GetSecondsSpan(StartedAt)}s");
         }
-
-
 
         /// <returns>negative value means on track</returns>
         public double UpdateLocation(in GeoPoint currentPoint, Length? altitude, float accuracy)
@@ -156,15 +145,15 @@ namespace TrackRadar.Implementation
                     // of notification -- so we use two values, to separate well movement and rest "zones"
                     if (curr_speed <= service.RestSpeedThreshold)
                     {
-                        if (this.ridingStarterAt != 0)
-                            this.ridingTime += TimeSpan.FromSeconds(timeStamper.GetSecondsSpan(now, ridingStarterAt));
-                        this.ridingStarterAt = 0;
+                        if (this.ridingStartedAt != timeStamper.GetBeforeTimeTimestamp())
+                            this.ridingTime += TimeSpan.FromSeconds(timeStamper.GetSecondsSpan(now, ridingStartedAt));
+                        this.ridingStartedAt = timeStamper.GetBeforeTimeTimestamp();
                         this.ridingSpeed = Speed.Zero;
                     }
                     else if (curr_speed > service.RidingSpeedThreshold)
                     {
-                        if (this.ridingStarterAt == 0)
-                            this.ridingStarterAt = last_ts;
+                        if (this.ridingStartedAt == timeStamper.GetBeforeTimeTimestamp())
+                            this.ridingStartedAt = last_ts;
                         this.ridingSpeed = curr_speed;
                     }
 
@@ -184,43 +173,51 @@ namespace TrackRadar.Implementation
 
             this.lastPoints.Enqueue((currentPoint, altitude, now));
 
+
+            // do not trigger alarm if we stopped moving
+            if (this.ridingSpeed == Speed.Zero)
+            {
+                // here we check the interval to prevent too often playing ACK
+                // possible case: user got back on track and then stopped, without checking interval she/he would got two ACKs
+                if (prev_riding != Speed.Zero
+                   // reusing off-track interval, no point making separate settings
+                   //               && timeStamper.GetSecondsSpan(now, this.lastOnTrackAlarmAt) >= service.OffTrackAlarmInterval.TotalSeconds
+                   )
+                {
+                    bool played = service.TryAlarm(Alarm.Disengage, out string reason);
+                    service.LogDebug(LogLevel.Verbose, $"Disengage played {played}, reason {reason}, stopped, previously riding {prev_riding}m/s");
+                }
+
+                return dist;
+            }
+
+
             if (on_track)
             {
-                if (!this.lastReportedOnTrack)
+                if (prev_riding == Speed.Zero  // we started riding, engagement
+                    || this.lastOnTrackAlarmAt < this.lastOffTrackAlarmAt) // we were previously off-track
                 {
                     bool played = service.TryAlarm(Alarm.PositiveAcknowledgement, out string reason);
                     service.LogDebug(LogLevel.Verbose, $"ACK played {played}, reason: {reason}, back on track");
 
-                    this.lastReportedOnTrack = played;
-                }
-                else if (prev_riding > Speed.Zero && this.ridingSpeed == Speed.Zero)
-                {
-                    bool played = service.TryAlarm(Alarm.PositiveAcknowledgement, out string reason);
-                    service.LogDebug(LogLevel.Verbose, $"ACK played {played}, reason {reason}, stopped, previously riding {prev_riding}m/s");
+                    if (played)
+                        this.lastOnTrackAlarmAt = now;
                 }
 
-                if (this.ridingSpeed != Speed.Zero && alarmTurnAhead(currentPoint, accuracy_len, now))
+                if (turn_lookout.AlarmTurnAhead(currentPoint, this.ridingSpeed, now))
                     service.WriteCrossroad(latitudeDegrees: currentPoint.Latitude.Degrees, longitudeDegrees: currentPoint.Longitude.Degrees);
 
                 return dist;
             }
             else
             {
-
-                // do not trigger alarm if we stopped moving
-                if (this.ridingSpeed == Speed.Zero)
-                    return dist;
-
-                var passed = timeStamper.GetSecondsSpan(now, this.lastOffTrackAlarmAt);
-                if (passed < service.OffTrackAlarmInterval.TotalSeconds)
+                if (timeStamper.GetSecondsSpan(now, this.lastOffTrackAlarmAt) < service.OffTrackAlarmInterval.TotalSeconds)
                     return dist;
 
                 // do NOT try to be smart, and check if we are closing to the any of the tracks, this is because in real life
                 // we can be closing to parallel track however with some fence between us, so when we are off the track
                 // we are OFF THE TRACK and alarm the user about it -- user has info about environment, she/he sees if it possible
                 // to take a shortcut, we don't see a thing
-
-                this.lastReportedOnTrack = false;
 
                 if (service.TryAlarm(Alarm.OffTrack, out string reason))
                     this.lastOffTrackAlarmAt = now;
@@ -234,56 +231,6 @@ namespace TrackRadar.Implementation
                 return dist;
             }
         }
-
-        private bool alarmTurnAhead(GeoPoint point, Length accuracy, long now)
-        {
-            if (service.TurnAheadAlarmDistance == Length.Zero)
-                return false;
-
-            var passed = timeStamper.GetSecondsSpan(now, this.lastTurnAheadAlarmAt);
-
-            if (passed < service.TurnAheadAlarmInterval.TotalSeconds)
-                return false;
-
-            Length turn_ahead_distance = service.TurnAheadAlarmDistance;
-
-            Length min_dist = Length.MaxValue;
-            int closest_idx = -1;
-
-            for (int i = 0; i < this.trackCrossroads.Count; ++i)
-            {
-                Length dist = GeoCalculator.GetDistance(this.trackCrossroads[i], point);
-                if (dist - accuracy > turn_ahead_distance * 2)
-                {
-                    this.alarmedCrossroads[i] = 0;
-                }
-                else if (dist < min_dist)
-                {
-                    min_dist = dist;
-                    closest_idx = i;
-                }
-            }
-
-            bool played = false;
-
-            if (closest_idx != -1 && min_dist <= turn_ahead_distance && this.alarmedCrossroads[closest_idx] < crossroadsWarningLimit)
-            {
-                service.LogDebug(LogLevel.Info, $"Turn at {trackCrossroads[closest_idx]}, dist {min_dist}, repeat {this.alarmedCrossroads[closest_idx]}");
-                played = service.TryAlarm(Alarm.Crossroad, out string reason);
-
-                if (played)
-                {
-                    this.lastTurnAheadAlarmAt = now;
-                    ++this.alarmedCrossroads[closest_idx];
-                }
-                else
-                    service.LogDebug(LogLevel.Warning, $"Turn ahead alarm, couldn't play, reason {reason}");
-            }
-
-            return played;
-        }
-
-
 
         /// <param name="dist">negative value means on track</param>
         private bool isOnTrack(in GeoPoint point, Length accuracy, out double dist)

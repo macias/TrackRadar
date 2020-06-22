@@ -24,17 +24,36 @@ namespace TrackRadar
         EditText ridingSpeedThresholdEditText;
         private EditText turnAheadDistanceEditText;
 
-        AudioSettings offTrackDistanceSettings;
-        AudioSettings gpsLostSettings;
-        AudioSettings gpsOnSettings;
-        AudioSettings turnAheadSettings;
+        AudioRichSettings offTrackDistanceSettings;
+        AudioRichSettings gpsLostSettings;
+        AudioRichSettings gpsOnSettings;
+        AudioRichSettings turnAheadSettings;
+        AudioRichSettings disengageSettings;
 
-        Vibrator vibrator;
+        AudioFileSettings goAheadSettings;
+        AudioFileSettings leftEasySettings;
+        AudioFileSettings leftCrossSettings;
+        AudioFileSettings leftSharpSettings;
+        AudioFileSettings rightEasySettings;
+        AudioFileSettings rightCrossSettings;
+        AudioFileSettings rightSharpSettings;
+
+        IAlarmVibrator vibrator;
 
         private const int SelectDistanceAudioCode = 1;
         private const int SelectGpsLostAudioCode = 2;
         private const int SelectGpsOnAudioCode = 3;
         private const int SelectCrossroadsAudioCode = 4;
+
+        private const int SelectGoAheadAudioCode = 5;
+        private const int SelectLeftEasyAudioCode = 6;
+        private const int SelectLeftCrossAudioCode = 7;
+        private const int SelectLeftSharpAudioCode = 8;
+        private const int SelectRightEasyAudioCode = 9;
+        private const int SelectRightCrossAudioCode = 10;
+        private const int SelectRightSharpAudioCode = 11;
+
+        private const int SelectDisengageAudioCode = 12;
 
         bool playbackInitialized;
 
@@ -49,9 +68,9 @@ namespace TrackRadar
 
             this.playbackInitialized = false;
 
-            this.vibrator = (Vibrator)GetSystemService(Context.VibratorService);
+            this.vibrator = new AlarmVibrator((Vibrator)GetSystemService(Context.VibratorService));
 
-            this.offTrackDistanceSettings = new AudioSettings(this, Preferences.OffTrackDefaultAudioId,
+            this.offTrackDistanceSettings = new AudioRichSettings(this, Preferences.OffTrackDefaultAudioId,
                 SelectDistanceAudioCode,
                 () => this.playbackInitialized,
                 Resource.Id.OffTrackDistanceVolumeSeekBar,
@@ -59,7 +78,7 @@ namespace TrackRadar
                 Resource.Id.OffTrackDistanceAudioFileNameTextView,
                 Resource.Id.OffTrackDistancePlayButton,
                 Resource.Id.OffTrackDistanceAudioFileNameButton);
-            this.gpsOnSettings = new AudioSettings(this, Preferences.GpsOnDefaultAudioId,
+            this.gpsOnSettings = new AudioRichSettings(this, Preferences.GpsOnDefaultAudioId,
                 SelectGpsOnAudioCode,
                 () => this.playbackInitialized,
                 Resource.Id.GpsOnVolumeSeekBar,
@@ -67,7 +86,15 @@ namespace TrackRadar
                 Resource.Id.GpsOnAudioFileNameTextView,
                 Resource.Id.GpsOnPlayButton,
                 Resource.Id.GpsOnAudioFileNameButton);
-            this.turnAheadSettings = new AudioSettings(this, Preferences.CrossroadsDefaultAudioId,
+            this.disengageSettings = new AudioRichSettings(this, Preferences.DisengageDefaultAudioId,
+                SelectDisengageAudioCode,
+                () => this.playbackInitialized,
+                Resource.Id.DisengageVolumeSeekBar,
+                Resource.Id.DisengageVolumeTextView,
+                Resource.Id.DisengageAudioFileNameTextView,
+                Resource.Id.DisengagePlayButton,
+                Resource.Id.DisengageAudioFileNameButton);
+            this.turnAheadSettings = new AudioRichSettings(this, Preferences.CrossroadsDefaultAudioId,
                 SelectCrossroadsAudioCode,
                 () => this.playbackInitialized,
                 Resource.Id.CrossroadsVolumeSeekBar,
@@ -75,7 +102,16 @@ namespace TrackRadar
                 Resource.Id.CrossroadsAudioFileNameTextView,
                 Resource.Id.CrossroadsPlayButton,
                 Resource.Id.CrossroadsAudioFileNameButton);
-            this.gpsLostSettings = new AudioSettings(this, Preferences.GpsLostDefaultAudioId,
+
+            this.goAheadSettings = new AudioFileSettings(this, Preferences.GoAheadDefaultAudioId, SelectGoAheadAudioCode, () => this.playbackInitialized, Resource.Id.GoAheadAudioFileNameTextView, Resource.Id.GoAheadPlayButton, Resource.Id.GoAheadAudioFileNameButton, turnAheadSettings);
+            this.leftEasySettings = new AudioFileSettings(this, Preferences.LeftEasyDefaultAudioId, SelectLeftEasyAudioCode, () => this.playbackInitialized, Resource.Id.LeftEasyAudioFileNameTextView, Resource.Id.LeftEasyPlayButton, Resource.Id.LeftEasyAudioFileNameButton, turnAheadSettings);
+            this.leftCrossSettings = new AudioFileSettings(this, Preferences.LeftCrossDefaultAudioId, SelectLeftCrossAudioCode, () => this.playbackInitialized, Resource.Id.LeftCrossAudioFileNameTextView, Resource.Id.LeftCrossPlayButton, Resource.Id.LeftCrossAudioFileNameButton, turnAheadSettings);
+            this.leftSharpSettings = new AudioFileSettings(this, Preferences.LeftSharpDefaultAudioId, SelectLeftSharpAudioCode, () => this.playbackInitialized, Resource.Id.LeftSharpAudioFileNameTextView, Resource.Id.LeftSharpPlayButton, Resource.Id.LeftSharpAudioFileNameButton, turnAheadSettings);
+            this.rightEasySettings = new AudioFileSettings(this, Preferences.RightEasyDefaultAudioId, SelectRightEasyAudioCode, () => this.playbackInitialized, Resource.Id.RightEasyAudioFileNameTextView, Resource.Id.RightEasyPlayButton, Resource.Id.RightEasyAudioFileNameButton, turnAheadSettings);
+            this.rightCrossSettings = new AudioFileSettings(this, Preferences.RightCrossDefaultAudioId, SelectRightCrossAudioCode, () => this.playbackInitialized, Resource.Id.RightCrossAudioFileNameTextView, Resource.Id.RightCrossPlayButton, Resource.Id.RightCrossAudioFileNameButton, turnAheadSettings);
+            this.rightSharpSettings = new AudioFileSettings(this, Preferences.RightSharpDefaultAudioId, SelectRightSharpAudioCode, () => this.playbackInitialized, Resource.Id.RightSharpAudioFileNameTextView, Resource.Id.RightSharpPlayButton, Resource.Id.RightSharpAudioFileNameButton, turnAheadSettings);
+
+            this.gpsLostSettings = new AudioRichSettings(this, Preferences.GpsLostDefaultAudioId,
                 SelectGpsLostAudioCode,
                 () => this.playbackInitialized,
                 Resource.Id.GpsLostVolumeSeekBar,
@@ -116,15 +152,24 @@ namespace TrackRadar
             this.offTrackIntervalEditText.Text = ((int)prefs.OffTrackAlarmInterval.TotalSeconds).ToString();
             this.noGpsIntervalEditText.Text = ((int)prefs.NoGpsAlarmAgainInterval.TotalMinutes).ToString();
             this.noGpsTimeoutEditText.Text = ((int)prefs.NoGpsAlarmFirstTimeout.TotalSeconds).ToString();
-            this.offTrackDistanceSettings.Update(prefs.DistanceAudioVolume, prefs.DistanceAudioFileName);
+            this.offTrackDistanceSettings.Update(prefs.OffTrackAudioVolume, prefs.DistanceAudioFileName);
             this.gpsLostSettings.Update(prefs.GpsLostAudioVolume, prefs.GpsLostAudioFileName);
-            this.gpsOnSettings.Update(prefs.GpsOnAudioVolume, prefs.GpsOnAudioFileName);
+            this.gpsOnSettings.Update(prefs.AcknowledgementAudioVolume, prefs.GpsOnAudioFileName);
+            this.disengageSettings.Update(prefs.DisengageAudioVolume, prefs.DisengageAudioFileName);
             this.turnAheadSettings.Update(prefs.TurnAheadAudioVolume, prefs.TurnAheadAudioFileName);
+
+            this.goAheadSettings.Update(prefs.GoAheadAudioFileName);
+            this.leftEasySettings.Update(prefs.LeftEasyAudioFileName);
+            this.leftCrossSettings.Update(prefs.LeftCrossAudioFileName);
+            this.leftSharpSettings.Update(prefs.LeftSharpAudioFileName);
+            this.rightEasySettings.Update(prefs.RightEasyAudioFileName);
+            this.rightCrossSettings.Update(prefs.RightCrossAudioFileName);
+            this.rightSharpSettings.Update(prefs.RightSharpAudioFileName);
 
             this.restSpeedThresholdEditText.Text = ((int)prefs.RestSpeedThreshold.KilometersPerHour).ToString();
             this.ridingSpeedThresholdEditText.Text = ((int)prefs.RidingSpeedThreshold.KilometersPerHour).ToString();
 
-            this.turnAheadDistanceEditText.Text = ((int)prefs.TurnAheadAlarmDistance.Meters).ToString();
+            this.turnAheadDistanceEditText.Text = ((int)prefs.TurnAheadAlarmDistance.TotalSeconds).ToString();
             this.turnAheadIntervalEditText.Text = ((int)prefs.TurnAheadAlarmInterval.TotalSeconds).ToString();
             this.turnAheadScreenTimeoutEditText.Text = ((int)prefs.TurnAheadScreenTimeout.TotalSeconds).ToString();
 
@@ -144,8 +189,24 @@ namespace TrackRadar
                 this.gpsLostSettings.AudioFileSelected(intent.Data);
             else if (requestCode == SelectGpsOnAudioCode)
                 this.gpsOnSettings.AudioFileSelected(intent.Data);
+            else if (requestCode == SelectDisengageAudioCode)
+                this.disengageSettings.AudioFileSelected(intent.Data);
             else if (requestCode == SelectCrossroadsAudioCode)
                 this.turnAheadSettings.AudioFileSelected(intent.Data);
+            else if (requestCode == SelectGoAheadAudioCode)
+                this.goAheadSettings.AudioFileSelected(intent.Data);
+            else if (requestCode == SelectLeftEasyAudioCode)
+                this.leftEasySettings.AudioFileSelected(intent.Data);
+            else if (requestCode == SelectLeftCrossAudioCode)
+                this.leftCrossSettings.AudioFileSelected(intent.Data);
+            else if (requestCode == SelectLeftSharpAudioCode)
+                this.leftSharpSettings.AudioFileSelected(intent.Data);
+            else if (requestCode == SelectRightEasyAudioCode)
+                this.rightEasySettings.AudioFileSelected(intent.Data);
+            else if (requestCode == SelectRightCrossAudioCode)
+                this.rightCrossSettings.AudioFileSelected(intent.Data);
+            else if (requestCode == SelectRightSharpAudioCode)
+                this.rightSharpSettings.AudioFileSelected(intent.Data);
         }
 
 
@@ -167,20 +228,31 @@ namespace TrackRadar
                 NoGpsAlarmAgainInterval = TimeSpan.FromMinutes(int.Parse(this.noGpsIntervalEditText.Text)),
                 NoGpsAlarmFirstTimeout = TimeSpan.FromSeconds(int.Parse(this.noGpsTimeoutEditText.Text)),
 
-                DistanceAudioVolume = this.offTrackDistanceSettings.Volume,
+                OffTrackAudioVolume = this.offTrackDistanceSettings.Volume,
                 DistanceAudioFileName = this.offTrackDistanceSettings.AudioFileName,
                 GpsLostAudioVolume = this.gpsLostSettings.Volume,
                 GpsLostAudioFileName = this.gpsLostSettings.AudioFileName,
-                GpsOnAudioVolume = this.gpsOnSettings.Volume,
+                AcknowledgementAudioVolume = this.gpsOnSettings.Volume,
                 GpsOnAudioFileName = this.gpsOnSettings.AudioFileName,
+
+                DisengageAudioVolume = this.disengageSettings.Volume,
+                DisengageAudioFileName = this.disengageSettings.AudioFileName,
 
                 TurnAheadAudioVolume = this.turnAheadSettings.Volume,
                 TurnAheadAudioFileName = this.turnAheadSettings.AudioFileName,
 
+                GoAheadAudioFileName = this.goAheadSettings.AudioFileName,
+                LeftEasyAudioFileName = this.leftEasySettings.AudioFileName,
+                LeftCrossAudioFileName = this.leftCrossSettings.AudioFileName,
+                LeftSharpAudioFileName = this.leftSharpSettings.AudioFileName,
+                RightEasyAudioFileName = this.rightEasySettings.AudioFileName,
+                RightCrossAudioFileName = this.rightCrossSettings.AudioFileName,
+                RightSharpAudioFileName = this.rightSharpSettings.AudioFileName,
+
                 RestSpeedThreshold = Speed.FromKilometersPerHour(int.Parse(restSpeedThresholdEditText.Text)),
                 RidingSpeedThreshold = Speed.FromKilometersPerHour(int.Parse(ridingSpeedThresholdEditText.Text)),
 
-                TurnAheadAlarmDistance = Length.FromMeters(int.Parse(turnAheadDistanceEditText.Text)),
+                TurnAheadAlarmDistance = TimeSpan.FromSeconds(int.Parse(turnAheadDistanceEditText.Text)),
                 TurnAheadAlarmInterval = TimeSpan.FromSeconds(int.Parse(turnAheadIntervalEditText.Text)),
                 TurnAheadScreenTimeout = TimeSpan.FromSeconds(int.Parse(turnAheadScreenTimeoutEditText.Text)),
             });
@@ -188,7 +260,15 @@ namespace TrackRadar
             this.gpsLostSettings.Destroy();
             this.offTrackDistanceSettings.Destroy();
             this.gpsOnSettings.Destroy();
+            this.disengageSettings.Destroy();
             this.turnAheadSettings.Destroy();
+            this.goAheadSettings.Destroy();
+            this.leftEasySettings.Destroy();
+            this.leftCrossSettings.Destroy();
+            this.leftSharpSettings.Destroy();
+            this.rightEasySettings.Destroy();
+            this.rightCrossSettings.Destroy();
+            this.rightSharpSettings.Destroy();
 
             ServiceReceiver.SendUpdatePrefs(this);
 

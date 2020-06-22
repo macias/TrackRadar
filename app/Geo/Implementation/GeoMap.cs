@@ -7,7 +7,7 @@ namespace Geo.Implementation
 {
     internal sealed class GeoMap : IGeoMap
     {
-        private readonly IGraph graph;
+        //private readonly IGraph graph;
         private readonly ITile map;
 
         public IEnumerable<ISegment> Segments => this.map.Segments;
@@ -15,7 +15,7 @@ namespace Geo.Implementation
         /// <param name="segments">half-data, pass only A-B form, not A-B and B-A</param>
         public GeoMap(IEnumerable<ISegment> segments)
         {
-            this.graph = new Graph(segments.Select(it => it.Points()));
+          //  this.graph = new Graph(segments.Select(it => it.Points()));
             this.map = new SortedTile(segments);
         }
 
@@ -65,11 +65,11 @@ namespace Geo.Implementation
                     yield return seg;
         }
 
-        public IEnumerable<GeoPoint> GetAdjacent(in GeoPoint node)
+        /*public IEnumerable<GeoPoint> GetAdjacent(in GeoPoint node)
         {
             return this.graph.GetAdjacent(node);
         }
-
+        */
         /*public GeoPoint GetReference(Angle latitude, Angle longitude)
         {
             return this.graph.GetReference(latitude, longitude);

@@ -17,5 +17,9 @@
         {
             return (now - from - 0.0) / stamper.Frequency;
         }
+        public static long GetBeforeTimeTimestamp(this ITimeStamper stamper)
+        {
+            return long.MinValue;
+        }
     }
 }

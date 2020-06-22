@@ -19,7 +19,7 @@
             android:minWidth="25px"
             android:minHeight="25px" />
         <CheckBox
-            android:text="Show turn ahead"
+            android:text="DEBUG-Show turn ahead"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:id="@+id/ShowTurnAheadCheckBox" />
@@ -171,7 +171,7 @@
                 android:layout_height="match_parent"
                 android:id="@+id/GpsOnPlayButton" />
         </LinearLayout>
-        <LinearLayout
+<LinearLayout
             android:orientation="horizontal"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
@@ -197,6 +197,63 @@
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:id="@+id/GpsOnVolumeTextView"
+                android:minEms="3"
+                android:maxEms="3"
+                android:layout_gravity="center" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/linearLayout22zz">
+            <Button
+                android:text="Disengage"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:id="@+id/DisengageAudioFileNameButton" />
+            <TextView
+                android:text="Medium Text"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:id="@+id/DisengageAudioFileNameTextView"
+                android:gravity="center_vertical"
+                android:layout_weight="1"
+                android:ellipsize="start"
+                android:singleLine="true" />
+            <Button
+                android:text="&gt;"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:id="@+id/DisengagePlayButton" />
+        </LinearLayout>
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/linearLayout23zz">
+            <TextView
+                android:text="Volume"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:id="@+id/textView22zz"
+                android:layout_gravity="center_vertical" />
+            <SeekBar
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/DisengageVolumeSeekBar"
+                android:layout_weight="1"
+                android:max="100"
+                android:paddingLeft="4px"
+                android:paddingRight="4px" />
+            <TextView
+                android:text="0"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:id="@+id/DisengageVolumeTextView"
                 android:minEms="3"
                 android:maxEms="3"
                 android:layout_gravity="center" />
@@ -258,6 +315,195 @@
                 android:maxEms="3"
                 android:layout_gravity="center" />
         </LinearLayout>
+
+
+
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/linearLayout221x1">
+            <Button
+                android:text="Go ahead"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:id="@+id/GoAheadAudioFileNameButton" />
+            <TextView
+                android:text="Medium Text"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:id="@+id/GoAheadAudioFileNameTextView"
+                android:gravity="center_vertical"
+                android:layout_weight="1"
+                android:ellipsize="start"
+                android:singleLine="true" />
+            <Button
+                android:text="&gt;"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:id="@+id/GoAheadPlayButton" />
+        </LinearLayout>
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/linearLayout221x2">
+            <Button
+                android:text="Left easy"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:id="@+id/LeftEasyAudioFileNameButton" />
+            <TextView
+                android:text="Medium Text"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:id="@+id/LeftEasyAudioFileNameTextView"
+                android:gravity="center_vertical"
+                android:layout_weight="1"
+                android:ellipsize="start"
+                android:singleLine="true" />
+            <Button
+                android:text="&gt;"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:id="@+id/LeftEasyPlayButton" />
+        </LinearLayout>
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/linearLayout221x3">
+            <Button
+                android:text="Left cross"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:id="@+id/LeftCrossAudioFileNameButton" />
+            <TextView
+                android:text="Medium Text"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:id="@+id/LeftCrossAudioFileNameTextView"
+                android:gravity="center_vertical"
+                android:layout_weight="1"
+                android:ellipsize="start"
+                android:singleLine="true" />
+            <Button
+                android:text="&gt;"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:id="@+id/LeftCrossPlayButton" />
+        </LinearLayout>
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/linearLayout221x4">
+            <Button
+                android:text="Left sharp"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:id="@+id/LeftSharpAudioFileNameButton" />
+            <TextView
+                android:text="Medium Text"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:id="@+id/LeftSharpAudioFileNameTextView"
+                android:gravity="center_vertical"
+                android:layout_weight="1"
+                android:ellipsize="start"
+                android:singleLine="true" />
+            <Button
+                android:text="&gt;"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:id="@+id/LeftSharpPlayButton" />
+        </LinearLayout>
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/linearLayout221x5">
+            <Button
+                android:text="Right easy"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:id="@+id/RightEasyAudioFileNameButton" />
+            <TextView
+                android:text="Medium Text"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:id="@+id/RightEasyAudioFileNameTextView"
+                android:gravity="center_vertical"
+                android:layout_weight="1"
+                android:ellipsize="start"
+                android:singleLine="true" />
+            <Button
+                android:text="&gt;"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:id="@+id/RightEasyPlayButton" />
+        </LinearLayout>
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/linearLayout221x6">
+            <Button
+                android:text="Right cross"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:id="@+id/RightCrossAudioFileNameButton" />
+            <TextView
+                android:text="Medium Text"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:id="@+id/RightCrossAudioFileNameTextView"
+                android:gravity="center_vertical"
+                android:layout_weight="1"
+                android:ellipsize="start"
+                android:singleLine="true" />
+            <Button
+                android:text="&gt;"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:id="@+id/RightCrossPlayButton" />
+        </LinearLayout>
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/linearLayout221x7">
+            <Button
+                android:text="Right sharp"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:id="@+id/RightSharpAudioFileNameButton" />
+            <TextView
+                android:text="Medium Text"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:id="@+id/RightSharpAudioFileNameTextView"
+                android:gravity="center_vertical"
+                android:layout_weight="1"
+                android:ellipsize="start"
+                android:singleLine="true" />
+            <Button
+                android:text="&gt;"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:id="@+id/RightSharpPlayButton" />
+        </LinearLayout>
+
+
+
+
         
 		<TextView
             android:text="Off the track"
@@ -558,7 +804,7 @@
             android:layout_height="wrap_content"
             android:id="@+id/linearLayout115">
             <TextView
-                android:text="Distance"
+                android:text="Advance"
                 android:textAppearance="?android:attr/textAppearanceMedium"
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
@@ -580,7 +826,7 @@
                 android:maxEms="4" />
         </LinearLayout>
         <TextView
-            android:text="Warn when coming to turn point [m]."
+            android:text="Warn before coming to turn point [s]."
             android:textAppearance="?android:attr/textAppearanceSmall"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

@@ -1,0 +1,341 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx
+version="1.0"
+creator="TrackRadar https://github.com/macias/TrackRadar"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xmlns="http://www.topografix.com/GPX/1/0"
+xsi:schemaLocation="http://www.topografix.com/GPX/1/0 http://www.topografix.com/GPX/1/0/gpx.xsd">
+<wpt lat="39.4644118988076" lon="3.13229717963947">
+<name>Crossroad</name>
+</wpt>
+<wpt lat="39.4643984375422" lon="3.13223549039853">
+<name>RightEasy</name>
+</wpt>
+<wpt lat="39.4643849762442" lon="3.13217380118147">
+<name>RightEasy</name>
+</wpt>
+<wpt lat="39.4734942177322" lon="3.12219263253643">
+<name>Crossroad</name>
+</wpt>
+<wpt lat="39.473530968886" lon="3.12215373533615">
+<name>LeftSharp</name>
+</wpt>
+<wpt lat="39.4735677200268" lon="3.12211483809477">
+<name>LeftSharp</name>
+</wpt>
+<wpt lat="39.4626329527682" lon="3.12006188415759">
+<name>Crossroad</name>
+</wpt>
+<wpt lat="39.4625883738028" lon="3.12005434353467">
+<name>RightSharp</name>
+</wpt>
+<wpt lat="39.4625437948369" lon="3.12004680292141">
+<name>RightSharp</name>
+</wpt>
+<wpt lat="39.4677086191703" lon="3.10923178316584">
+<name>Crossroad</name>
+</wpt>
+<wpt lat="39.4677303418306" lon="3.10918832286508">
+<name>RightCross</name>
+</wpt>
+<wpt lat="39.4677520644748" lon="3.10914486253718">
+<name>RightCross</name>
+</wpt>
+<wpt lat="39.4752791375896" lon="3.11403929899349">
+<name>Crossroad</name>
+</wpt>
+<wpt lat="39.475309144175" lon="3.11406021481223">
+<name>LeftCross</name>
+</wpt>
+<wpt lat="39.4753391507567" lon="3.11408113064901">
+<name>LeftCross</name>
+</wpt>
+<wpt lat="39.4796886733976" lon="3.09957658397508">
+<name>Crossroad</name>
+</wpt>
+<wpt lat="39.4797052006485" lon="3.09951781728648">
+<name>LeftSharp</name>
+</wpt>
+<wpt lat="39.4797217278699" lon="3.09945905056996">
+<name>LeftSharp</name>
+</wpt>
+<wpt lat="39.4676243985321" lon="3.10011561005672">
+<name>Crossroad</name>
+</wpt>
+<wpt lat="39.4675756141429" lon="3.10011930083146">
+<name>RightSharp</name>
+</wpt>
+<wpt lat="39.4675268297535" lon="3.10012299160102">
+<name>RightSharp</name>
+</wpt>
+<wpt lat="39.480233223227" lon="3.08852559845923">
+<name>Crossroad</name>
+</wpt>
+<wpt lat="39.4802589709249" lon="3.0885024586904">
+<name>LeftCross</name>
+</wpt>
+<wpt lat="39.4802847186183" lon="3.08847931890444">
+<name>LeftCross</name>
+</wpt>
+<wpt lat="39.4739442861394" lon="3.07931415086498">
+<name>Crossroad</name>
+</wpt>
+<wpt lat="39.4739178879112" lon="3.07927794441069">
+<name>LeftCross</name>
+</wpt>
+<wpt lat="39.4738914896719" lon="3.07924173798388">
+<name>LeftCross</name>
+</wpt>
+<wpt lat="39.4704348176698" lon="3.08139824547367">
+<name>Crossroad</name>
+</wpt>
+<wpt lat="39.4704068659184" lon="3.08141836099903">
+<name>LeftEasy</name>
+</wpt>
+<wpt lat="39.4703789141636" lon="3.08143847650823">
+<name>LeftEasy</name>
+</wpt>
+<wpt lat="39.4683538601203" lon="3.08455523291632">
+<name>Crossroad</name>
+</wpt>
+<wpt lat="39.4683228001559" lon="3.08460619421067">
+<name>RightEasy</name>
+</wpt>
+<wpt lat="39.4682917401692" lon="3.08465715545953">
+<name>RightEasy</name>
+</wpt>
+<wpt lat="39.4624834464784" lon="3.08846049102054">
+<name>Crossroad</name>
+</wpt>
+<wpt lat="39.4624368554173" lon="3.08848999261586">
+<name>LeftEasy</name>
+</wpt>
+<wpt lat="39.4623902643487" lon="3.08851949417169">
+<name>LeftEasy</name>
+</wpt>
+<wpt lat="39.459892870356" lon="3.10077720987858">
+<name>Crossroad</name>
+</wpt>
+<wpt lat="39.4598835491333" lon="3.10082615868964">
+<name>RightCross</name>
+</wpt>
+<wpt lat="39.4598742278901" lon="3.1008751074876">
+<name>RightCross</name>
+</wpt>
+<wpt lat="39.4588036172101" lon="3.10130018183628">
+<name>Crossroad</name>
+</wpt>
+<wpt lat="39.4587622015829" lon="3.10130554427885">
+<name>RightCross</name>
+</wpt>
+<wpt lat="39.4587207859554" lon="3.10131090671504">
+<name>RightCross</name>
+</wpt>
+<wpt lat="39.4568205003463" lon="3.08834316108158">
+<name>Crossroad</name>
+</wpt>
+<wpt lat="39.4568137670429" lon="3.08829085957116">
+<name>GoAhead</name>
+</wpt>
+<wpt lat="39.4568070337161" lon="3.08823855807085">
+<name>GoAhead</name>
+</wpt>
+<wpt lat="39.4543402515148" lon="3.07735072714364">
+<name>Crossroad</name>
+</wpt>
+<wpt lat="39.4543304125207" lon="3.07730781296805">
+<name>RightSharp</name>
+</wpt>
+<wpt lat="39.4543205735108" lon="3.07726489880459">
+<name>RightSharp</name>
+</wpt>
+<wpt lat="39.4637530068959" lon="3.07912683735273">
+<name>Crossroad</name>
+</wpt>
+<wpt lat="39.4637913185362" lon="3.07913555765004">
+<name>LeftCross</name>
+</wpt>
+<wpt lat="39.4638296301758" lon="3.07914427795694">
+<name>LeftCross</name>
+</wpt>
+<wpt lat="39.4617250879584" lon="3.06055106888306">
+<name>Crossroad</name>
+</wpt>
+<wpt lat="39.461720425476" lon="3.06051385350513">
+<name>RightSharp</name>
+</wpt>
+<wpt lat="39.4617157629818" lon="3.06047663813218">
+<name>RightSharp</name>
+</wpt>
+<wpt lat="39.4679518989944" lon="3.06843978854721">
+<name>Crossroad</name>
+</wpt>
+<wpt lat="39.4679772638547" lon="3.06847331921469">
+<name>LeftSharp</name>
+</wpt>
+<wpt lat="39.4680026287054" lon="3.06850684990662">
+<name>LeftSharp</name>
+</wpt>
+<wpt lat="39.4724209462009" lon="3.05570134425622">
+<name>Crossroad</name>
+</wpt>
+<wpt lat="39.4724380253854" lon="3.05564903801094">
+<name>RightSharp</name>
+</wpt>
+<wpt lat="39.4724551045464" lon="3.05559673173999">
+<name>RightSharp</name>
+</wpt>
+<wpt lat="39.4787766070704" lon="3.07460520035526">
+<name>Crossroad</name>
+</wpt>
+<wpt lat="39.4787890264202" lon="3.07464359025805">
+<name>LeftEasy</name>
+</wpt>
+<wpt lat="39.4788014457573" lon="3.07468198017454">
+<name>LeftEasy</name>
+</wpt>
+<wpt lat="39.488141804732" lon="3.07839947288053">
+<name>Crossroad</name>
+</wpt>
+<wpt lat="39.4881790666461" lon="3.07841322621887">
+<name>RightCross</name>
+</wpt>
+<wpt lat="39.4882163285587" lon="3.07842697957195">
+<name>RightCross</name>
+</wpt>
+<wpt lat="39.4896415738208" lon="3.09763633087514">
+<name>Crossroad</name>
+</wpt>
+<wpt lat="39.4896439668494" lon="3.09767447077933">
+<name>RightEasy</name>
+</wpt>
+<wpt lat="39.4896463598656" lon="3.09771261068613">
+<name>RightEasy</name>
+</wpt>
+<wpt lat="39.4811167676913" lon="3.11618877138963">
+<name>Crossroad</name>
+</wpt>
+<wpt lat="39.4810997500871" lon="3.11622489026584">
+<name>LeftSharp</name>
+</wpt>
+<wpt lat="39.4810827324717" lon="3.11626100912437">
+<name>LeftSharp</name>
+</wpt>
+<wpt lat="39.4938788667001" lon="3.10466670330927">
+<name>Crossroad</name>
+</wpt>
+<wpt lat="39.4939046100516" lon="3.10464306305713">
+<name>RightSharp</name>
+</wpt>
+<wpt lat="39.4939303533983" lon="3.10461942278748">
+<name>RightSharp</name>
+</wpt>
+<wpt lat="39.4894884115286" lon="3.11898572652233">
+<name>Crossroad</name>
+</wpt>
+<wpt lat="39.4894697790659" lon="3.11904406098949">
+<name>LeftEasy</name>
+</wpt>
+<wpt lat="39.489451146574" lon="3.11910239542538">
+<name>LeftEasy</name>
+</wpt>
+<wpt lat="39.4905107131989" lon="3.12874826781503">
+<name>Crossroad</name>
+</wpt>
+<wpt lat="39.4905153691441" lon="3.12878648990357">
+<name>RightEasy</name>
+</wpt>
+<wpt lat="39.4905200250769" lon="3.12882471199723">
+<name>RightEasy</name>
+</wpt>
+<wpt lat="39.4841813227222" lon="3.13543065403842">
+<name>Crossroad</name>
+</wpt>
+<wpt lat="39.4841554466698" lon="3.13545613264127">
+<name>RightCross</name>
+</wpt>
+<wpt lat="39.4841295706119" lon="3.13548161122516">
+<name>RightCross</name>
+</wpt>
+<wpt lat="39.4778241358263" lon="3.12973427722784">
+<name>Crossroad</name>
+</wpt>
+<wpt lat="39.4777992922661" lon="3.12971013942746">
+<name>LeftCross</name>
+</wpt>
+<wpt lat="39.477774448701" lon="3.12968600164433">
+<name>LeftCross</name>
+</wpt>
+<wpt lat="39.4729411198571" lon="3.13322519719641">
+<name>Crossroad</name>
+</wpt>
+<wpt lat="39.4729028170448" lon="3.13325604055595">
+<name>LeftCross</name>
+</wpt>
+<wpt lat="39.4728645142244" lon="3.13328688388153">
+<name>LeftCross</name>
+</wpt>
+<wpt lat="39.4750776131949" lon="3.14147463108063">
+<name>Crossroad</name>
+</wpt>
+<wpt lat="39.4750874468787" lon="3.14150748919876">
+<name>GoAhead</name>
+</wpt>
+<wpt lat="39.4750972805532" lon="3.14154034732618">
+<name>GoAhead</name>
+</wpt>
+<wpt lat="39.4768122823176" lon="3.14799347234049">
+<name>Crossroad</name>
+</wpt>
+<wpt lat="39.4768257380809" lon="3.14804443596435">
+<name>RightCross</name>
+</wpt>
+<wpt lat="39.4768391938219" lon="3.14809539960792">
+<name>RightCross</name>
+</wpt>
+<wpt lat="39.4704324836661" lon="3.15314963913596">
+<name>Crossroad</name>
+</wpt>
+<wpt lat="39.4704060852371" lon="3.15316908309786">
+<name>RightCross</name>
+</wpt>
+<wpt lat="39.4703796868049" lon="3.153188527045">
+<name>RightCross</name>
+</wpt>
+<wpt lat="39.4689336388929" lon="3.14876460723405">
+<name>Crossroad</name>
+</wpt>
+<wpt lat="39.4689232850619" lon="3.14872571645856">
+<name>LeftCross</name>
+</wpt>
+<wpt lat="39.4689129312179" lon="3.14868682569465">
+<name>LeftCross</name>
+</wpt>
+<wpt lat="39.4622215499768" lon="3.15249119815946">
+<name>Crossroad</name>
+</wpt>
+<wpt lat="39.4621946309428" lon="3.1525079603011">
+<name>RightEasy</name>
+</wpt>
+<wpt lat="39.4621677119064" lon="3.15252472242977">
+<name>RightEasy</name>
+</wpt>
+<wpt lat="39.4578727258142" lon="3.1523480368712">
+<name>Crossroad</name>
+</wpt>
+<wpt lat="39.4578385562796" lon="3.15234535498609">
+<name>RightSharp</name>
+</wpt>
+<wpt lat="39.4578043867448" lon="3.15234267310361">
+<name>RightSharp</name>
+</wpt>
+<wpt lat="39.4674909689978" lon="3.1449773595355">
+<name>Crossroad</name>
+</wpt>
+<wpt lat="39.4675308305919" lon="3.14494785113185">
+<name>LeftCross</name>
+</wpt>
+<wpt lat="39.4675706921786" lon="3.14491834269439">
+<name>LeftCross</name>
+</wpt>
+</gpx>

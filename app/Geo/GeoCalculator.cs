@@ -1,5 +1,6 @@
 ﻿using MathUnit;
 using System;
+using System.Runtime.CompilerServices;
 
 namespace Geo
 {
@@ -71,9 +72,34 @@ namespace Geo
             }
 
         }
+        /// <summary>
+        /// Finds the bearing from one lat/lon point to another.
+        /// </summary>
+        /// <returns>bearing in range 0, 360 degrees</returns>
+        public static Angle GetBearing(in GeoPoint start, in GeoPoint end)
+        {
+            // https://en.wikipedia.org/wiki/Bearing_(navigation)#Bearing_measurement
+
+            // http://stackoverflow.com/questions/32771458/distance-from-lat-lng-point-to-minor-arc-segment
+            double latA = start.Latitude.Radians;
+            double lonA = start.Longitude.Radians;
+            double latB = end.Latitude.Radians;
+            double lonB = end.Longitude.Radians;
+
+            double delta_lon = lonB - lonA;
+
+            double cos_lat_b = Math.Cos(latB);
+            double y = Math.Sin(delta_lon) * cos_lat_b;
+            double x = Math.Cos(latA) * Math.Sin(latB) - Math.Sin(latA) * cos_lat_b * Math.Cos(delta_lon);
+
+            return GetBearing(y, x);
+        }
 
         private static Angle angleBetween(in GeoPoint a, in GeoPoint b)
         {
+            // todo: explain what kind of angle between points is possible AT ALL???
+            // did I mean bearing? here: https://stackoverflow.com/questions/3932502/calculate-angle-between-two-latitude-longitude-points
+
             // derived from cartesian dot product with unit radius, 
             // and using trig identities to reduce the number of trig functions used
             double lon_cos = (a.Longitude - b.Longitude).Cos();
@@ -224,12 +250,14 @@ namespace Geo
             double cos_latA = Math.Cos(latA);
             double cos_delta_lon = Math.Cos(delta_lon);
 
+            double cosEndLatitude_cos_delta_lon = cosEndLatitude * cos_delta_lon;
+
             // this is the same expression as we have in calculated bearing
-            bearingX = cos_latA * sinEndLatitude - sin_latA * cosEndLatitude * cos_delta_lon;
+            bearingX = cos_latA * sinEndLatitude - sin_latA * cosEndLatitude_cos_delta_lon;
             bearingY = cosEndLatitude * Math.Sin(delta_lon);
 
             double y = Math.Sqrt(Math.Pow(bearingY, 2) + Math.Pow(bearingX, 2));
-            double x = sin_latA * sinEndLatitude + cos_latA * cosEndLatitude * cos_delta_lon;
+            double x = sin_latA * sinEndLatitude + cos_latA * cosEndLatitude_cos_delta_lon;
 
             double delta_angle = Math.Atan2(y, x);
 
@@ -251,31 +279,6 @@ namespace Geo
             else
                 return sign_y;
         }
-
-        /// <summary>
-        /// Finds the bearing from one lat/lon point to another.
-        /// </summary>
-        public static Angle GetBearing(in GeoPoint start, in GeoPoint end)
-        {
-            // http://stackoverflow.com/questions/32771458/distance-from-lat-lng-point-to-minor-arc-segment
-            double latA = start.Latitude.Radians;
-            double lonA = start.Longitude.Radians;
-            double latB = end.Latitude.Radians;
-            double lonB = end.Longitude.Radians;
-
-            double delta_lon = lonB - lonA;
-
-            double cos_lat_b = Math.Cos(latB);
-            double y = Math.Sin(delta_lon) * cos_lat_b;
-            double x = Math.Cos(latA) * Math.Sin(latB) - Math.Sin(latA) * cos_lat_b * Math.Cos(delta_lon);
-
-            double bearing = Math.Atan2(y, x);
-            if (bearing < 0)
-                bearing += Math.PI * 2;
-            return Angle.FromRadians(bearing);
-        }
-
-
 
         public static GeoPoint GetDestinationPoint(in GeoPoint point, Angle bearing, Length distance)
         {
@@ -406,6 +409,14 @@ namespace Geo
                     return Length.FromMeters(Math.Abs(dxt));
                 }
             }
+        }
+
+        public static Angle GetBearing(double bearingY, double bearingX)
+        {
+            double bearing = Math.Atan2(bearingY, bearingX);
+            if (bearing < 0)
+                bearing += Math.PI * 2;
+            return Angle.FromRadians(bearing);
         }
 
         public static Length GetDistanceToArcSegment(this in GeoPoint point, in GeoPoint segmentStart, in GeoPoint segmentEnd)

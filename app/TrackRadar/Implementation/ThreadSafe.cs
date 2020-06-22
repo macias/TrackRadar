@@ -1,4 +1,4 @@
-﻿namespace TrackRadar
+﻿namespace TrackRadar.Implementation
 {
     public sealed class ThreadSafe<T>
     {

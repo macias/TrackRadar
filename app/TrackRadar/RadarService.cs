@@ -110,7 +110,7 @@ private long mLastTime;
                 this.TEST_timer.Change(TimeSpan.FromSeconds(25), System.Threading.Timeout.InfiniteTimeSpan);
             }
 
-            core = new RadarCore(this, timeStamper, app.TrackData, 
+            core = new RadarCore(this, timeStamper, app.TrackData,
                 totalClimbs: app.Prefs.TotalClimbs, app.Prefs.RidingDistance, app.Prefs.RidingTime, app.Prefs.TopSpeed);
 
             this.locationManager = (LocationManager)GetSystemService(Context.LocationService);
@@ -236,11 +236,19 @@ private long mLastTime;
 
             this.__prefs.Value = p;
 
-            this.alarms.Reset(p.UseVibration ? (Vibrator)GetSystemService(Context.VibratorService) : null,
-                p.AudioDistanceEnabled() ? Common.CreateMediaPlayer(this, p.DistanceAudioFileName, Preferences.OffTrackDefaultAudioId) : null,
-                p.AudioGpsLostEnabled() ? Common.CreateMediaPlayer(this, p.GpsLostAudioFileName, Preferences.GpsLostDefaultAudioId) : null,
-                p.AudioGpsOnEnabled() ? Common.CreateMediaPlayer(this, p.GpsOnAudioFileName, Preferences.GpsOnDefaultAudioId) : null,
-                p.AudioCrossroadsEnabled() ? Common.CreateMediaPlayer(this, p.TurnAheadAudioFileName, Preferences.CrossroadsDefaultAudioId) : null
+            this.alarms.Reset(p.UseVibration ? new AlarmVibrator((Vibrator)GetSystemService(Context.VibratorService)) : null,
+                p.OffTrackAudioVolume > 0 ? Common.CreateMediaPlayer(this, Alarm.OffTrack, p.DistanceAudioFileName, Preferences.OffTrackDefaultAudioId) : null,
+                p.GpsLostAudioVolume > 0 ? Common.CreateMediaPlayer(this, Alarm.GpsLost, p.GpsLostAudioFileName, Preferences.GpsLostDefaultAudioId) : null,
+                p.AcknowledgementAudioVolume > 0 ? Common.CreateMediaPlayer(this, Alarm.PositiveAcknowledgement, p.GpsOnAudioFileName, Preferences.GpsOnDefaultAudioId) : null,
+                disengage: p.DisengageAudioVolume > 0 ? Common.CreateMediaPlayer(this, Alarm.Disengage, p.DisengageAudioFileName, Preferences.DisengageDefaultAudioId) : null,
+                p.TurnAheadAudioVolume > 0 ? Common.CreateMediaPlayer(this, Alarm.Crossroad, p.TurnAheadAudioFileName, Preferences.CrossroadsDefaultAudioId) : null,
+                goAhead: p.TurnAheadAudioVolume > 0 ? Common.CreateMediaPlayer(this, Alarm.GoAhead, p.GoAheadAudioFileName, Preferences.GoAheadDefaultAudioId) : null,
+                leftEasy: p.TurnAheadAudioVolume > 0 ? Common.CreateMediaPlayer(this, Alarm.LeftEasy, p.LeftEasyAudioFileName, Preferences.LeftEasyDefaultAudioId) : null,
+                leftCross: p.TurnAheadAudioVolume > 0 ? Common.CreateMediaPlayer(this, Alarm.LeftCross, p.LeftCrossAudioFileName, Preferences.LeftCrossDefaultAudioId) : null,
+                leftSharp: p.TurnAheadAudioVolume > 0 ? Common.CreateMediaPlayer(this, Alarm.LeftSharp, p.LeftSharpAudioFileName, Preferences.LeftSharpDefaultAudioId) : null,
+                rightEasy: p.TurnAheadAudioVolume > 0 ? Common.CreateMediaPlayer(this, Alarm.RightEasy, p.RightEasyAudioFileName, Preferences.RightEasyDefaultAudioId) : null,
+                rightCross: p.TurnAheadAudioVolume > 0 ? Common.CreateMediaPlayer(this, Alarm.RightCross, p.RightCrossAudioFileName, Preferences.RightCrossDefaultAudioId) : null,
+                rightSharp: p.TurnAheadAudioVolume > 0 ? Common.CreateMediaPlayer(this, Alarm.RightSharp, p.RightSharpAudioFileName, Preferences.RightSharpDefaultAudioId) : null
                 );
         }
         private void Receiver_UpdatePrefs(object sender, EventArgs e)
@@ -292,7 +300,7 @@ private long mLastTime;
 
                 lock (this.threadLock)
                 {
-                    this.app.Prefs.SaveRideStatistics(this, totalClimbs: core.TotalClimbsReadout, ridingDistance: core.RidingDistanceReadout, 
+                    this.app.Prefs.SaveRideStatistics(this, totalClimbs: core.TotalClimbsReadout, ridingDistance: core.RidingDistanceReadout,
                         ridingTime: core.RidingTimeReadout, topSpeed: core.TopSpeedReadout);
                 }
 
@@ -344,7 +352,7 @@ private long mLastTime;
 
                     statistics.UpdateCompleted(dist, location.Accuracy);
                     if (hasSubscribers)
-                        MainReceiver.SendDistance(this, statistics.FenceDistance, 
+                        MainReceiver.SendDistance(this, statistics.FenceDistance,
                             totalClimbs: core.TotalClimbsReadout, ridingDistance: core.RidingDistanceReadout, ridingTime: core.RidingTimeReadout, topSpeed: core.TopSpeedReadout);
                 }
             }
@@ -458,9 +466,14 @@ private long mLastTime;
         TimeSpan IRadarService.OffTrackAlarmInterval => this.prefs.OffTrackAlarmInterval;
         TimeSpan IRadarService.TurnAheadAlarmInterval => this.prefs.TurnAheadAlarmInterval;
         Length IRadarService.OffTrackAlarmDistance => this.prefs.OffTrackAlarmDistance;
-        Length IRadarService.TurnAheadAlarmDistance => this.prefs.TurnAheadAlarmDistance;
+        TimeSpan IRadarService.TurnAheadAlarmDistance => this.prefs.TurnAheadAlarmDistance;
         Speed IRadarService.RestSpeedThreshold => this.prefs.RestSpeedThreshold;
         Speed IRadarService.RidingSpeedThreshold => this.prefs.RidingSpeedThreshold;
+        bool IRadarService.TryGetLatestTurnAheadAlarmAt(out long timeStamp)
+        {
+            return this.alarms.TryGetLatestTurnAheadAlarmAt(out timeStamp);
+        }
+
 
         TimeSpan ISignalCheckerService.NoGpsFirstTimeout => this.prefs.NoGpsAlarmFirstTimeout;
         TimeSpan ISignalCheckerService.NoGpsAgainInterval => this.prefs.NoGpsAlarmAgainInterval;

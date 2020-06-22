@@ -35,7 +35,7 @@ namespace TrackRadar
             return Android.Provider.Settings.Secure.GetInt(context.ContentResolver, Android.Provider.Settings.Secure.AdbEnabled, 0) == 1;
         }
 
-        public static void Log(LogLevel level,string message)
+        public static void Log(LogLevel level, string message)
         {
             Android.Util.LogPriority priority;
             switch (level)
@@ -59,9 +59,17 @@ namespace TrackRadar
             Android.Util.Log.WriteLine(priority, Common.appTag, Common.FormatShortDateTime(DateTime.Now) + " " + message);
         }
 
-        public static void VibrateAlarm(Vibrator vibrator)
+        internal static void VibrateAlarm(IAlarmVibrator vibrator)
         {
-            vibrator?.Vibrate(500); //ms
+            vibrator?.Vibrate(TimeSpan.FromMilliseconds(500)); //ms
+        }
+        public static IAlarmPlayer CreateMediaPlayer(Context context, Alarm alarm, string filename, int resourceId)
+        {
+            MediaPlayer mp = CreateMediaPlayer(context, filename, resourceId);
+            if (mp == null)
+                return null;
+            else
+                return new AlarmPlayer(mp, alarm);
         }
         public static MediaPlayer CreateMediaPlayer(Context context, string filename, int resourceId)
         {
@@ -73,6 +81,16 @@ namespace TrackRadar
                 return null;
         }
 
+        public static IAlarmPlayer DestroyMediaPlayer(IAlarmPlayer player)
+        {
+            if (player == null)
+                return player;
+
+            if (player.IsPlaying)
+                player.Stop();
+            player.Dispose();
+            return null;
+        }
         public static MediaPlayer DestroyMediaPlayer(MediaPlayer player)
         {
             if (player == null)

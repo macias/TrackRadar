@@ -18,7 +18,7 @@ namespace Geo
         /// </summary>
         /// <param name="node">has to be existing node in the map</param>
         /// <returns></returns>
-        IEnumerable<GeoPoint> GetAdjacent(in GeoPoint node);
+        //IEnumerable<GeoPoint> GetAdjacent(in GeoPoint node);
 
        // GeoPoint GetReference(Angle latitude,Angle longitude);
         IEnumerable<Geo.ISegment> GetNearby(in GeoPoint point, Length limit);

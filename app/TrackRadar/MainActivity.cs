@@ -292,7 +292,7 @@ namespace TrackRadar
             try
             {
                 IPreferences prefs = app.Prefs;
-                this.alarmInfoTextView.Visibility = prefs.PrimaryAlarmEnabled() ? ViewStates.Gone : ViewStates.Visible;
+                this.alarmInfoTextView.Visibility = prefs.AlarmsValid() ? ViewStates.Gone : ViewStates.Visible;
 
                 bool is_running = isServiceRunning();
 
@@ -303,7 +303,7 @@ namespace TrackRadar
                 logDebug(LogLevel.Verbose, $"gps provider enabled {gps_enabled}");
                 this.gpsInfoTextView.Visibility = gps_enabled ? ViewStates.Gone : ViewStates.Visible;
 
-                bool can_start = (app.TrackData != null && gps_enabled && prefs.PrimaryAlarmEnabled());
+                bool can_start = (app.TrackData != null && gps_enabled && prefs.AlarmsValid());
                 this.enableButton.Enabled = is_running || can_start;
                 this.enableButton.Text = Resources.GetString(is_running ? Resource.String.StopService : Resource.String.StartService);
 

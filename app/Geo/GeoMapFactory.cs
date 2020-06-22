@@ -9,16 +9,22 @@ namespace Geo
 {
     public static class GeoMapFactory
     {
-        public static Length GridLimit { get; } = Length.FromKilometers(1.0);
+        public static Length SegmentTileLimit { get; } = Length.FromKilometers(1.0);
+        public static Length PointTileLimit { get; } = Length.FromMeters(100);
 
         public static IGeoMap CreateMap(IEnumerable<ISegment> segments)
         {
             return new GeoMap(segments);
         }
 
-        public static IGeoMap CreateGrid(IEnumerable<ISegment> segments)
+        public static IGeoMap CreateSegmentGrid(IEnumerable<ISegment> segments)
         {
-            return new Grid(segments);
+            return new SegmentGrid(segments);
+        }
+
+        public static IPointGrid CreatePointGrid(IEnumerable<GeoPoint> points,Length tileSize)
+        {
+            return new PointGrid(points, tileSize);
         }
 
         public static IGeoMap CreateGrid(IEnumerable<ISegment> segments,
@@ -28,7 +34,7 @@ namespace Geo
             Func<ISegment, GeoPoint, GeoPoint, ISegment> segmentFactory,
             Length splitLimit)
         {
-            return new Grid(SplitSegments(segments, pointFactory, segmentFactory, splitLimit));
+            return new SegmentGrid(SplitSegments(segments, pointFactory, segmentFactory, splitLimit));
         }
 
         public static IEnumerable<ISegment> SplitSegments(IEnumerable<ISegment> segments,

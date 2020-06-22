@@ -41,7 +41,7 @@ namespace TrackRadar.Implementation
             file.WriteLine("</trkseg>");
             file.WriteLine("</trk>");
         }
-        public void WritePoint(string name,in GeoPoint point)
+        public void WritePoint(in GeoPoint point, string name)
         {
             file.WriteLine($"<wpt {str(point)}>");
             if (name != null)

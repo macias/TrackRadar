@@ -10,10 +10,34 @@ namespace TrackRadar
     // https://stackoverflow.com/questions/9361870/android-how-to-get-accurate-altitude
     // https://stackoverflow.com/questions/42194102/precision-of-gps-altitude-readouts-on-android-and-ios-phones
 
-        // todo: przed statsami z lewej strony ikonka rowerzysty/pieszego
+        // todo: wyeliminowac wszelkie 0 jako oznaczenia time stampow typu "gdzies daleko w przeszlosci"
+
+    // todo: umozliwic prace dla spaceru
+
+    // todo: zoptymalizowac wszystko wokol crossroadow
+    // * jesli mam najlepszy crossroad to powinienem miec drugi najlepszy, nie liczyc nastepnym razem w ogole crossroadow o ile nie przejchalem dystansu rownego do drugiego najlepszego
+    // * inaczej ulozyc segmenty, zeby szybciej wyliczac hot-segmenty
+
+    // todo: czy czasami nie powinienem przy alarmach stopowac grajacego alarmu, zamiast lagodnie odpuszczac (jak teraz)
+    // lub kolejkowac audio granie, bo inaczej usera moze cos waznego ominac
+    // lub grac dzwiek multi-event
+
+    // todo: multifile gpx
+
+    // todo: cala zaplanowana trase trzeba umieszczac w gridzie, pozniej jak chcemy wyluskac cos szybko, to bierzemy 
+    // segmenty tylko z danego tile'a -- lub trase ladowac do grafu w ten sposob, ze dany punkt ma wiedze o najblizszych sasiadach
+
+    // todo: voices from https://www.naturalreaders.com/online/
+
+    // todo: [test] nie ma alarmu dla sytuacji -- wrocilem na sciezke i od razu stanalem
+    // todo: katy zakretu
+    // todo: nie grac cross road po minieciu
+    // todo: climbs sie nie zliczaja
+    // todo: przed statsami z lewej strony ikonka rowerzysty/pieszego
     // todo: na razie troche zle liczymy statsy, bo jesli gosc bedzie jechal wolno pod gore to nie zaliczymy ani czasu ani predkosci
     // todo: te thresholdy to trzeba chyba zmienic w zaleznosci od nachylenia 
     // todo: context menu --> clear stats (tylko jak nie ma serwisu)
+    // todo: context menu pionowo
     // todo: filtr kalmana
     // todo: wyprzedzenie dzwieku turnahead do ekranu
     // todo: miganie ekranem
@@ -75,7 +99,7 @@ namespace TrackRadar
                      keyguardManager.requestDismissKeyguard(this, null);
              }
              else*/
-             //if (false)
+            //if (false)
             {
                 this.Window.AddFlags(Android.Views.WindowManagerFlags.DismissKeyguard |
                         Android.Views.WindowManagerFlags.ShowWhenLocked |

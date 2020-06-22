@@ -2,18 +2,6 @@
 
 namespace TrackRadar.Implementation
 {
-    internal interface ISignalCheckerService
-    {
-        TimeSpan NoGpsFirstTimeout { get; }
-        TimeSpan NoGpsAgainInterval { get; }
-
-        ITimer CreateTimer(Action callback);
-        void GpsOnAlarm();
-        void GpsOffAlarm();
-        void RequestGps();
-        void Log(LogLevel level, string message);
-    }
-
     internal sealed class SignalChecker2 : IDisposable
     {
         private readonly object threadLock = new object();
@@ -24,9 +12,9 @@ namespace TrackRadar.Implementation
         private long lastGpsPresentAtTicks;
         private long lastNoGpsAlarmAtTicks;
         private readonly ITimer timer;
-        private ulong gpsSignalCounter;
+        private uint gpsSignalCounter; // with GPS signal every 1sec it takes 136 years to overflow
 
-        public bool HasGpsSignal => System.Threading.Interlocked.CompareExchange(ref this.lastNoGpsAlarmAtTicks, 0, 0) == 0;
+        public bool HasGpsSignal => System.Threading.Interlocked.CompareExchange(ref this.lastNoGpsAlarmAtTicks, 0, 0) == timeStamper.GetBeforeTimeTimestamp();
 
         public SignalChecker2(ISignalCheckerService service, ITimeStamper timeStamper)
         {
@@ -98,20 +86,18 @@ namespace TrackRadar.Implementation
             {
                 this.lastGpsPresentAtTicks = timeStamper.GetTimestamp();
 
-                if (this.lastNoGpsAlarmAtTicks != 0)
-                {
-                    this.lastNoGpsAlarmAtTicks = 0;
+                if (++this.gpsSignalCounter < 10)
+                    return;
 
-                    service.Log(LogLevel.Info, "GPS signal reacquired");
+                if (this.lastNoGpsAlarmAtTicks != this.timeStamper.GetBeforeTimeTimestamp())
+                {
+                    this.lastNoGpsAlarmAtTicks = this.timeStamper.GetBeforeTimeTimestamp();
+
                     if (canAlarm)
                         service.GpsOnAlarm();
-                    else
-                        service.Log(LogLevel.Info, "GPS-ON, Skipping alarming");
-                }
 
-                ++gpsSignalCounter;
-                if (gpsSignalCounter == 60)
-                    service.Log(LogLevel.Info, $"Gps signal acquired for good in {TimeSpan.FromSeconds(timeStamper.GetSecondsSpan(this.lastGpsPresentAtTicks, this.startAt))}");
+                    service.Log(LogLevel.Info, $"GPS signal reacquired in {TimeSpan.FromSeconds(timeStamper.GetSecondsSpan(this.lastGpsPresentAtTicks, this.startAt))}");
+                }
             }
         }
 

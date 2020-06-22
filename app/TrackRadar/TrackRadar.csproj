@@ -64,6 +64,16 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AlarmVibrator.cs" />
+    <Compile Include="GpxHelper.cs" />
+    <Compile Include="IAlarmVibrator.cs" />
+    <Compile Include="Implementation\ISignalCheckerService.cs" />
+    <Compile Include="Implementation\MapHelper.cs" />
+    <Compile Include="Implementation\TurnLookout.cs" />
+    <Compile Include="Implementation\TurnCalculator.cs" />
+    <Compile Include="IAlarmPlayer.cs" />
+    <Compile Include="AlarmPlayer.cs" />
+    <Compile Include="Turn.cs" />
     <Compile Include="Implementation\GpxDirtyWriter.cs" />
     <Compile Include="Implementation\Option.cs" />
     <Compile Include="Implementation\LinqExtension.cs" />
@@ -75,6 +85,7 @@
     <Compile Include="Implementation\TimeStamper.cs" />
     <Compile Include="Implementation\RadarCore.cs" />
     <Compile Include="Implementation\SignalChecker2.cs" />
+    <Compile Include="Implementation\TurnKind.cs" />
     <Compile Include="TurnAheadActivity.cs" />
     <Compile Include="TrackRadarApp.cs" />
     <Compile Include="GpxLoader.NodePoint.cs" />
@@ -95,9 +106,9 @@
     <Compile Include="IntEditTextPreference.cs" />
     <Compile Include="AudioSettings.cs" />
     <Compile Include="LogLevel.cs" />
-    <Compile Include="ThreadSafe.cs" />
+    <Compile Include="Implementation\ThreadSafe.cs" />
     <Compile Include="Implementation\SignalChecker.cs" />
-    <Compile Include="ServiceAlarms.cs" />
+    <Compile Include="Implementation\ServiceAlarms.cs" />
     <Compile Include="Statistics.cs" />
     <Compile Include="MessageEventArgs.cs" />
     <Compile Include="DistanceEventArgs.cs" />
@@ -172,6 +183,30 @@
       <Generator>MSBuild:UpdateGeneratedFiles</Generator>
       <SubType>Designer</SubType>
     </AndroidResource>
+  </ItemGroup>
+  <ItemGroup>
+    <AndroidResource Include="Resources\raw\ttsMP3_com_go_ahead.ogg" />
+  </ItemGroup>
+  <ItemGroup>
+    <AndroidResource Include="Resources\raw\ttsMP3_com_left_cross.ogg" />
+  </ItemGroup>
+  <ItemGroup>
+    <AndroidResource Include="Resources\raw\ttsMP3_com_left_easy.ogg" />
+  </ItemGroup>
+  <ItemGroup>
+    <AndroidResource Include="Resources\raw\ttsMP3_com_left_sharp.ogg" />
+  </ItemGroup>
+  <ItemGroup>
+    <AndroidResource Include="Resources\raw\ttsMP3_com_right_cross.ogg" />
+  </ItemGroup>
+  <ItemGroup>
+    <AndroidResource Include="Resources\raw\ttsMP3_com_right_easy.ogg" />
+  </ItemGroup>
+  <ItemGroup>
+    <AndroidResource Include="Resources\raw\ttsMP3_com_right_sharp.ogg" />
+  </ItemGroup>
+  <ItemGroup>
+    <AndroidResource Include="Resources\raw\Arpeggio_Sound_Effect_QKfy48_WWls.ogg" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

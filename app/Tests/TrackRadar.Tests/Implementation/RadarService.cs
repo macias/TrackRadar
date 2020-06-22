@@ -12,37 +12,41 @@ namespace TrackRadar.Tests.Implementation
         public Length OffTrackAlarmDistance => prefs.OffTrackAlarmDistance;
         public Speed RestSpeedThreshold => prefs.RestSpeedThreshold;
         public Speed RidingSpeedThreshold => prefs.RidingSpeedThreshold;
-        public Length TurnAheadAlarmDistance => prefs.TurnAheadAlarmDistance;
+        public TimeSpan TurnAheadAlarmDistance => prefs.TurnAheadAlarmDistance;
         public TimeSpan TurnAheadAlarmInterval => prefs.TurnAheadAlarmInterval;
 
         private readonly Dictionary<Alarm, int> alarmCount;
-        private readonly List<(Alarm alarm, int index)> alarms;
+        private readonly List<(Alarm alarm, int pointIndex)> alarms;
         private readonly IPreferences prefs;
-        private int index;
+        private readonly ITimeStamper timeStamper;
+        private int pointIndex;
+        private long lastAlarmAt;
 
-        public IReadOnlyDictionary<Alarm, int> AlarmCount => this.alarmCount;
-        public IEnumerable<(Alarm alarm, int index)> Alarms => alarms;
+        public IReadOnlyDictionary<Alarm, int> AlarmCounters => this.alarmCount;
+        public IReadOnlyList<(Alarm alarm, int index)> Alarms => alarms;
 
 
-        public RadarService(IPreferences prefs)
+        public RadarService(IPreferences prefs, ITimeStamper timeStamper)
         {
             this.alarmCount = LinqExtension.GetEnums<Alarm>().ToDictionary(alarm => alarm, _ => 0);
-            this.alarms = new List<(Alarm alarm, int index)>();
+            this.alarms = new List<(Alarm alarm, int pointIndex)>();
             this.prefs = prefs;
+            this.timeStamper = timeStamper;
         }
 
         bool IRadarService.TryAlarm(Alarm alarm, out string reason)
         {
-            this.alarms.Add((alarm, index));
+            this.alarms.Add((alarm, pointIndex));
             ++alarmCount[alarm];
-            Console.WriteLine($"ALARM {alarm}");
+           // Console.WriteLine($"ALARM {alarm}");
+            this.lastAlarmAt = timeStamper.GetTimestamp();
             reason = null;
             return true;
         }
 
         void IRadarService.LogDebug(LogLevel level, string message)
         {
-            Console.WriteLine($"[{level}] {message}");
+            //Console.WriteLine($"[{level}] {message}");
         }
 
         void IRadarService.WriteCrossroad(double latitudeDegrees, double longitudeDegrees)
@@ -55,9 +59,15 @@ namespace TrackRadar.Tests.Implementation
             ; // do nothing
         }
 
-        internal void SetIndex(int index)
+        internal void SetPointIndex(int index)
         {
-            this.index = index;
+            this.pointIndex = index;
+        }
+
+        public bool TryGetLatestTurnAheadAlarmAt(out long timeStamp)
+        {
+            timeStamp = this.lastAlarmAt;
+            return true;
         }
     }
 }

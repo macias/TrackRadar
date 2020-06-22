@@ -3,20 +3,13 @@ using Gpx;
 using MathUnit;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 using TrackRadar.Implementation;
 
 namespace TrackRadar
 {
-    public partial class GpxLoader
+    public sealed partial class GpxLoader
     {
-        private static GeoPoint FromGpx(IGpxPoint point)
-        {
-            return new GeoPoint(latitude: point.Latitude, longitude: point.Longitude);
-        }
-
         private static readonly Length numericAccuracy = Length.FromMeters(1);
 
         /*public static GpxData ReadBasicGpx(string filename)
@@ -41,6 +34,7 @@ namespace TrackRadar
             // .ToList()).ToList();
 
             IEnumerable<Segment> segments = null;
+            //Dictionary<GeoPoint, Turn> turn_info = null;
 
             //List<XGeoPoint> waypoints = gpx_waypoints.Select(it => GeoPoint.FromGpx(it)).ToList();
 
@@ -51,14 +45,32 @@ namespace TrackRadar
                     findCrossroads(tracks, offTrackDistance, out segments),
                     offTrackDistance);
                 waypoints.AddRange(crossroads);
+
+              //  turn_info = computeTurns(segments, waypoints, turnAheadDistance);
             }
             catch (Exception ex)
             {
                 onError?.Invoke(ex);
             }
 
-            return new GpxData(segments, waypoints);
+            return new GpxData(segments, waypoints);//, turn_info);
         }
+        /*
+        internal static Dictionary<GeoPoint, Turn> computeTurns(IEnumerable<Segment> segments, IEnumerable<GeoPoint> crossroads,
+            Length turnAheadDistance)
+        {
+            var turn_info = new Dictionary<GeoPoint, Turn>();
+
+            foreach (GeoPoint cx in crossroads)
+            {
+                if (tryComputeTurn(cx, segments, turnAheadDistance, out Turn turn))
+                    turn_info.Add(cx, turn);
+            }
+
+            return turn_info;
+        }*/
+
+
 
         internal static void LoadGpxData(string filename, out List<List<GpxLoader.NodePoint>> tracks, out List<GeoPoint> waypoints)
         {
@@ -79,14 +91,14 @@ namespace TrackRadar
                         case GpxObjectType.Metadata:
                             break;
                         case GpxObjectType.WayPoint:
-                            waypoints.Add(FromGpx(reader.WayPoint));
+                            waypoints.Add(GpxHelper.FromGpx(reader.WayPoint));
                             break;
                         case GpxObjectType.Route:
                             break;
                         case GpxObjectType.Track:
                             // todo: bug -- this method swaps segments A-B into B-A
                             tracks.AddRange(reader.Track.Segments.Select(trk => trk.TrackPoints
-                                .Select(p => new GpxLoader.NodePoint() { Point = FromGpx(p) }).ToList()));
+                                .Select(p => new GpxLoader.NodePoint() { Point = GpxHelper.FromGpx(p) }).ToList()));
                             break;
                     }
                 }
@@ -142,7 +154,7 @@ namespace TrackRadar
             using (var file = new GpxDirtyWriter(path))
             {
                 foreach (var p in points)
-                    file.WritePoint(null, p);
+                    file.WritePoint(p,null);
             }
         }
 

@@ -9,7 +9,7 @@ namespace Geo.Tests
     public class DistanceTests
     {
         // the precision of computation itself, it has nothing to do with geographic context
-        private const double mathPrecision = 0.0000000001;
+        private const double kmMathPrecision = 0.0000000001;
 
         delegate Length GetDistanceDelegate(in GeoPoint start, in GeoPoint end);
 
@@ -34,7 +34,7 @@ namespace Geo.Tests
                 var dist1 = measure(a, b);
                 Assert.AreEqual(108.25, dist1.Kilometers, 0.1);
                 var dist2 = measure(b, a);
-                Assert.AreEqual(dist1.Kilometers, dist2.Kilometers, mathPrecision);
+                Assert.AreEqual(dist1.Kilometers, dist2.Kilometers, kmMathPrecision);
             }
             { // short distance
                 var a = GeoPoint.FromDegrees(latitude: 53.864271, longitude: 21.308011);
@@ -42,7 +42,7 @@ namespace Geo.Tests
                 var dist1 = measure(a, b);
                 Assert.AreEqual(100.43, dist1.Meters, 0.1);
                 var dist2 = measure(b, a);
-                Assert.AreEqual(dist1.Meters, dist2.Meters, mathPrecision);
+                Assert.AreEqual(dist1.Meters, dist2.Meters, kmMathPrecision * 1000);
             }
         }
 
@@ -62,7 +62,7 @@ namespace Geo.Tests
                 var dist1 = measure(c, a, b);
                 Assert.AreEqual(0, dist1.Kilometers, 0.1);
                 var dist2 = measure(c, b, a);
-                Assert.AreEqual(dist1.Kilometers, dist2.Kilometers, mathPrecision);
+                Assert.AreEqual(dist1.Kilometers, dist2.Kilometers, kmMathPrecision);
             }
             { // long distance
                 var a = GeoPoint.FromDegrees(latitude: 36.511639, longitude: -93.221739);
@@ -71,7 +71,7 @@ namespace Geo.Tests
                 var dist1 = measure(c, a, b);
                 Assert.AreEqual(0, dist1.Kilometers, 0.1);
                 var dist2 = measure(c, b, a);
-                Assert.AreEqual(dist1.Kilometers, dist2.Kilometers, mathPrecision);
+                Assert.AreEqual(dist1.Kilometers, dist2.Kilometers, kmMathPrecision);
             }
             { // long distance
                 var a = GeoPoint.FromDegrees(latitude: 36.511639, longitude: -93.221739);
@@ -80,7 +80,7 @@ namespace Geo.Tests
                 var dist1 = measure(c, a, b);
                 Assert.AreEqual(102.77, dist1.Kilometers, 0.1);
                 var dist2 = measure(c, b, a);
-                Assert.AreEqual(dist1.Kilometers, dist2.Kilometers, mathPrecision);
+                Assert.AreEqual(dist1.Kilometers, dist2.Kilometers, kmMathPrecision);
             }
             { // long distance
                 var a = GeoPoint.FromDegrees(latitude: 36.511639, longitude: -93.221739);
@@ -89,7 +89,7 @@ namespace Geo.Tests
                 var dist1 = measure(c, a, b);
                 Assert.AreEqual(136.23, dist1.Kilometers, 0.1);
                 var dist2 = measure(c, b, a);
-                Assert.AreEqual(dist1.Kilometers, dist2.Kilometers, mathPrecision);
+                Assert.AreEqual(dist1.Kilometers, dist2.Kilometers, kmMathPrecision);
             }
             { // long distance
                 var a = GeoPoint.FromDegrees(latitude: 36.511639, longitude: -93.221739);
@@ -98,7 +98,7 @@ namespace Geo.Tests
                 var dist1 = measure(c, a, b);
                 Assert.AreEqual(13.86, dist1.Kilometers, 0.1);
                 var dist2 = measure(c, b, a);
-                Assert.AreEqual(dist1.Kilometers, dist2.Kilometers, mathPrecision);
+                Assert.AreEqual(dist1.Kilometers, dist2.Kilometers, kmMathPrecision);
             }
             { // long distance
                 var a = GeoPoint.FromDegrees(latitude: 36.511639, longitude: -93.221739);
@@ -107,7 +107,7 @@ namespace Geo.Tests
                 var dist1 = measure(c, a, b);
                 Assert.AreEqual(23.18, dist1.Kilometers, 0.1);
                 var dist2 = measure(c, b, a);
-                Assert.AreEqual(dist1.Kilometers, dist2.Kilometers, mathPrecision);
+                Assert.AreEqual(dist1.Kilometers, dist2.Kilometers, kmMathPrecision);
             }
         }
 
@@ -127,7 +127,7 @@ namespace Geo.Tests
                 var dist1 = measure(c, a, b);
                 Assert.AreEqual(0, dist1.Kilometers, 0.1);
                 var dist2 = measure(c, b, a);
-                Assert.AreEqual(dist1.Kilometers, dist2.Kilometers, mathPrecision);
+                Assert.AreEqual(dist1.Kilometers, dist2.Kilometers, kmMathPrecision);
             }
             { // long distance
                 var a = GeoPoint.FromDegrees(latitude: 36.511639, longitude: -93.221739);
@@ -136,7 +136,7 @@ namespace Geo.Tests
                 var dist1 = measure(c, a, b);
                 Assert.AreEqual(0, dist1.Kilometers, 0.1);
                 var dist2 = measure(c, b, a);
-                Assert.AreEqual(dist1.Kilometers, dist2.Kilometers, mathPrecision);
+                Assert.AreEqual(dist1.Kilometers, dist2.Kilometers, kmMathPrecision);
             }
             { // long distance
                 var a = GeoPoint.FromDegrees(latitude: 36.496902, longitude: -93.223531);
@@ -145,7 +145,7 @@ namespace Geo.Tests
                 var dist1 = measure(c, a, b);
                 Assert.AreEqual(0.69, dist1.Kilometers, 0.1);
                 var dist2 = measure(c, b, a);
-                Assert.AreEqual(dist1.Kilometers, dist2.Kilometers, mathPrecision); // this one fails
+                Assert.AreEqual(dist1.Kilometers, dist2.Kilometers, kmMathPrecision); // this one fails
             }
             { // long distance
                 var a = GeoPoint.FromDegrees(latitude: 36.511639, longitude: -93.221739);
@@ -154,7 +154,7 @@ namespace Geo.Tests
                 var dist1 = measure(c, a, b);
                 Assert.AreEqual(57.60, dist1.Kilometers, 0.1);
                 var dist2 = measure(c, b, a);
-                Assert.AreEqual(dist1.Kilometers, dist2.Kilometers, mathPrecision);
+                Assert.AreEqual(dist1.Kilometers, dist2.Kilometers, kmMathPrecision);
             }
             { // long distance
                 var a = GeoPoint.FromDegrees(latitude: 36.511639, longitude: -93.221739);
@@ -163,7 +163,7 @@ namespace Geo.Tests
                 var dist1 = measure(c, a, b);
                 Assert.AreEqual(13.86, dist1.Kilometers, 0.1);
                 var dist2 = measure(c, b, a);
-                Assert.AreEqual(dist1.Kilometers, dist2.Kilometers, mathPrecision);
+                Assert.AreEqual(dist1.Kilometers, dist2.Kilometers, kmMathPrecision);
             }
             { // long distance
                 var a = GeoPoint.FromDegrees(latitude: 36.511639, longitude: -93.221739);
@@ -172,7 +172,7 @@ namespace Geo.Tests
                 var dist1 = measure(c, a, b);
                 Assert.AreEqual(23.18, dist1.Kilometers, 0.1);
                 var dist2 = measure(c, b, a);
-                Assert.AreEqual(dist1.Kilometers, dist2.Kilometers, mathPrecision);
+                Assert.AreEqual(dist1.Kilometers, dist2.Kilometers, kmMathPrecision);
             }
         }
     }

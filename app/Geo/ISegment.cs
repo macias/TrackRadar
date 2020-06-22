@@ -17,6 +17,13 @@ namespace Geo
             yield return segment.A;
             yield return segment.B;
         }
+
+        public static void Deconstruct(this ISegment segment, out GeoPoint a,out GeoPoint b)
+        {
+            a = segment.A;
+            b = segment.B;
+        }
+
     }
 
 }

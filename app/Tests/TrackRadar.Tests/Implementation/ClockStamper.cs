@@ -4,14 +4,14 @@ namespace TrackRadar.Tests.Implementation
 {
     internal sealed class ClockStamper : ITimeStamper
     {
-        public DateTimeOffset StartTime { get; }
+        //public DateTimeOffset StartTime { get; }
         private DateTimeOffset time;
 
         public long Frequency { get; }
 
         public ClockStamper(DateTimeOffset start)
         {
-            this.StartTime = start;
+            //this.StartTime = start;
             this.time = start;
             this.Frequency = TimeSpan.FromSeconds(1).Ticks;
         }
@@ -28,7 +28,7 @@ namespace TrackRadar.Tests.Implementation
 
         public long GetTimestamp()
         {
-            return (this.time - this.StartTime).Ticks;
+            return this.time.Ticks;
         }
     }
 }

@@ -58,8 +58,8 @@ namespace TrackRadar
             else
             {
                 GpxData gpx_data = GpxLoader.ReadGpx(track_path,
-                     Prefs.OffTrackAlarmDistance,
-                     onError);
+                    offTrackDistance: Prefs.OffTrackAlarmDistance,
+                    onError);
 
                 if (gpx_data.Segments.Any())
                     TrackData = gpx_data;

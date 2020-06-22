@@ -1,1 +1,0 @@
-adb.bat pull /data/anr/traces.txt

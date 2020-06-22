@@ -1,1 +1,0 @@
-logcat.bat -s TrackRadar

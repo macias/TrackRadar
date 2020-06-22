@@ -1,1 +1,0 @@
-adb.bat logcat -v time %*

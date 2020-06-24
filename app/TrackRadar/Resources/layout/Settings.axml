@@ -24,6 +24,16 @@
             android:layout_height="wrap_content"
             android:id="@+id/ShowTurnAheadCheckBox" />
         <CheckBox
+            android:text="DEBUG-GPS dump"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/GpsDumpCheckBox" />
+        <CheckBox
+            android:text="DEBUG-GPS filter"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/GpsFilterCheckBox" />
+        <CheckBox
             android:text="Request GPS"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

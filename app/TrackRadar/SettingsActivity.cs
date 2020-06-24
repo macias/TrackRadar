@@ -14,6 +14,8 @@ namespace TrackRadar
         CheckBox vibrateCheckBox;
         CheckBox showTurnAheadCheckBox;
         CheckBox requestGpsCheckBox;
+        CheckBox gpsFilterCheckBox;
+        CheckBox gpsDumpCheckBox;
         EditText offTrackDistanceEditText;
         EditText offTrackIntervalEditText;
         EditText noGpsIntervalEditText;
@@ -123,6 +125,8 @@ namespace TrackRadar
             this.vibrateCheckBox = FindViewById<CheckBox>(Resource.Id.VibrateCheckBox);
             this.showTurnAheadCheckBox = FindViewById<CheckBox>(Resource.Id.ShowTurnAheadCheckBox);
             this.requestGpsCheckBox = FindViewById<CheckBox>(Resource.Id.RequestGpsCheckBox);
+            this.gpsFilterCheckBox = FindViewById<CheckBox>(Resource.Id.GpsFilterCheckBox);
+            this.gpsDumpCheckBox = FindViewById<CheckBox>(Resource.Id.GpsDumpCheckBox);
             this.offTrackDistanceEditText = FindViewById<EditText>(Resource.Id.OffTrackDistanceEditText);
             this.offTrackIntervalEditText = FindViewById<EditText>(Resource.Id.OffTrackIntervalEditText);
             this.noGpsIntervalEditText = FindViewById<EditText>(Resource.Id.NoGpsIntervalEditText);
@@ -147,6 +151,8 @@ namespace TrackRadar
 
             this.vibrateCheckBox.Checked = prefs.UseVibration;
             this.requestGpsCheckBox.Checked = prefs.RequestGps;
+            this.gpsFilterCheckBox.Checked = prefs.GpsFilter;
+            this.gpsDumpCheckBox.Checked = prefs.GpsDump;
             this.showTurnAheadCheckBox.Checked = prefs.ShowTurnAhead;
             this.offTrackDistanceEditText.Text = ((int)prefs.OffTrackAlarmDistance.Meters).ToString();
             this.offTrackIntervalEditText.Text = ((int)prefs.OffTrackAlarmInterval.TotalSeconds).ToString();
@@ -223,6 +229,8 @@ namespace TrackRadar
                 ShowTurnAhead = showTurnAheadCheckBox.Checked,
                 UseVibration = vibrateCheckBox.Checked,
                 RequestGps = requestGpsCheckBox.Checked,
+                GpsDump = gpsDumpCheckBox.Checked,
+                GpsFilter = gpsFilterCheckBox.Checked,
                 OffTrackAlarmDistance = Length.FromMeters(int.Parse(offTrackDistanceEditText.Text)),
                 OffTrackAlarmInterval = TimeSpan.FromSeconds(int.Parse(offTrackIntervalEditText.Text)),
                 NoGpsAlarmAgainInterval = TimeSpan.FromMinutes(int.Parse(this.noGpsIntervalEditText.Text)),

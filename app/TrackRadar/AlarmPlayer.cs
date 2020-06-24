@@ -9,8 +9,8 @@ namespace TrackRadar
 
         public Alarm Alarm { get; }
         public bool IsPlaying => player.IsPlaying;
-        public event EventHandler Completion
-        {
+        public event EventHandler Completion;//{ add;remove; }
+        /*{
             add
             {
                 player.Completion += value;
@@ -20,18 +20,26 @@ namespace TrackRadar
             {
                 player.Completion -= value;
             }
-        }
+        }*/
 
         public AlarmPlayer(MediaPlayer player, Alarm alarm)
         {
             this.player = player;
+            this.player.Completion += playerCompletion;
             Alarm = alarm;
         }
 
         public void Dispose()
         {
+            player.Completion -= playerCompletion;
             player.Dispose();
         }
+
+        private void playerCompletion(object sender, EventArgs e)
+        {
+            this.Completion?.Invoke(this, e);
+        }
+
 
         public void Stop()
         {

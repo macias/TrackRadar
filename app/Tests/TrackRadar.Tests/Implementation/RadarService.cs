@@ -54,7 +54,7 @@ namespace TrackRadar.Tests.Implementation
             ; // do nothing
         }
 
-        void IRadarService.WriteOffTrack(double latitudeDegrees, double longitudeDegrees, string name = null)
+        void IRadarService.WriteOffTrack(double latitudeDegrees, double longitudeDegrees, string name)
         {
             ; // do nothing
         }

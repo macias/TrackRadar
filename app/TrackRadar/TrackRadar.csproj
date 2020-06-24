@@ -108,7 +108,7 @@
     <Compile Include="LogLevel.cs" />
     <Compile Include="Implementation\ThreadSafe.cs" />
     <Compile Include="Implementation\SignalChecker.cs" />
-    <Compile Include="Implementation\ServiceAlarms.cs" />
+    <Compile Include="Implementation\AlarmMaster.cs" />
     <Compile Include="Statistics.cs" />
     <Compile Include="MessageEventArgs.cs" />
     <Compile Include="DistanceEventArgs.cs" />

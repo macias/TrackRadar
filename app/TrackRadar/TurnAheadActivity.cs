@@ -10,7 +10,14 @@ namespace TrackRadar
     // https://stackoverflow.com/questions/9361870/android-how-to-get-accurate-altitude
     // https://stackoverflow.com/questions/42194102/precision-of-gps-altitude-readouts-on-android-and-ios-phones
 
-        // todo: wyeliminowac wszelkie 0 jako oznaczenia time stampow typu "gdzies daleko w przeszlosci"
+    // https://www.bzarg.com/p/how-a-kalman-filter-works-in-pictures/
+    // http://bilgin.esme.org/BitsAndBytes/KalmanFilterforDummies
+    // https://link.springer.com/article/10.1007/s13272-019-00433-x
+
+    // https://blog.maddevs.io/reduce-gps-data-error-on-android-with-kalman-filter-and-accelerometer-43594faed19c
+    // https://stackoverflow.com/questions/1134579/smooth-gps-data
+
+    // https://dsp.stackexchange.com/questions/8860/kalman-filter-for-position-and-velocity-introducing-speed-estimates/
 
     // todo: umozliwic prace dla spaceru
 

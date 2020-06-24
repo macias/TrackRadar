@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using Android.Content;
 using Android.Locations;
 
@@ -30,12 +31,20 @@ namespace TrackRadar.Implementation
         }
 
 
-        public void WriteLocation(double latitudeDegrees,double longitudeDegrees,string name = null)
+        public void WriteLocation(double latitudeDegrees, double longitudeDegrees,
+            double? altitudeMeters = null, double? accuracyMeters = null, string comment = null, string name = null)
         {
-            writer.Write($"<wpt lat=\"{latitudeDegrees}\" lon=\"{longitudeDegrees}\"");
+            writer.Write($"<wpt lat=\"{latitudeDegrees.ToString(CultureInfo.InvariantCulture)}\" lon=\"{longitudeDegrees.ToString(CultureInfo.InvariantCulture)}\"");
             if (name != null)
                 writer.Write($" name=\"{name}\"");
-            writer.WriteLine($"/>");
+            writer.WriteLine($">");
+            if (accuracyMeters.HasValue)
+                writer.WriteLine($"<Proximity>{accuracyMeters.Value.ToString(CultureInfo.InvariantCulture)}</Proximity>");
+            if (altitudeMeters.HasValue)
+                writer.WriteLine($"<ele>{altitudeMeters.Value.ToString(CultureInfo.InvariantCulture)}</ele>");
+            if (comment!=null)
+                writer.WriteLine($"<cmt>{comment}</cmt>");
+            writer.WriteLine($"</wpt>");
         }
     }
 

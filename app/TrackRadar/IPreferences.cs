@@ -36,6 +36,8 @@ namespace TrackRadar
         TimeSpan OffTrackAlarmInterval { get; }
         bool UseVibration { get; }
         bool RequestGps { get; }
+        bool GpsFilter { get; }
+        bool GpsDump { get; }
         bool ShowTurnAhead { get; }
 
         string TrackName { get; }

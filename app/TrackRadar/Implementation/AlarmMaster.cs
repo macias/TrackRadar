@@ -9,7 +9,7 @@ namespace TrackRadar.Implementation
         Enqueue,
     }
     
-    internal sealed class ServiceAlarms : IDisposable
+    internal sealed class AlarmMaster : IDisposable
     {
         private readonly object threadLock = new object();
 
@@ -21,7 +21,7 @@ namespace TrackRadar.Implementation
         private readonly ITimeStamper stamper;
         private readonly IReadOnlyList<Alarm> turnAheads;
 
-        public ServiceAlarms(ITimeStamper stamper)
+        public AlarmMaster(ITimeStamper stamper)
         {
             this.stamper = stamper;
             this.alarms = LinqExtension.GetEnums<Alarm>().ToList();

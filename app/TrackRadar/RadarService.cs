@@ -18,7 +18,7 @@ namespace TrackRadar
 
         //private const double gpsAccuracy = 5; // meters
         private readonly Statistics statistics;
-        private ServiceAlarms alarms;
+        private AlarmMaster alarms;
         private readonly ThreadSafe<IPreferences> __prefs;
         private IPreferences prefs => __prefs.Value;
         private SignalChecker2 signalChecker;
@@ -34,6 +34,7 @@ namespace TrackRadar
         private GpxWriter crossroadsWriter;
         private int gpsLastStatus;
         private int subsriptions;
+        private GpxWriter traceWriter;
 
         /*
 private SensorManager sensorManager;
@@ -100,9 +101,12 @@ private long mLastTime;
             this.handler.Start();
 
             this.timeStamper = new Implementation.TimeStamper();
-            this.alarms = new ServiceAlarms(this.timeStamper);
+            this.alarms = new TrackRadar.Implementation.AlarmMaster(this.timeStamper);
 
             loadPreferences();
+
+            if (this.prefs.GpsDump)
+                this.traceWriter = new GpxWriter(this, "trace.gpx", DateTime.UtcNow.AddDays(-2));
 
             if (this.prefs.ShowTurnAhead)
             {
@@ -297,6 +301,7 @@ private long mLastTime;
 
                 this.offTrackWriter.Dispose();
                 this.crossroadsWriter.Dispose();
+                this.traceWriter?.Dispose();
 
                 lock (this.threadLock)
                 {
@@ -321,6 +326,9 @@ private long mLastTime;
         public void OnLocationChanged(Location location)
         {
             //LogDebug(LogLevel.Verbose, $"new loc {locationToString(location)}");
+            this.traceWriter?.WriteLocation(latitudeDegrees: location.Latitude, longitudeDegrees: location.Longitude,
+                altitudeMeters: location.HasAltitude ? location.Altitude : (double?)null,
+                accuracyMeters: location.HasAccuracy ? location.Accuracy : (double?)null);
 
             if (!statistics.CanUpdate())
             {
@@ -343,7 +351,7 @@ private long mLastTime;
                 catch (Exception ex)
                 {
                     LogDebug(LogLevel.Error, ex.Message);
-                    offTrackWriter.WriteLocation(latitudeDegrees: location.Latitude, longitudeDegrees: location.Longitude, "crash");
+                    offTrackWriter.WriteLocation(latitudeDegrees: location.Latitude, longitudeDegrees: location.Longitude,name: "crash");
                 }
                 finally
                 {
@@ -400,9 +408,9 @@ private long mLastTime;
             crossroadsWriter.WriteLocation(latitudeDegrees: latitudeDegrees, longitudeDegrees: longitudeDegrees);
         }
 
-        void IRadarService.WriteOffTrack(double latitudeDegrees, double longitudeDegrees, string name = null)
+        void IRadarService.WriteOffTrack(double latitudeDegrees, double longitudeDegrees, string name)
         {
-            offTrackWriter.WriteLocation(latitudeDegrees: latitudeDegrees, longitudeDegrees: longitudeDegrees, name);
+            offTrackWriter.WriteLocation(latitudeDegrees: latitudeDegrees, longitudeDegrees: longitudeDegrees, name: name);
         }
 
         public void LogDebug(LogLevel level, string message)

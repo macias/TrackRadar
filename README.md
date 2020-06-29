@@ -8,6 +8,7 @@ or you lost GPS signal.
 Single sonar ping sound is extracted from the file: http://www.zedge.net/ringtone/1419653/
 KDE_Error audio file is converted from KDE3 sounds.
 Guitar ringtone file is amplified version from: https://www.youtube.com/watch?v=Gms9qEWnqrM
+Arpeggio sound is shortened version from: https://www.youtube.com/watch?v=QKfy48_WWls
 
 ## Building
 

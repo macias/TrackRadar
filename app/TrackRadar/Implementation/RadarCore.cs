@@ -167,7 +167,7 @@ namespace TrackRadar.Implementation
 
                     this.topSpeed = this.topSpeed.Max(curr_speed);
 
-                    service.LogDebug(LogLevel.Verbose, $"{(int)service.RestSpeedThreshold.KilometersPerHour}-{(int)service.RidingSpeedThreshold.KilometersPerHour}, fixed time {this.ridingTime.TotalSeconds}, total time {this.RidingTimeReadout.TotalSeconds}");
+                    //service.LogDebug(LogLevel.Verbose, $"{(int)service.RestSpeedThreshold.KilometersPerHour}-{(int)service.RidingSpeedThreshold.KilometersPerHour}, fixed time {this.ridingTime.TotalSeconds}, total time {this.RidingTimeReadout.TotalSeconds}");
                 }
             }
 
@@ -204,8 +204,10 @@ namespace TrackRadar.Implementation
                         this.lastOnTrackAlarmAt = now;
                 }
 
-                if (turn_lookout.AlarmTurnAhead(currentPoint, this.ridingSpeed, now))
+                if (turn_lookout.AlarmTurnAhead(currentPoint, this.ridingSpeed, now, out string turn_reason))
                     service.WriteCrossroad(latitudeDegrees: currentPoint.Latitude.Degrees, longitudeDegrees: currentPoint.Longitude.Degrees);
+               // else if (turn_reason != null)
+                 //   service.LogDebug(LogLevel.Verbose, turn_reason);
 
                 return dist;
             }

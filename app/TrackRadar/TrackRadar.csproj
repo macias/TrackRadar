@@ -68,7 +68,10 @@
     <Compile Include="GpxHelper.cs" />
     <Compile Include="IAlarmVibrator.cs" />
     <Compile Include="Implementation\ISignalCheckerService.cs" />
+    <Compile Include="Implementation\DisposableGuard.cs" />
+    <Compile Include="Implementation\KalmanFilter.cs" />
     <Compile Include="Implementation\MapHelper.cs" />
+    <Compile Include="Implementation\Matrix.cs" />
     <Compile Include="Implementation\TurnLookout.cs" />
     <Compile Include="Implementation\TurnCalculator.cs" />
     <Compile Include="IAlarmPlayer.cs" />

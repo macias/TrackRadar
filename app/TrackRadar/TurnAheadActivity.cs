@@ -18,6 +18,11 @@ namespace TrackRadar
     // https://stackoverflow.com/questions/1134579/smooth-gps-data
 
     // https://dsp.stackexchange.com/questions/8860/kalman-filter-for-position-and-velocity-introducing-speed-estimates/
+    // https://dsp.stackexchange.com/questions/28777/structuring-kalman-filter-for-tracking-problem-where-only-position-is-known
+    // https://dsp.stackexchange.com/questions/41692/if-a-kalman-filter-can-only-receive-information-on-x-y-position-is-there-a
+    // https://dsp.stackexchange.com/questions/44014/implementing-kalman-filter-or-extended-or-unscented-with-only-position-informati
+    // https://stackoverflow.com/questions/29809975/implementing-a-kalman-filter-for-position-tracking-given-only-position-measureme
+    // https://stackoverflow.com/questions/55947643/kalman-filter-prediction-in-case-of-missing-measurement-and-only-positions-are-k
 
     // todo: umozliwic prace dla spaceru
 

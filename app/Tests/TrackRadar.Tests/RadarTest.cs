@@ -126,12 +126,17 @@ namespace TrackRadar.Tests
             GpxData gpx_data = GpxLoader.ReadGpx(planFilename, prefs.OffTrackAlarmDistance, onError: null);
 
             ClockStamper clock = new ClockStamper(DateTimeOffset.UtcNow);
-            var service = new TrackRadar.Tests.Implementation.RadarService(prefs, clock);
-            var core = new TrackRadar.Implementation.RadarCore(service, clock, gpx_data, Length.Zero, Length.Zero, TimeSpan.Zero, Speed.Zero);
+            using (var alarm_master = new AlarmMaster(clock))
+            {
+                alarm_master.PopulateAlarms();
 
-            clock.SetTime(DateTimeOffset.UtcNow);
-            service.SetPointIndex(0);
-            core.UpdateLocation(GeoPoint.FromDegrees(latitude: 10, longitude: 10), altitude: null, accuracy: 0);
+                var service = new TrackRadar.Tests.Implementation.RadarService(prefs, clock,alarm_master);
+                var core = new TrackRadar.Implementation.RadarCore(service, clock, gpx_data, Length.Zero, Length.Zero, TimeSpan.Zero, Speed.Zero);
+
+                clock.SetTime(DateTimeOffset.UtcNow);
+                service.SetPointIndex(0);
+                core.UpdateLocation(GeoPoint.FromDegrees(latitude: 10, longitude: 10), altitude: null, accuracy: 0);
+            }
         }
     }
 }

@@ -2,11 +2,28 @@ using Geo;
 using Gpx;
 using System.Collections.Generic;
 using System.Linq;
+using TrackRadar.Implementation;
 
 namespace TrackRadar.Tests.Implementation
 {
     public static class Toolbox
     {
+        internal static void PopulateAlarms(this AlarmMaster alarmMaster)
+        {
+            alarmMaster.Reset(new TestAlarmVibrator(),
+                offTrackPlayer: new TestAlarmPlayer(Alarm.OffTrack),
+                gpsLostPlayer: new TestAlarmPlayer(Alarm.GpsLost),
+                gpsOnPlayer: new TestAlarmPlayer(Alarm.PositiveAcknowledgement),
+                disengage: new TestAlarmPlayer(Alarm.Disengage),
+                crossroadsPlayer: new TestAlarmPlayer(Alarm.Crossroad),
+                goAhead: new TestAlarmPlayer(Alarm.GoAhead),
+                leftEasy: new TestAlarmPlayer(Alarm.LeftEasy),
+                leftCross: new TestAlarmPlayer(Alarm.LeftCross),
+                leftSharp: new TestAlarmPlayer(Alarm.LeftSharp),
+                rightEasy: new TestAlarmPlayer(Alarm.RightEasy),
+                rightCross: new TestAlarmPlayer(Alarm.RightCross),
+                rightSharp: new TestAlarmPlayer(Alarm.RightSharp));
+        }
         internal static IEnumerable<GpxTrackPoint> ReadTrackPoints(string ride_filename)
         {
             var track_points = new List<GpxTrackPoint>();

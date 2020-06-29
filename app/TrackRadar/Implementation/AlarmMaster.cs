@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
+
+//[assembly: InternalsVisibleToAttribute("")]
 
 namespace TrackRadar.Implementation
 {
@@ -66,7 +69,7 @@ namespace TrackRadar.Implementation
         }
 
         internal void Reset(IAlarmVibrator vibrator,
-           IAlarmPlayer distancePlayer,
+           IAlarmPlayer offTrackPlayer,
            IAlarmPlayer gpsLostPlayer,
            IAlarmPlayer gpsOnPlayer,
            IAlarmPlayer disengage,
@@ -84,7 +87,7 @@ namespace TrackRadar.Implementation
                 destroyPlayers();
 
                 this.vibrator = vibrator;
-                this.players[(int)Alarm.OffTrack] = distancePlayer;
+                this.players[(int)Alarm.OffTrack] = offTrackPlayer;
                 this.players[(int)Alarm.GpsLost] = gpsLostPlayer;
                 this.players[(int)Alarm.PositiveAcknowledgement] = gpsOnPlayer;
                 this.players[(int)Alarm.Disengage] = disengage;

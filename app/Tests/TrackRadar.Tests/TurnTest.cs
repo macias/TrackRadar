@@ -124,54 +124,58 @@ namespace TrackRadar.Tests
             }
         }
 
-        internal double RideWithTurns(List<GeoPoint> track_points,out Implementation.RadarService service)
+        internal double RideWithTurns(List<GeoPoint> trackPoints, out Implementation.RadarService service)
         {
             const string plan_filename = @"Data/turning-excercise.gpx";
 
             var prefs = new Preferences();
 
-            track_points.AddRange(Toolbox.ReadTrackPoints(plan_filename).Select(it => GpxHelper.FromGpx(it)));
+            trackPoints.AddRange(Toolbox.ReadTrackPoints(plan_filename).Select(it => GpxHelper.FromGpx(it)));
 
-            var gpx_data = new GpxData(Enumerable.Range(0, track_points.Count - 1)
-                .Select(i => new Segment(track_points[i], track_points[i + 1])),
+            var gpx_data = new GpxData(Enumerable.Range(0, trackPoints.Count - 1)
+                .Select(i => new Segment(trackPoints[i], trackPoints[i + 1])),
                 // set each in-track point as turning one
-                track_points.Skip(1).SkipLast(1));
+                trackPoints.Skip(1).SkipLast(1));
 
             // populate densely the "ride" points (better than having 1MB file on disk)
-            for (int i = 0; i < track_points.Count - 1; ++i)
+            for (int i = 0; i < trackPoints.Count - 1; ++i)
             {
-                while (GeoCalculator.GetDistance(track_points[i], track_points[i + 1]).Meters > 3)
-                    track_points.Insert(i + 1, GeoCalculator.GetMidPoint(track_points[i], track_points[i + 1]));
+                while (GeoCalculator.GetDistance(trackPoints[i], trackPoints[i + 1]).Meters > 3)
+                    trackPoints.Insert(i + 1, GeoCalculator.GetMidPoint(trackPoints[i], trackPoints[i + 1]));
             }
 
             var clock = new SecondStamper();
-            service = new Implementation.RadarService(prefs, clock);
-            var lookout = new TurnLookout(service, clock, gpx_data, MapHelper.CreateDefaultGrid(gpx_data.Segments));
-            Speed ride_speed = Speed.FromKilometersPerHour(10);
-
-            long start = Stopwatch.GetTimestamp();
-
-            int point_index = 0;
-            foreach (var pt in track_points)
+            using (var alarm_master = new AlarmMaster(clock))
             {
-                clock.Advance();
-                service.SetPointIndex(point_index);
-                lookout.AlarmTurnAhead(pt, ride_speed, clock.GetTimestamp());
-                ++point_index;
-            }
+                alarm_master.PopulateAlarms();
+                service = new Implementation.RadarService(prefs, clock, alarm_master);
+                var lookout = new TurnLookout(service, clock, gpx_data, MapHelper.CreateDefaultGrid(gpx_data.Segments));
+                Speed ride_speed = Speed.FromKilometersPerHour(10);
 
-            double run_time = (Stopwatch.GetTimestamp() - start - 0.0) / Stopwatch.Frequency;
+                long start = Stopwatch.GetTimestamp();
 
-            /*            using (var writer = new GpxDirtyWriter("turns.gpx"))
-                        {
-                            foreach ((Alarm alarm, int idx) in service.Alarms)
+                int point_index = 0;
+                foreach (var pt in trackPoints)
+                {
+                    clock.Advance();
+                    service.SetPointIndex(point_index);
+                    lookout.AlarmTurnAhead(pt, ride_speed, clock.GetTimestamp(), out _);
+                    ++point_index;
+                }
+
+                double run_time = (Stopwatch.GetTimestamp() - start - 0.0) / Stopwatch.Frequency;
+
+                /*            using (var writer = new GpxDirtyWriter("turns.gpx"))
                             {
-                                writer.WritePoint(track_points[idx], alarm.ToString());
+                                foreach ((Alarm alarm, int idx) in service.Alarms)
+                                {
+                                    writer.WritePoint(track_points[idx], alarm.ToString());
+                                }
                             }
-                        }
-                        */
+                            */
 
-            return run_time;
+                return run_time;
+            }
         }
     }
 }

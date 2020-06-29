@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 
 namespace TrackRadar.Tests.Implementation
 {
@@ -12,6 +13,7 @@ namespace TrackRadar.Tests.Implementation
 
         public SecondStamper()
         {
+            this.time = Stopwatch.GetTimestamp();   // get realistic starting value
             this.Frequency = 1;
         }
 

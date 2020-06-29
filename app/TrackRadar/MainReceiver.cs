@@ -11,21 +11,28 @@ namespace TrackRadar
         public event EventHandler<MessageEventArgs> DebugUpdate;
         public event EventHandler<MessageEventArgs> AlarmUpdate;
 
+        private Context context;
+        private IntentFilter filter;
+
         public MainReceiver()
         {
-
         }
 
         public static MainReceiver Create(Context context)
         {
-            var receiver = new MainReceiver();
             var filter = new IntentFilter();
             filter.AddAction(Message.Dbg);
             filter.AddAction(Message.Dist);
             filter.AddAction(Message.Alarm);
-            context.RegisterReceiver(receiver, filter);
+            var receiver = new MainReceiver() { context = context,filter = filter };
             return receiver;
         }
+
+        public void RegisterReceiver()
+        {
+            context.RegisterReceiver(this, filter);
+        }
+
         public override void OnReceive(Context context, Intent intent)
         {
             if (intent.Action == Message.Dist)

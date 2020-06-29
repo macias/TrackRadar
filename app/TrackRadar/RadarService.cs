@@ -33,6 +33,7 @@ namespace TrackRadar
         private GpxWriter offTrackWriter;
         private GpxWriter crossroadsWriter;
         private int gpsLastStatus;
+        private DisposableGuard guard;
         private int subsriptions;
         private GpxWriter traceWriter;
 
@@ -72,73 +73,93 @@ private long mLastTime;
         }
 
         [return: GeneratedEnum]
-        public override StartCommandResult OnStartCommand(Intent intent, [GeneratedEnum] StartCommandFlags flags, int startId)
+        public override StartCommandResult OnStartCommand(Intent _, [GeneratedEnum] StartCommandFlags flags, int startId)
         {
-            this.subsriptions = 1;
-            this.serviceLog = new LogFile(this, "service.log", DateTime.UtcNow.AddDays(-2));
-
-            if (!(Java.Lang.Thread.DefaultUncaughtExceptionHandler is CustomExceptionHandler))
-                Java.Lang.Thread.DefaultUncaughtExceptionHandler
-                    = new CustomExceptionHandler(Java.Lang.Thread.DefaultUncaughtExceptionHandler, this.serviceLog);
-
-            /*{
-                // Get a sensor manager to listen for shakes
-                this.sensorManager = (SensorManager)GetSystemService(SensorService);
-
-                // Listen for shakes
-                Sensor accelerometer = sensorManager.GetDefaultSensor(SensorType.Accelerometer);
-                if (accelerometer != null)
-                {
-                    sensorManager.RegisterListener(this, accelerometer, SensorDelay.Normal);
-                }
-            }
-            */
-
-            this.offTrackWriter = new GpxWriter(this, "off-track.gpx", DateTime.UtcNow.AddDays(-2));
-            this.crossroadsWriter = new GpxWriter(this, "crossroads.gpx", DateTime.UtcNow.AddDays(-2));
-
-            this.handler = new HandlerThread("GPSHandler");
-            this.handler.Start();
-
-            this.timeStamper = new Implementation.TimeStamper();
-            this.alarms = new TrackRadar.Implementation.AlarmMaster(this.timeStamper);
-
-            loadPreferences();
-
-            if (this.prefs.GpsDump)
-                this.traceWriter = new GpxWriter(this, "trace.gpx", DateTime.UtcNow.AddDays(-2));
-
-            if (this.prefs.ShowTurnAhead)
+            try
             {
-                this.TEST_timer = new WrapTimer(showTurnAhead);
-                this.TEST_timer.Change(TimeSpan.FromSeconds(25), System.Threading.Timeout.InfiniteTimeSpan);
+                this.guard = new DisposableGuard();
+                this.subsriptions = 1;
+                this.serviceLog = new LogFile(this, "service.log", DateTime.UtcNow.AddDays(-2));
+
+                if (!(Java.Lang.Thread.DefaultUncaughtExceptionHandler is CustomExceptionHandler))
+                    Java.Lang.Thread.DefaultUncaughtExceptionHandler
+                        = new CustomExceptionHandler(Java.Lang.Thread.DefaultUncaughtExceptionHandler, this.serviceLog);
+
+                /*{
+                    // Get a sensor manager to listen for shakes
+                    this.sensorManager = (SensorManager)GetSystemService(SensorService);
+
+                    // Listen for shakes
+                    Sensor accelerometer = sensorManager.GetDefaultSensor(SensorType.Accelerometer);
+                    if (accelerometer != null)
+                    {
+                        sensorManager.RegisterListener(this, accelerometer, SensorDelay.Normal);
+                    }
+                }
+                */
+
+                this.offTrackWriter = new GpxWriter(this, "off-track.gpx", DateTime.UtcNow.AddDays(-2));
+                this.crossroadsWriter = new GpxWriter(this, "crossroads.gpx", DateTime.UtcNow.AddDays(-2));
+
+                this.handler = new HandlerThread("GPSHandler");
+                this.handler.Start();
+
+                this.timeStamper = new Implementation.TimeStamper();
+                this.alarms = new TrackRadar.Implementation.AlarmMaster(this.timeStamper);
+
+                loadPreferences();
+
+                if (this.prefs.GpsDump)
+                    this.traceWriter = new GpxWriter(this, "trace.gpx", DateTime.UtcNow.AddDays(-2));
+
+                if (this.prefs.ShowTurnAhead)
+                {
+                    this.TEST_timer = new WrapTimer(showTurnAhead);
+                    this.TEST_timer.Change(TimeSpan.FromSeconds(25), System.Threading.Timeout.InfiniteTimeSpan);
+                }
+
+                core = new RadarCore(this, timeStamper, app.TrackData,
+                    totalClimbs: app.Prefs.TotalClimbs, app.Prefs.RidingDistance, app.Prefs.RidingTime, app.Prefs.TopSpeed);
+
+                this.locationManager = (LocationManager)GetSystemService(Context.LocationService);
+
+                this.signalChecker = new SignalChecker2(this, this.timeStamper);
+
+                { // start tracking
+
+                    this.statistics.Reset();
+                    locationManager.RequestLocationUpdates(LocationManager.GpsProvider, 0, 0, this, this.handler.Looper);
+                }
+
+                // push Android to update us with gps positions
+                if (app.Prefs.RequestGps)
+                    getLastKnownPosition();
+
+                this.receiver = ServiceReceiver.Create(this);
+                receiver.UpdatePrefs += Receiver_UpdatePrefs;
+                receiver.InfoRequest += Receiver_InfoRequest;
+                receiver.Subscribe += Receiver_Subscribe;
+                receiver.Unsubscribe += Receiver_Unsubscribe;
+
+
+                // https://stackoverflow.com/a/36018368/210342
+                LogDebug(LogLevel.Info, "Building notification");
+                Intent notificationIntent = new Intent( this, typeof(MainActivity));
+                // https://stackoverflow.com/questions/3378193/android-how-to-avoid-that-clicking-on-a-notification-calls-oncreate
+                notificationIntent.SetFlags(ActivityFlags.ClearTop | ActivityFlags.SingleTop);
+                PendingIntent pendingIntent = PendingIntent.GetActivity(this, 0, notificationIntent,  0);
+                Notification notification = new Notification(Resource.Drawable.Icon, $"Starting {nameof(TrackRadar)} service");
+                // https://android.googlesource.com/platform/frameworks/support.git/+/f9fd97499795cd47473f0344e00db9c9837eea36/v4/gingerbread/android/support/v4/app/NotificationCompatGingerbread.java
+                notification.SetLatestEventInfo(this, nameof(TrackRadar), "Monitoring position...", pendingIntent);
+                StartForeground(1337, notification);
+
+                LogDebug(LogLevel.Info, "service started (+testing log)");
+
             }
-
-            core = new RadarCore(this, timeStamper, app.TrackData,
-                totalClimbs: app.Prefs.TotalClimbs, app.Prefs.RidingDistance, app.Prefs.RidingTime, app.Prefs.TopSpeed);
-
-            this.locationManager = (LocationManager)GetSystemService(Context.LocationService);
-
-            this.signalChecker = new SignalChecker2(this, this.timeStamper);
-
-            { // start tracking
-
-                this.statistics.Reset();
-                locationManager.RequestLocationUpdates(LocationManager.GpsProvider, 0, 0, this, this.handler.Looper);
+            catch (Exception ex)
+            {
+                LogDebug(LogLevel.Error, $"Error on start {ex}");
             }
-
-            // push Android to update us with gps positions
-            if (app.Prefs.RequestGps)
-                getLastKnownPosition();
-
-            this.receiver = ServiceReceiver.Create(this);
-            receiver.UpdatePrefs += Receiver_UpdatePrefs;
-            receiver.InfoRequest += Receiver_InfoRequest;
-            receiver.Subscribe += Receiver_Subscribe;
-            receiver.Unsubscribe += Receiver_Unsubscribe;
-
-            LogDebug(LogLevel.Info, "service started (+testing log)");
-
             return StartCommandResult.Sticky;
         }
 
@@ -205,33 +226,51 @@ private long mLastTime;
 
         private void Receiver_Subscribe(object sender, EventArgs e)
         {
-            int sub = Interlocked.Increment(ref this.subsriptions);
-            this.logLocal(LogLevel.Verbose, $"Subscribing");
-            if (sub != 1)
-                this.logLocal(LogLevel.Error, $"Something wrong with sub {sub}");
+            using (this.guard.TryEnter(out bool allowed))
+            {
+                if (!allowed)
+                    return;
+
+                int sub = Interlocked.Increment(ref this.subsriptions);
+                this.logLocal(LogLevel.Verbose, $"Subscribing");
+                if (sub != 1)
+                    this.logLocal(LogLevel.Error, $"Something wrong with sub {sub}");
+            }
         }
 
         private void Receiver_Unsubscribe(object sender, EventArgs e)
         {
-            int sub = Interlocked.Decrement(ref this.subsriptions);
-            this.logLocal(LogLevel.Verbose, $"Unsubscribing");
-            if (sub != 0)
-                this.logLocal(LogLevel.Error, $"Something wrong with unsub {sub}");
+            using (this.guard.TryEnter(out bool allowed))
+            {
+                if (!allowed)
+                    return;
+
+                int sub = Interlocked.Decrement(ref this.subsriptions);
+                this.logLocal(LogLevel.Verbose, $"Unsubscribing");
+                if (sub != 0)
+                    this.logLocal(LogLevel.Error, $"Something wrong with unsub {sub}");
+            }
         }
 
         private void Receiver_InfoRequest(object sender, EventArgs _)
         {
-            logLocal(LogLevel.Verbose, "Received info request");
-            if (this.signalChecker.HasGpsSignal)
+            using (this.guard.TryEnter(out bool allowed))
             {
-                lock (this.threadLock)
+                if (!allowed)
+                    return;
+
+                logLocal(LogLevel.Verbose, "Received info request");
+                if (this.signalChecker.HasGpsSignal)
                 {
-                    MainReceiver.SendDistance(this, statistics.FenceDistance,
-                            totalClimbs: core.TotalClimbsReadout, ridingDistance: core.RidingDistanceReadout, ridingTime: core.RidingTimeReadout, topSpeed: core.TopSpeedReadout);
+                    lock (this.threadLock)
+                    {
+                        MainReceiver.SendDistance(this, statistics.FenceDistance,
+                                totalClimbs: core.TotalClimbsReadout, ridingDistance: core.RidingDistanceReadout, ridingTime: core.RidingTimeReadout, topSpeed: core.TopSpeedReadout);
+                    }
                 }
+                else
+                    MainReceiver.SendAlarm(this, Message.NoSignalText);
             }
-            else
-                MainReceiver.SendAlarm(this, Message.NoSignalText);
         }
 
         private void loadPreferences()
@@ -257,15 +296,25 @@ private long mLastTime;
         }
         private void Receiver_UpdatePrefs(object sender, EventArgs e)
         {
-            LogDebug(LogLevel.Verbose, "updating prefs");
-            loadPreferences();
+            using (this.guard.TryEnter(out bool allowed))
+            {
+                if (!allowed)
+                    return;
+
+                LogDebug(LogLevel.Verbose, "updating prefs");
+                loadPreferences();
+            }
         }
 
         public override void OnDestroy()
         {
             try
             {
+                this.guard.Dispose();
+
                 LogDebug(LogLevel.Info, "destroying service");
+
+                StopForeground(removeNotification: true);
 
                 //sensorManager.UnregisterListener(this);
 
@@ -325,43 +374,49 @@ private long mLastTime;
 
         public void OnLocationChanged(Location location)
         {
-            //LogDebug(LogLevel.Verbose, $"new loc {locationToString(location)}");
-            this.traceWriter?.WriteLocation(latitudeDegrees: location.Latitude, longitudeDegrees: location.Longitude,
+            using (this.guard.TryEnter(out bool allowed))
+            {
+                if (!allowed)
+                    return;
+
+                //LogDebug(LogLevel.Verbose, $"new loc {locationToString(location)}");
+                this.traceWriter?.WriteLocation(latitudeDegrees: location.Latitude, longitudeDegrees: location.Longitude,
                 altitudeMeters: location.HasAltitude ? location.Altitude : (double?)null,
                 accuracyMeters: location.HasAccuracy ? location.Accuracy : (double?)null);
 
-            if (!statistics.CanUpdate())
-            {
-                // don't alarm because we have already computing distance and it will sends the proper info
-                // about if GPS-on alarm is OK
-                this.signalChecker.UpdateGpsIsOn(canAlarm: false);
-                //LogDebug(LogLevel.Verbose, $"[TEMP] CANNOT UPDATE");
-                return;
-            }
-
-            double dist = 0;
-            lock (this.threadLock)
-            {
-                try
+                if (!statistics.CanUpdate())
                 {
-                    dist = this.core.UpdateLocation(GeoPoint.FromDegrees(latitude: location.Latitude, longitude: location.Longitude),
-                    location.HasAltitude ? (Length?)null : Length.FromMeters(location.Altitude),
-                    location.Accuracy);
+                    // don't alarm because we have already computing distance and it will sends the proper info
+                    // about if GPS-on alarm is OK
+                    this.signalChecker.UpdateGpsIsOn(canAlarm: false);
+                    //LogDebug(LogLevel.Verbose, $"[TEMP] CANNOT UPDATE");
+                    return;
                 }
-                catch (Exception ex)
-                {
-                    LogDebug(LogLevel.Error, ex.Message);
-                    offTrackWriter.WriteLocation(latitudeDegrees: location.Latitude, longitudeDegrees: location.Longitude,name: "crash");
-                }
-                finally
-                {
-                    // alarm about GPS only if there is no off-track alarm
-                    this.signalChecker.UpdateGpsIsOn(canAlarm: dist <= 0);
 
-                    statistics.UpdateCompleted(dist, location.Accuracy);
-                    if (hasSubscribers)
-                        MainReceiver.SendDistance(this, statistics.FenceDistance,
-                            totalClimbs: core.TotalClimbsReadout, ridingDistance: core.RidingDistanceReadout, ridingTime: core.RidingTimeReadout, topSpeed: core.TopSpeedReadout);
+                double dist = 0;
+                lock (this.threadLock)
+                {
+                    try
+                    {
+                        dist = this.core.UpdateLocation(GeoPoint.FromDegrees(latitude: location.Latitude, longitude: location.Longitude),
+                        location.HasAltitude ? (Length?)null : Length.FromMeters(location.Altitude),
+                        location.Accuracy);
+                    }
+                    catch (Exception ex)
+                    {
+                        LogDebug(LogLevel.Error, ex.Message);
+                        offTrackWriter.WriteLocation(latitudeDegrees: location.Latitude, longitudeDegrees: location.Longitude, name: "crash");
+                    }
+                    finally
+                    {
+                        // alarm about GPS only if there is no off-track alarm
+                        this.signalChecker.UpdateGpsIsOn(canAlarm: dist <= 0);
+
+                        statistics.UpdateCompleted(dist, location.Accuracy);
+                        if (hasSubscribers)
+                            MainReceiver.SendDistance(this, statistics.FenceDistance,
+                                totalClimbs: core.TotalClimbsReadout, ridingDistance: core.RidingDistanceReadout, ridingTime: core.RidingTimeReadout, topSpeed: core.TopSpeedReadout);
+                    }
                 }
             }
         }
@@ -389,18 +444,36 @@ private long mLastTime;
 
         public void OnProviderDisabled(string provider)
         {
-            LogDebug(LogLevel.Verbose, "GPS OFF on service");
+            using (this.guard.TryEnter(out bool allowed))
+            {
+                if (!allowed)
+                    return;
+
+                LogDebug(LogLevel.Verbose, "GPS OFF on service");
+            }
         }
 
         public void OnProviderEnabled(string provider)
         {
-            LogDebug(LogLevel.Verbose, "GPS ON on service");
+            using (this.guard.TryEnter(out bool allowed))
+            {
+                if (!allowed)
+                    return;
+
+                LogDebug(LogLevel.Verbose, "GPS ON on service");
+            }
         }
 
         public void OnStatusChanged(string provider, [GeneratedEnum] Availability status, Bundle extras)
         {
-            if (provider == "gps" && System.Threading.Interlocked.Exchange(ref this.gpsLastStatus, (int)status) != (int)status)
-                LogDebug(LogLevel.Verbose, $"{provider} change on service {status}");
+            using (this.guard.TryEnter(out bool allowed))
+            {
+                if (!allowed)
+                    return;
+
+                if (provider == "gps" && System.Threading.Interlocked.Exchange(ref this.gpsLastStatus, (int)status) != (int)status)
+                    LogDebug(LogLevel.Verbose, $"{provider} change on service {status}");
+            }
         }
 
         void IRadarService.WriteCrossroad(double latitudeDegrees, double longitudeDegrees)

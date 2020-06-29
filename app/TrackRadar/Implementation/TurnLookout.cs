@@ -30,17 +30,26 @@ namespace TrackRadar.Implementation
             this.lastTurnInfo = (cxIndex: -1, turn: default);
         }
 
-        internal bool AlarmTurnAhead(in GeoPoint point, Speed currentSpeed, long now)
+        internal bool AlarmTurnAhead(in GeoPoint point, Speed currentSpeed, long now,out string reason)
         {
             if (service.TurnAheadAlarmDistance == TimeSpan.Zero)
+            {
+                reason = $"Turn ahead distance is set to zero";
                 return false;
+            }
 
             if (!this.service.TryGetLatestTurnAheadAlarmAt(out long last_turn_alarm_at))
+            {
+                reason = "Cannot alarm about turn ahead because something is playing";
                 return false; // something is still playing
+            }
             var passed = timeStamper.GetSecondsSpan(now, last_turn_alarm_at);
 
             if (passed < service.TurnAheadAlarmInterval.TotalSeconds)
+            {
+                reason = $"Cannot alarm now {now} about turn ahead. Last alarm was {last_turn_alarm_at}, {passed}s ago";
                 return false;
+            }
 
             Length turn_ahead_distance = currentSpeed * service.TurnAheadAlarmDistance;
 
@@ -70,8 +79,16 @@ namespace TrackRadar.Implementation
                     this.crossroadAlarmCount[i] = 0;
             }
 
-            if (min_dist > turn_ahead_distance || this.crossroadAlarmCount[cx_index] >= crossroadsWarningLimit)
+            if (min_dist > turn_ahead_distance)
+            {
+                reason = $"Too far {min_dist} to turn ahead alarm distance {turn_ahead_distance}";
                 return false;
+            }
+            if (this.crossroadAlarmCount[cx_index] >= crossroadsWarningLimit)
+            {
+                reason = $"We already reach the limit {crossroadsWarningLimit} for turn ahead {cx_index} alarm";
+                return false;
+            }
 
             bool played = false;
 
@@ -106,22 +123,22 @@ namespace TrackRadar.Implementation
 
             service.LogDebug(LogLevel.Info, $"Turn at {closest_cx}, dist {min_dist}, repeat {this.crossroadAlarmCount[cx_index]}");
 
-            string reason;
+            string play_reason;
             if (turn_kind.HasValue)
             {
-                played = service.TryAlarm((Alarm)(turn_kind.Value), out reason);
+                played = service.TryAlarm((Alarm)(turn_kind.Value), out play_reason);
             }
             else
-                played = service.TryAlarm(Alarm.Crossroad, out reason);
+                played = service.TryAlarm(Alarm.Crossroad, out play_reason);
 
             if (played)
             {
                 ++this.crossroadAlarmCount[cx_index];
             }
             else
-                service.LogDebug(LogLevel.Warning, $"Turn ahead alarm, couldn't play, reason {reason}");
+                service.LogDebug(LogLevel.Warning, $"Turn ahead alarm, couldn't play, reason {play_reason}");
 
-
+            reason = null;
             return played;
         }
 

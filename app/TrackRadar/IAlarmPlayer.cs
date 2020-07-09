@@ -6,7 +6,7 @@ namespace TrackRadar
     // todo: split IDisposable
     public interface IAlarmPlayer : IDisposable
     {
-        Alarm Alarm { get; }
+        AlarmSound Sound { get; }
         bool IsPlaying { get; }
         event EventHandler Completion;
 

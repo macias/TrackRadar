@@ -2,7 +2,7 @@ using System;
 
 namespace TrackRadar.Tests.Implementation
 {
-    internal sealed class ClockStamper : ITimeStamper
+    /*internal sealed class ClockStamper : ITimeStamper
     {
         //public DateTimeOffset StartTime { get; }
         private DateTimeOffset time;
@@ -30,5 +30,5 @@ namespace TrackRadar.Tests.Implementation
         {
             return this.time.Ticks;
         }
-    }
+    }*/
 }

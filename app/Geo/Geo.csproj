@@ -6,7 +6,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\Gpx\MathUnit\MathUnit.csproj" />
+    <Reference Include="MathUnit">
+      <HintPath>..\Dll\MathUnit.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 </Project>

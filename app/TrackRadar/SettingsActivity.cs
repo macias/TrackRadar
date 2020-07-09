@@ -150,7 +150,7 @@ namespace TrackRadar
             this.playbackInitialized = false;
 
             this.vibrateCheckBox.Checked = prefs.UseVibration;
-            this.requestGpsCheckBox.Checked = prefs.RequestGps;
+            this.requestGpsCheckBox.Checked = prefs.DebugKillingService;
             this.gpsFilterCheckBox.Checked = prefs.GpsFilter;
             this.gpsDumpCheckBox.Checked = prefs.GpsDump;
             this.showTurnAheadCheckBox.Checked = prefs.ShowTurnAhead;
@@ -228,7 +228,7 @@ namespace TrackRadar
             {
                 ShowTurnAhead = showTurnAheadCheckBox.Checked,
                 UseVibration = vibrateCheckBox.Checked,
-                RequestGps = requestGpsCheckBox.Checked,
+                DebugKillingService = requestGpsCheckBox.Checked,
                 GpsDump = gpsDumpCheckBox.Checked,
                 GpsFilter = gpsFilterCheckBox.Checked,
                 OffTrackAlarmDistance = Length.FromMeters(int.Parse(offTrackDistanceEditText.Text)),

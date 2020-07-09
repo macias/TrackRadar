@@ -7,6 +7,16 @@ namespace TrackRadar
     [BroadcastReceiver(Enabled = true, Exported = false)]
     public sealed class MainReceiver : BroadcastReceiver
     {
+        public static MainReceiver Create(Context context)
+        {
+            var filter = new IntentFilter();
+            filter.AddAction(Message.Dbg);
+            filter.AddAction(Message.Dist);
+            filter.AddAction(Message.Alarm);
+            var receiver = new MainReceiver() { context = context, filter = filter };
+            return receiver;
+        }
+
         public event EventHandler<DistanceEventArgs> DistanceUpdate;
         public event EventHandler<MessageEventArgs> DebugUpdate;
         public event EventHandler<MessageEventArgs> AlarmUpdate;
@@ -18,14 +28,10 @@ namespace TrackRadar
         {
         }
 
-        public static MainReceiver Create(Context context)
+        public new void Dispose()
         {
-            var filter = new IntentFilter();
-            filter.AddAction(Message.Dbg);
-            filter.AddAction(Message.Dist);
-            filter.AddAction(Message.Alarm);
-            var receiver = new MainReceiver() { context = context,filter = filter };
-            return receiver;
+            context.UnregisterReceiver(this);
+            base.Dispose();
         }
 
         public void RegisterReceiver()

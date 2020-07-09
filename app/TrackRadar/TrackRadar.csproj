@@ -56,6 +56,12 @@
     <AndroidSupportedAbis />
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Gpx">
+      <HintPath>..\Dll\Gpx.dll</HintPath>
+    </Reference>
+    <Reference Include="MathUnit">
+      <HintPath>..\Dll\MathUnit.dll</HintPath>
+    </Reference>
     <Reference Include="Mono.Android" />
     <Reference Include="mscorlib" />
     <Reference Include="System" />
@@ -64,18 +70,28 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AlarmSound.cs" />
     <Compile Include="AlarmVibrator.cs" />
     <Compile Include="GpxHelper.cs" />
+    <Compile Include="IAlarmSequencer.cs" />
+    <Compile Include="Implementation\AlarmSequencer.cs" />
     <Compile Include="IAlarmVibrator.cs" />
+    <Compile Include="IAlarmMaster.cs" />
     <Compile Include="Implementation\ISignalCheckerService.cs" />
     <Compile Include="Implementation\DisposableGuard.cs" />
+    <Compile Include="Implementation\Disposable.cs" />
+    <Compile Include="Implementation\MatrixInverter2.cs" />
     <Compile Include="Implementation\KalmanFilter.cs" />
+    <Compile Include="Implementation\KalmanFunctions.cs" />
     <Compile Include="Implementation\MapHelper.cs" />
+    <Compile Include="Implementation\MatrixInverter.cs" />
     <Compile Include="Implementation\Matrix.cs" />
+    <Compile Include="Implementation\Mather.cs" />
     <Compile Include="Implementation\TurnLookout.cs" />
     <Compile Include="Implementation\TurnCalculator.cs" />
     <Compile Include="IAlarmPlayer.cs" />
     <Compile Include="AlarmPlayer.cs" />
+    <Compile Include="ILogger.cs" />
     <Compile Include="Turn.cs" />
     <Compile Include="Implementation\GpxDirtyWriter.cs" />
     <Compile Include="Implementation\Option.cs" />
@@ -87,7 +103,7 @@
     <Compile Include="ITimeStamper.cs" />
     <Compile Include="Implementation\TimeStamper.cs" />
     <Compile Include="Implementation\RadarCore.cs" />
-    <Compile Include="Implementation\SignalChecker2.cs" />
+    <Compile Include="Implementation\GpsWatchdog.cs" />
     <Compile Include="Implementation\TurnKind.cs" />
     <Compile Include="TurnAheadActivity.cs" />
     <Compile Include="TrackRadarApp.cs" />
@@ -168,14 +184,6 @@
     <AndroidResource Include="Resources\menu\MainMenu.xml" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\Gpx\Gpx\Gpx.csproj">
-      <Project>{f9fd5690-412a-4d7f-97b1-d738418a276f}</Project>
-      <Name>Gpx</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\Gpx\MathUnit\MathUnit.csproj">
-      <Project>{bf2b89b3-a869-4b98-8ad3-efb157b9b57e}</Project>
-      <Name>MathUnit</Name>
-    </ProjectReference>
     <ProjectReference Include="..\Geo\Geo.csproj">
       <Project>{3acbd9b2-3289-49de-a41f-c3d9edc4f990}</Project>
       <Name>Geo</Name>

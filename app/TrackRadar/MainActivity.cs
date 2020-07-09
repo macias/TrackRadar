@@ -100,7 +100,6 @@ namespace TrackRadar
                 this.enableButton.Click += EnableButtonClicked;
                 this.trackButton.Click += trackSelectionClicked;
 
-                this.receiver = MainReceiver.Create(this);
                 //SHORT_LIFECYCLE_OnPartialCreatePart();
 
                 //loadTrack();
@@ -124,14 +123,6 @@ namespace TrackRadar
         protected override void OnDestroy()
         {
             base.OnDestroy();
-        }
-
-        private void SHORT_LIFECYCLE_OnStopPart()
-        {
-            UnregisterReceiver(this.receiver);
-
-            log_writer?.Dispose();
-            log_writer = null;
         }
 
         protected override void OnResume()
@@ -179,8 +170,36 @@ namespace TrackRadar
         private void SHORT_LIFECYCLE_OnPartialCreatePart() 
         {
             this.log_writer = new LogFile(this, "app.log", DateTime.UtcNow.AddDays(-2));
+
+            this.receiver = MainReceiver.Create(this);
             this.receiver.RegisterReceiver();
         }
+
+        private void SHORT_LIFECYCLE_OnStopPart()
+        {
+            this.receiver.Dispose();
+            this.receiver = null;
+
+            log_writer?.Dispose();
+            log_writer = null;
+        }
+
+        private void OnPausePart()
+        {
+            if (this.isServiceRunning())
+            {
+                this.receiver.DistanceUpdate -= Receiver_DistanceUpdate;
+                ServiceReceiver.SendUnsubscribe(this);
+            }
+
+            this.receiver.AlarmUpdate -= Receiver_AlarmUpdate;
+            this.receiver.DebugUpdate -= Receiver_DebugUpdate;
+
+            logDebug(LogLevel.Verbose, "app paused");
+            LocationManager lm = (LocationManager)GetSystemService(Context.LocationService);
+            lm.RemoveGpsStatusListener(this);
+        }
+
 
         protected override void OnPause()
         {
@@ -222,22 +241,6 @@ namespace TrackRadar
 
         }
 
-
-        private void OnPausePart()
-        {
-            if (this.isServiceRunning())
-            {
-                this.receiver.DistanceUpdate -= Receiver_DistanceUpdate;
-                ServiceReceiver.SendUnsubscribe(this);
-            }
-
-            this.receiver.AlarmUpdate -= Receiver_AlarmUpdate;
-            this.receiver.DebugUpdate -= Receiver_DebugUpdate;
-
-            logDebug(LogLevel.Verbose, "app paused");
-            LocationManager lm = (LocationManager)GetSystemService(Context.LocationService);
-            lm.RemoveGpsStatusListener(this);
-        }
 
         private void Receiver_DistanceUpdate(object sender, DistanceEventArgs e)
         {
@@ -509,7 +512,7 @@ namespace TrackRadar
         {
             if (e == GpsEvent.Started || e == GpsEvent.Stopped)
             {
-                logDebug(LogLevel.Verbose, $"MA gps changed to {e}");
+                logDebug(LogLevel.Info, $"MA gps changed to {e}");
                 updateReadiness(out _);
             }
             else if (e != lastGpsEvent_debug) // prevents polluting log with SatelliteStatus value

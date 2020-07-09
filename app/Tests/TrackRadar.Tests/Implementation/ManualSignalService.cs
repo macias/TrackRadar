@@ -17,7 +17,6 @@ namespace TrackRadar.Tests.Implementation
         public TimeSpan NoGpsAgainInterval { get; }
         public int GpsOnAlarmCounter { get; private set; }
         public int GpsOffAlarmCounter { get; private set; }
-        public int RequestGpsCounter { get; private set; }
 
         public ManualSignalService(TimeSpan noGpsFirstTimeout, TimeSpan noGpsAgainInterval)
         {
@@ -39,11 +38,6 @@ namespace TrackRadar.Tests.Implementation
         public void GpsOffAlarm()
         {
             ++GpsOffAlarmCounter;
-        }
-
-        public void RequestGps()
-        {
-            ++RequestGpsCounter;
         }
 
         public void Log(LogLevel level, string message)

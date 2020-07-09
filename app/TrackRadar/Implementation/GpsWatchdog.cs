@@ -2,7 +2,7 @@
 
 namespace TrackRadar.Implementation
 {
-    internal sealed class SignalChecker2 : IDisposable
+    internal sealed class GpsWatchdog : IDisposable
     {
         private readonly object threadLock = new object();
         private readonly ISignalCheckerService service;
@@ -16,7 +16,7 @@ namespace TrackRadar.Implementation
 
         public bool HasGpsSignal => System.Threading.Interlocked.CompareExchange(ref this.lastNoGpsAlarmAtTicks, 0, 0) == timeStamper.GetBeforeTimeTimestamp();
 
-        public SignalChecker2(ISignalCheckerService service, ITimeStamper timeStamper)
+        public GpsWatchdog(ISignalCheckerService service, ITimeStamper timeStamper)
         {
             this.service = service;
             this.timeStamper = timeStamper;
@@ -57,8 +57,6 @@ namespace TrackRadar.Implementation
                 long now = this.timeStamper.GetTimestamp();
                 if (timeStamper.GetSecondsSpan(now, this.lastGpsPresentAtTicks) > service.NoGpsFirstTimeout.TotalSeconds)
                 {
-                    service.RequestGps();
-
                     gpsSignalCounter = 0;
 
                     if (timeStamper.GetSecondsSpan(now, this.lastNoGpsAlarmAtTicks) > service.NoGpsAgainInterval.TotalSeconds)
@@ -80,24 +78,25 @@ namespace TrackRadar.Implementation
             }
         }
 
-        public void UpdateGpsIsOn(bool canAlarm)
+        public bool UpdateGpsIsOn()
         {
             lock (this.threadLock)
             {
                 this.lastGpsPresentAtTicks = timeStamper.GetTimestamp();
 
                 if (++this.gpsSignalCounter < 10)
-                    return;
+                    return false;
 
                 if (this.lastNoGpsAlarmAtTicks != this.timeStamper.GetBeforeTimeTimestamp())
                 {
                     this.lastNoGpsAlarmAtTicks = this.timeStamper.GetBeforeTimeTimestamp();
 
-                    if (canAlarm)
-                        service.GpsOnAlarm();
-
                     service.Log(LogLevel.Info, $"GPS signal reacquired in {TimeSpan.FromSeconds(timeStamper.GetSecondsSpan(this.lastGpsPresentAtTicks, this.startAt))}");
+
+                    return true;
                 }
+
+                return false;
             }
         }
 

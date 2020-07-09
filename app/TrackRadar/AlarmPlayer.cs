@@ -7,7 +7,7 @@ namespace TrackRadar
     {
         private readonly MediaPlayer player;
 
-        public Alarm Alarm { get; }
+        public AlarmSound Sound { get; }
         public bool IsPlaying => player.IsPlaying;
         public event EventHandler Completion;//{ add;remove; }
         /*{
@@ -22,11 +22,11 @@ namespace TrackRadar
             }
         }*/
 
-        public AlarmPlayer(MediaPlayer player, Alarm alarm)
+        public AlarmPlayer(MediaPlayer player, AlarmSound alarm)
         {
             this.player = player;
             this.player.Completion += playerCompletion;
-            Alarm = alarm;
+            Sound = alarm;
         }
 
         public void Dispose()

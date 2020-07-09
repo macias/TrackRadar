@@ -15,8 +15,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\Gpx\MathUnit\MathUnit.csproj" />
     <ProjectReference Include="..\..\Geo\Geo.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="MathUnit">
+      <HintPath>..\..\Dll\MathUnit.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 </Project>

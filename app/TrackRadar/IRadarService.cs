@@ -2,8 +2,8 @@
 using System;
 
 namespace TrackRadar
-{
-    public interface IRadarService
+{   
+    public interface IRadarService : ILogger
     {
         TimeSpan OffTrackAlarmInterval { get; }
         Length OffTrackAlarmDistance { get; }
@@ -14,8 +14,7 @@ namespace TrackRadar
 
         void WriteCrossroad(double latitudeDegrees, double longitudeDegrees);
         void WriteOffTrack(double latitudeDegrees, double longitudeDegrees, string name = null);
-        void LogDebug(LogLevel level, string message);
-        bool TryAlarm(Alarm alarm,out string reason);
-        bool TryGetLatestTurnAheadAlarmAt(out long timeStamp);
+        //bool TryAlarm(Alarm alarm,out string reason);
+        //bool TryGetLatestTurnAheadAlarmAt(out long timeStamp);
     }
 }

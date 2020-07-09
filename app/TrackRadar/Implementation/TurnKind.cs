@@ -2,14 +2,14 @@
 {
     public enum TurnKind
     {
-        GoAhead = Alarm.GoAhead,
+        GoAhead,
 
-        LeftEasy = Alarm.LeftEasy,
-        LeftCross = Alarm.LeftCross, // means L-turn, I didn't find any good name for it
-        LeftSharp = Alarm.LeftSharp, 
+        LeftEasy,
+        LeftCross, // means L-turn, I didn't find any good name for it
+        LeftSharp,
 
-        RightEasy = Alarm.RightEasy,
-        RightCross = Alarm.RightCross,
-        RightSharp = Alarm.RightSharp,
+        RightEasy,
+        RightCross,
+        RightSharp,
     }
 }

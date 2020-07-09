@@ -6,6 +6,8 @@
     <IsPackable>false</IsPackable>
 
     <StartupObject>TrackRadar.Tests.Program</StartupObject>
+
+    <LangVersion>7.2</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,6 +18,15 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\TrackRadar\TrackRadar.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Gpx">
+      <HintPath>..\..\Dll\Gpx.dll</HintPath>
+    </Reference>
+    <Reference Include="MathUnit">
+      <HintPath>..\..\Dll\MathUnit.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
   <ItemGroup>

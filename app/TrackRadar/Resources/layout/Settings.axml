@@ -34,7 +34,7 @@
             android:layout_height="wrap_content"
             android:id="@+id/GpsFilterCheckBox" />
         <CheckBox
-            android:text="Request GPS"
+            android:text="DEBUG-killing service"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:id="@+id/RequestGpsCheckBox" />

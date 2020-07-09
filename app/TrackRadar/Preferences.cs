@@ -28,7 +28,7 @@ namespace TrackRadar
         public Speed RidingSpeedThreshold { get; set; }
 
         public bool UseVibration { get; set; }
-        public bool RequestGps { get; set; }
+        public bool DebugKillingService { get; set; }
         public bool GpsFilter { get; set; }
         public bool GpsDump { get; set; }
         public bool ShowTurnAhead { get; set; }
@@ -109,7 +109,7 @@ namespace TrackRadar
             public const string TrackFileName = "TrackFileName";
             public const string UseVibration = "UseVibration";
             public const string ShowTurnAhead = "ShowTurnAhead";
-            public const string RequestGps = "RequestGps";
+            public const string DebugKillingService = "DebugKillingService";
             public const string GpsFilter = "GpsFilter";
             public const string GpsDump = "GpsDump";
 
@@ -157,7 +157,7 @@ namespace TrackRadar
                 {
                     editor.PutBoolean(Keys.ShowTurnAhead, data.ShowTurnAhead);
                     editor.PutBoolean(Keys.UseVibration, data.UseVibration);
-                    editor.PutBoolean(Keys.RequestGps, data.RequestGps);
+                    editor.PutBoolean(Keys.DebugKillingService, data.DebugKillingService);
                     editor.PutBoolean(Keys.GpsFilter, data.GpsFilter);
                     editor.PutBoolean(Keys.GpsDump, data.GpsDump);
                     editor.PutInt(Keys.OffTrackAlarmInterval, (int)data.OffTrackAlarmInterval.TotalSeconds);
@@ -209,7 +209,7 @@ namespace TrackRadar
                 var data = new Preferences();
                 data.ShowTurnAhead = prefs.GetBoolean(Keys.ShowTurnAhead, data.ShowTurnAhead);
                 data.UseVibration = prefs.GetBoolean(Keys.UseVibration, data.UseVibration);
-                data.RequestGps = prefs.GetBoolean(Keys.RequestGps, data.RequestGps);
+                data.DebugKillingService = prefs.GetBoolean(Keys.DebugKillingService, data.DebugKillingService);
                 data.GpsFilter = prefs.GetBoolean(Keys.GpsFilter, data.GpsFilter);
                 data.GpsDump = prefs.GetBoolean(Keys.GpsDump, data.GpsDump);
                 data.OffTrackAlarmInterval = TimeSpan.FromSeconds(prefs.GetInt(Keys.OffTrackAlarmInterval, (int)data.OffTrackAlarmInterval.TotalSeconds));

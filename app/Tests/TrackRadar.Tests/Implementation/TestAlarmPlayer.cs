@@ -4,13 +4,13 @@ namespace TrackRadar.Tests.Implementation
 {
     internal sealed class TestAlarmPlayer : IAlarmPlayer
     {
-        public Alarm Alarm { get; }
+        public AlarmSound Sound { get; }
         public bool IsPlaying => false;
         public event EventHandler Completion;
 
-        public TestAlarmPlayer(Alarm alarm)
+        public TestAlarmPlayer(AlarmSound sound)
         {
-            this.Alarm = alarm;
+            this.Sound = sound;
         }
 
         public void Dispose()

@@ -17,6 +17,26 @@ namespace TrackRadar.Tests
         private const double precision = 0.00000001;
 
         [TestMethod]
+        public void TurnKindsOnBearingTest()
+        {
+            {
+                // we have basically turn
+                // +-
+                // |
+                // and we are comming from the bottom, going up
+                var turn = new Turn(Angle.FromDegrees(359),Angle.FromDegrees(270));
+                Assert.IsTrue(TurnLookout.TryComputeTurnKind(Angle.FromDegrees(1), turn, out TurnKind tk));
+                Assert.AreEqual(TurnKind.RightCross, tk);
+            }
+            {
+                var turn = new Turn(Angle.FromDegrees(1), Angle.FromDegrees(270));
+                Assert.IsTrue(TurnLookout.TryComputeTurnKind(Angle.FromDegrees(359), turn, out TurnKind tk));
+                Assert.AreEqual(TurnKind.RightCross, tk);
+
+            }
+        }
+
+        [TestMethod]
         public void TurnKindsTest()
         {
             {
@@ -113,18 +133,18 @@ namespace TrackRadar.Tests
             IReadOnlyList<GpxWayPoint> turn_points = Toolbox.ReadWayPoints(result_filename).ToList();
 
             List<GeoPoint> track_points = new List<GeoPoint>();
-            RideWithTurns(track_points, out Implementation.RadarService service);
+            RideWithTurns(track_points, out IReadOnlyList<(Alarm alarm, int index)> alarms);
 
-            Assert.AreEqual(turn_points.Count, service.Alarms.Count());
-            for (int i = 0; i < service.Alarms.Count(); ++i)
+            Assert.AreEqual(turn_points.Count, alarms.Count());
+            for (int i = 0; i < alarms.Count(); ++i)
             {
-                Assert.AreEqual(track_points[service.Alarms[i].index].Latitude.Degrees, turn_points[i].Latitude.Degrees, precision);
-                Assert.AreEqual(track_points[service.Alarms[i].index].Longitude.Degrees, turn_points[i].Longitude.Degrees, precision);
-                Assert.AreEqual(service.Alarms[i].alarm, Enum.Parse<Alarm>(turn_points[i].Name));
+                Assert.AreEqual(track_points[alarms[i].index].Latitude.Degrees, turn_points[i].Latitude.Degrees, precision);
+                Assert.AreEqual(track_points[alarms[i].index].Longitude.Degrees, turn_points[i].Longitude.Degrees, precision);
+                Assert.AreEqual(alarms[i].alarm, Enum.Parse<Alarm>(turn_points[i].Name));
             }
         }
 
-        internal double RideWithTurns(List<GeoPoint> trackPoints, out Implementation.RadarService service)
+        internal double RideWithTurns(List<GeoPoint> trackPoints, out IReadOnlyList<(Alarm alarm, int index)> alarms)
         {
             const string plan_filename = @"Data/turning-excercise.gpx";
 
@@ -145,11 +165,13 @@ namespace TrackRadar.Tests
             }
 
             var clock = new SecondStamper();
-            using (var alarm_master = new AlarmMaster(clock))
+            using (var raw_alarm_master = new AlarmMaster(clock))
             {
-                alarm_master.PopulateAlarms();
-                service = new Implementation.RadarService(prefs, clock, alarm_master);
-                var lookout = new TurnLookout(service, clock, gpx_data, MapHelper.CreateDefaultGrid(gpx_data.Segments));
+                raw_alarm_master.PopulateAlarms();
+                var counting_alarm_master = new CountingAlarmMaster(raw_alarm_master);
+                var service = new Implementation.RadarService(prefs, clock);
+                var sequencer = new AlarmSequencer(service, counting_alarm_master);
+                var lookout = new TurnLookout(service, sequencer, clock, gpx_data, MapHelper.CreateDefaultGrid(gpx_data.Segments));
                 Speed ride_speed = Speed.FromKilometersPerHour(10);
 
                 long start = Stopwatch.GetTimestamp();
@@ -157,10 +179,13 @@ namespace TrackRadar.Tests
                 int point_index = 0;
                 foreach (var pt in trackPoints)
                 {
-                    clock.Advance();
-                    service.SetPointIndex(point_index);
-                    lookout.AlarmTurnAhead(pt, ride_speed, clock.GetTimestamp(), out _);
-                    ++point_index;
+                    using (sequencer.OpenAlarmContext(gpsAcquired: false, hasGpsSignal: true))
+                    {
+                        clock.Advance();
+                        counting_alarm_master.SetPointIndex(point_index);
+                        lookout.AlarmTurnAhead(pt, ride_speed, clock.GetTimestamp(), out _);
+                        ++point_index;
+                    }
                 }
 
                 double run_time = (Stopwatch.GetTimestamp() - start - 0.0) / Stopwatch.Frequency;
@@ -174,6 +199,7 @@ namespace TrackRadar.Tests
                             }
                             */
 
+                alarms = counting_alarm_master.Alarms;
                 return run_time;
             }
         }

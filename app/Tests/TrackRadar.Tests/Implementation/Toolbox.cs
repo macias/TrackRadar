@@ -11,18 +11,18 @@ namespace TrackRadar.Tests.Implementation
         internal static void PopulateAlarms(this AlarmMaster alarmMaster)
         {
             alarmMaster.Reset(new TestAlarmVibrator(),
-                offTrackPlayer: new TestAlarmPlayer(Alarm.OffTrack),
-                gpsLostPlayer: new TestAlarmPlayer(Alarm.GpsLost),
-                gpsOnPlayer: new TestAlarmPlayer(Alarm.PositiveAcknowledgement),
-                disengage: new TestAlarmPlayer(Alarm.Disengage),
-                crossroadsPlayer: new TestAlarmPlayer(Alarm.Crossroad),
-                goAhead: new TestAlarmPlayer(Alarm.GoAhead),
-                leftEasy: new TestAlarmPlayer(Alarm.LeftEasy),
-                leftCross: new TestAlarmPlayer(Alarm.LeftCross),
-                leftSharp: new TestAlarmPlayer(Alarm.LeftSharp),
-                rightEasy: new TestAlarmPlayer(Alarm.RightEasy),
-                rightCross: new TestAlarmPlayer(Alarm.RightCross),
-                rightSharp: new TestAlarmPlayer(Alarm.RightSharp));
+                offTrackPlayer: new TestAlarmPlayer(AlarmSound.OffTrack),
+                gpsLostPlayer: new TestAlarmPlayer(AlarmSound.GpsLost),
+                gpsOnPlayer: new TestAlarmPlayer(AlarmSound.BackOnTrack),
+                disengage: new TestAlarmPlayer(AlarmSound.Disengage),
+                crossroadsPlayer: new TestAlarmPlayer(AlarmSound.Crossroad),
+                goAhead: new TestAlarmPlayer(AlarmSound.GoAhead),
+                leftEasy: new TestAlarmPlayer(AlarmSound.LeftEasy),
+                leftCross: new TestAlarmPlayer(AlarmSound.LeftCross),
+                leftSharp: new TestAlarmPlayer(AlarmSound.LeftSharp),
+                rightEasy: new TestAlarmPlayer(AlarmSound.RightEasy),
+                rightCross: new TestAlarmPlayer(AlarmSound.RightCross),
+                rightSharp: new TestAlarmPlayer(AlarmSound.RightSharp));
         }
         internal static IEnumerable<GpxTrackPoint> ReadTrackPoints(string ride_filename)
         {

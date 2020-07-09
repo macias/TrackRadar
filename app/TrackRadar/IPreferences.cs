@@ -35,7 +35,7 @@ namespace TrackRadar
         TimeSpan TurnAheadScreenTimeout { get; }
         TimeSpan OffTrackAlarmInterval { get; }
         bool UseVibration { get; }
-        bool RequestGps { get; }
+        bool DebugKillingService { get; }
         bool GpsFilter { get; }
         bool GpsDump { get; }
         bool ShowTurnAhead { get; }

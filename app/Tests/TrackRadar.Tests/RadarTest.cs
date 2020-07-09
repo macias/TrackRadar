@@ -16,63 +16,54 @@ namespace TrackRadar.Tests
         [TestMethod]
         public void TestSignalChecker()
         {
-            var stamper = new ClockStamper(DateTimeOffset.UtcNow);
-            var service = new ManualSignalService(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(2));
+            //var stamper = new ClockStamper(DateTimeOffset.UtcNow);
+            var stamper = new SecondStamper();
+            var service = new ManualSignalService(noGpsFirstTimeout: TimeSpan.FromSeconds(1), 
+                noGpsAgainInterval: TimeSpan.FromSeconds(2));
 
-            var checker = new SignalChecker2(service, stamper);
-
-            service.Timer.Trigger();
-            Assert.AreEqual(0, service.GpsOnAlarmCounter);
-            Assert.AreEqual(0, service.GpsOffAlarmCounter);
-            Assert.AreEqual(0, service.RequestGpsCounter);
-
-            stamper.Advance(TimeSpan.FromSeconds(1));
+            var checker = new GpsWatchdog(service, stamper);
 
             service.Timer.Trigger();
             Assert.AreEqual(0, service.GpsOnAlarmCounter);
             Assert.AreEqual(0, service.GpsOffAlarmCounter);
-            Assert.AreEqual(0, service.RequestGpsCounter);
 
-            stamper.Advance(TimeSpan.FromSeconds(1));
+            stamper.Advance();// TimeSpan.FromSeconds(1));
+            service.Timer.Trigger();
+            Assert.AreEqual(0, service.GpsOnAlarmCounter);
+            Assert.AreEqual(0, service.GpsOffAlarmCounter);
 
+            stamper.Advance();// TimeSpan.FromSeconds(1));
             service.Timer.Trigger();
             Assert.AreEqual(0, service.GpsOnAlarmCounter);
             Assert.AreEqual(1, service.GpsOffAlarmCounter);
-            Assert.AreEqual(1, service.RequestGpsCounter);
 
-            stamper.Advance(TimeSpan.FromSeconds(1));
-
+            stamper.Advance();// TimeSpan.FromSeconds(1));
             service.Timer.Trigger();
             Assert.AreEqual(0, service.GpsOnAlarmCounter);
             Assert.AreEqual(1, service.GpsOffAlarmCounter);
-            Assert.AreEqual(2, service.RequestGpsCounter);
 
-            stamper.Advance(TimeSpan.FromSeconds(1));
-
+            stamper.Advance();// TimeSpan.FromSeconds(1));
             service.Timer.Trigger();
             Assert.AreEqual(0, service.GpsOnAlarmCounter);
             Assert.AreEqual(1, service.GpsOffAlarmCounter);
-            Assert.AreEqual(3, service.RequestGpsCounter);
 
-            stamper.Advance(TimeSpan.FromSeconds(1));
+            stamper.Advance();// TimeSpan.FromSeconds(1));
+            service.Timer.Trigger();
+            Assert.AreEqual(0, service.GpsOnAlarmCounter);
+            Assert.AreEqual(2, service.GpsOffAlarmCounter);
+
+            stamper.Advance();// TimeSpan.FromSeconds(1));
+            foreach (var _ in Enumerable.Range(0, 9)) // it takes 10 updates to switch the state
+                Assert.IsFalse(checker.UpdateGpsIsOn());
+
+            Assert.IsTrue(checker.UpdateGpsIsOn());
+
+            Assert.AreEqual(0, service.GpsOnAlarmCounter);
+            Assert.AreEqual(2, service.GpsOffAlarmCounter);
 
             service.Timer.Trigger();
             Assert.AreEqual(0, service.GpsOnAlarmCounter);
             Assert.AreEqual(2, service.GpsOffAlarmCounter);
-            Assert.AreEqual(4, service.RequestGpsCounter);
-
-            stamper.Advance(TimeSpan.FromSeconds(1));
-            foreach (var _ in Enumerable.Range(0, 10)) // it takes 10 updates to switch the state
-                checker.UpdateGpsIsOn(canAlarm: true);
-
-            Assert.AreEqual(1, service.GpsOnAlarmCounter);
-            Assert.AreEqual(2, service.GpsOffAlarmCounter);
-            Assert.AreEqual(4, service.RequestGpsCounter);
-
-            service.Timer.Trigger();
-            Assert.AreEqual(1, service.GpsOnAlarmCounter);
-            Assert.AreEqual(2, service.GpsOffAlarmCounter);
-            Assert.AreEqual(4, service.RequestGpsCounter);
         }
 
         //private static readonly int off_track_distance_m = 70;
@@ -125,17 +116,19 @@ namespace TrackRadar.Tests
             var prefs = new Preferences();
             GpxData gpx_data = GpxLoader.ReadGpx(planFilename, prefs.OffTrackAlarmDistance, onError: null);
 
-            ClockStamper clock = new ClockStamper(DateTimeOffset.UtcNow);
-            using (var alarm_master = new AlarmMaster(clock))
+            //ClockStamper clock = new ClockStamper(DateTimeOffset.UtcNow);
+            var clock = new SecondStamper();
+            using (var raw_alarm_master = new AlarmMaster(clock))
             {
-                alarm_master.PopulateAlarms();
+                raw_alarm_master.PopulateAlarms();
 
-                var service = new TrackRadar.Tests.Implementation.RadarService(prefs, clock,alarm_master);
-                var core = new TrackRadar.Implementation.RadarCore(service, clock, gpx_data, Length.Zero, Length.Zero, TimeSpan.Zero, Speed.Zero);
+                var service = new TrackRadar.Tests.Implementation.RadarService(prefs, clock);
+                var core = new TrackRadar.Implementation.RadarCore(service, new AlarmSequencer(service, raw_alarm_master), clock, gpx_data, Length.Zero, Length.Zero, TimeSpan.Zero, Speed.Zero);
 
-                clock.SetTime(DateTimeOffset.UtcNow);
-                service.SetPointIndex(0);
-                core.UpdateLocation(GeoPoint.FromDegrees(latitude: 10, longitude: 10), altitude: null, accuracy: 0);
+                //clock.SetTime(DateTimeOffset.UtcNow);
+                //service.SetPointIndex(0);
+                core.UpdateLocation(GeoPoint.FromDegrees(latitude: 10, longitude: 10), altitude: null, accuracy: null);
+                clock.Advance();
             }
         }
     }

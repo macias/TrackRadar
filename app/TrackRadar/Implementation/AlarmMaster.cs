@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
 
 //[assembly: InternalsVisibleToAttribute("")]
 
@@ -11,40 +10,56 @@ namespace TrackRadar.Implementation
     {
         Enqueue,
     }
-    
-    internal sealed class AlarmMaster : IDisposable
+
+    internal sealed class EnumArray<TValue>
+    {
+        private readonly TValue[] data;
+
+        public IEnumerable<AlarmSound> Keys { get; }
+        public TValue this[AlarmSound index] { get { return this.data[(int)index]; } set { this.data[(int)index] = value; } }
+
+        public EnumArray()
+        {
+            this.Keys = LinqExtension.GetEnums<AlarmSound>().ToList();
+            this.data = new TValue[Keys.Count()];
+        }
+        public EnumArray(TValue initValue) : this()
+        {
+            for (int i = 0; i < this.data.Length; ++i)
+                this.data[i] = initValue;
+        }
+
+    }
+
+    internal sealed class AlarmMaster : IDisposable, IAlarmMaster
     {
         private readonly object threadLock = new object();
 
         private IAlarmVibrator vibrator;
-        private readonly IReadOnlyList<Alarm> alarms;
-        private readonly IAlarmPlayer[] players;
-        private readonly long[] playStartedAt;
-        private readonly long[] playStoppedAt;
+        private readonly IReadOnlyList<AlarmSound> sounds;
+        private readonly EnumArray<IAlarmPlayer> players;
+        private readonly EnumArray<long> playStartedAt;
+        private readonly EnumArray<long> playStoppedAt;
         private readonly ITimeStamper stamper;
-        private readonly IReadOnlyList<Alarm> turnAheads;
+        private readonly IReadOnlyList<AlarmSound> turnAheads;
 
         public AlarmMaster(ITimeStamper stamper)
         {
             this.stamper = stamper;
-            this.alarms = LinqExtension.GetEnums<Alarm>().ToList();
-            this.players = new IAlarmPlayer[alarms.Count];
-            this.playStartedAt = new long[alarms.Count];
-            this.playStoppedAt = new long[alarms.Count];
-            for (int i=0;i<alarms.Count;++i)
-            {
-                this.playStartedAt[i] = stamper.GetBeforeTimeTimestamp();
-                this.playStoppedAt[i] = stamper.GetBeforeTimeTimestamp();
-            }
-            this.turnAheads = new Alarm[] {
-                Alarm.Crossroad,
-                Alarm.GoAhead,
-                Alarm.LeftEasy,
-                Alarm.LeftCross,
-                Alarm.LeftSharp,
-                Alarm.RightEasy,
-                Alarm.RightCross,
-                Alarm.RightSharp,
+            this.sounds = LinqExtension.GetEnums<AlarmSound>().ToList();
+            this.players = new EnumArray<IAlarmPlayer>();
+            this.playStartedAt = new EnumArray<long>(stamper.GetBeforeTimeTimestamp());
+            this.playStoppedAt = new EnumArray<long>(stamper.GetBeforeTimeTimestamp());
+
+            this.turnAheads = new AlarmSound[] {
+                AlarmSound.Crossroad,
+                AlarmSound.GoAhead,
+                AlarmSound.LeftEasy,
+                AlarmSound.LeftCross,
+                AlarmSound.LeftSharp,
+                AlarmSound.RightEasy,
+                AlarmSound.RightCross,
+                AlarmSound.RightSharp,
            };
         }
 
@@ -58,17 +73,17 @@ namespace TrackRadar.Implementation
         {
             this.vibrator?.Dispose();
             this.vibrator = null;
-            for (int i = 0; i < this.players.Length; ++i)
+            foreach (var i in this.players.Keys)
             {
                 if (this.players[i] != null)
                 {
-                    this.players[i].Completion -= ServiceAlarms_Completion;
+                    this.players[i].Completion -= serviceAlarms_Completion;
                     this.players[i] = Common.DestroyMediaPlayer(this.players[i]);
                 }
             }
         }
 
-        internal void Reset(IAlarmVibrator vibrator,
+        public void Reset(IAlarmVibrator vibrator,
            IAlarmPlayer offTrackPlayer,
            IAlarmPlayer gpsLostPlayer,
            IAlarmPlayer gpsOnPlayer,
@@ -87,31 +102,31 @@ namespace TrackRadar.Implementation
                 destroyPlayers();
 
                 this.vibrator = vibrator;
-                this.players[(int)Alarm.OffTrack] = offTrackPlayer;
-                this.players[(int)Alarm.GpsLost] = gpsLostPlayer;
-                this.players[(int)Alarm.PositiveAcknowledgement] = gpsOnPlayer;
-                this.players[(int)Alarm.Disengage] = disengage;
-                this.players[(int)Alarm.Crossroad] = crossroadsPlayer;
+                this.players[AlarmSound.OffTrack] = offTrackPlayer;
+                this.players[AlarmSound.GpsLost] = gpsLostPlayer;
+                this.players[AlarmSound.BackOnTrack] = gpsOnPlayer;
+                this.players[AlarmSound.Disengage] = disengage;
+                this.players[AlarmSound.Crossroad] = crossroadsPlayer;
 
-                this.players[(int)Alarm.GoAhead] = goAhead;
-                this.players[(int)Alarm.LeftEasy] = leftEasy;
-                this.players[(int)Alarm.LeftCross] = leftCross;
-                this.players[(int)Alarm.LeftSharp] = leftSharp;
-                this.players[(int)Alarm.RightEasy] = rightEasy;
-                this.players[(int)Alarm.RightCross] = rightCross;
-                this.players[(int)Alarm.RightSharp] = rightSharp;
+                this.players[AlarmSound.GoAhead] = goAhead;
+                this.players[AlarmSound.LeftEasy] = leftEasy;
+                this.players[AlarmSound.LeftCross] = leftCross;
+                this.players[AlarmSound.LeftSharp] = leftSharp;
+                this.players[AlarmSound.RightEasy] = rightEasy;
+                this.players[AlarmSound.RightCross] = rightCross;
+                this.players[AlarmSound.RightSharp] = rightSharp;
 
-                for (int i = 0; i < this.players.Count(); ++i)
-                    this.players[i].Completion += ServiceAlarms_Completion;
+                foreach (var i in this.players.Keys)
+                    this.players[i].Completion += serviceAlarms_Completion;
             }
         }
 
-        private void ServiceAlarms_Completion(object sender, EventArgs e)
+        private void serviceAlarms_Completion(object sender, EventArgs e)
         {
             lock (this.threadLock)
             {
                 var mp = (IAlarmPlayer)sender;
-                this.playStoppedAt[(int)(mp.Alarm)] = this.stamper.GetTimestamp();
+                this.playStoppedAt[mp.Sound] = this.stamper.GetTimestamp();
             }
         }
 
@@ -120,66 +135,65 @@ namespace TrackRadar.Implementation
         /// </summary>
         /// <param name="timeStamp">timestamp of the latest stopped player</param>
         /// <returns>false if some player still plays, true otherwise</returns>
-        internal bool TryGetLatestTurnAheadAlarmAt(out long timeStamp)
+        public bool TryGetLatestTurnAheadAlarmAt(out long timeStamp)
         {
             lock (this.threadLock)
             {
                 timeStamp = stamper.GetBeforeTimeTimestamp();
 
-                if (this.turnAheads.Any(x => this.players[(int)x].IsPlaying))
+                if (this.turnAheads.Any(x => this.players[x].IsPlaying))
                     return false;
 
-                foreach (Alarm alarm in this.turnAheads)
+                foreach (AlarmSound sound in this.turnAheads)
                 {
-                    int index = (int)alarm;
-
                     // sanity-crazy check, but I don't trust Android, 
                     // so we fix here case when we started alarm but it didn't complete
-                    if (this.playStoppedAt[index] < this.playStartedAt[index])
+                    if (this.playStoppedAt[sound] < this.playStartedAt[sound])
                     {
                         timeStamp = this.stamper.GetTimestamp();
-                        this.playStoppedAt[index] = timeStamp;
+                        this.playStoppedAt[sound] = timeStamp;
                         return true;
                     }
 
-                    timeStamp = Math.Max(timeStamp, this.playStoppedAt[index]);
+                    timeStamp = Math.Max(timeStamp, this.playStoppedAt[sound]);
                 }
 
                 return true;
             }
         }
 
-        internal bool TryPlay(Alarm alarm, out string reason)
+        public bool TryAlarm(Alarm alarm, out string reason)
         {
             lock (this.threadLock)
             {
-                if (alarm == Alarm.GpsLost || alarm == Alarm.OffTrack)
+                AlarmSound sound = alarm.GetSound();
+                if (sound == AlarmSound.GpsLost || sound == AlarmSound.OffTrack)
                     Common.VibrateAlarm(this.vibrator);
 
                 // https://developer.android.com/reference/android/media/MediaPlayer.html
 
                 {
-                    Option<Alarm> playing = this.alarms.FirstOrNone(a =>
+                    Option<AlarmSound> playing = this.sounds.FirstOrNone(a =>
                     {
-                        IAlarmPlayer p = this.players[(int)a];
+                        IAlarmPlayer p = this.players[a];
                         return p != null && p.IsPlaying;
                     });
 
                     if (playing.HasValue)
                     {
-                        reason = $"Cannot play {alarm}, {playing.Value} is already playing for {TimeSpan.FromSeconds(stamper.GetSecondsSpan(this.playStartedAt[(int)(playing.Value)]))}";
+                        reason = $"Cannot play {sound}, {playing.Value} is already playing for {TimeSpan.FromSeconds(stamper.GetSecondsSpan(this.playStartedAt[playing.Value]))}";
                         return false;
                     }
                 }
 
-                IAlarmPlayer selected_player = this.players[(int)alarm];
+                IAlarmPlayer selected_player = this.players[sound];
                 if (selected_player == null)
                 {
-                    reason = $"No player for {alarm}";
+                    reason = $"No player for {sound}";
                     return false;
                 }
 
-                this.playStartedAt[(int)alarm] = stamper.GetTimestamp();
+                this.playStartedAt[sound] = stamper.GetTimestamp();
                 selected_player.Start();
                 reason = null;
                 return true;

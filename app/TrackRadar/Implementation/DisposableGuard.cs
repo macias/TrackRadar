@@ -5,32 +5,17 @@ namespace TrackRadar.Implementation
 {
     internal sealed class DisposableGuard
     {
-        private sealed class Disposable : IDisposable
-        {
-            private readonly DisposableGuard guard;
-
-            public Disposable(DisposableGuard guard)
-            {
-                this.guard = guard;
-            }
-
-            public void Dispose()
-            {
-                this.guard?.exitEntered();
-            }
-        }
-
         private readonly object threadLock = new object();
         private readonly CountdownEvent countdown;
-        private readonly Disposable emptyDisposable;
-        private readonly Disposable signalDisposable;
+        private readonly IDisposable emptyDisposable;
+        private readonly IDisposable signalDisposable;
         private bool isDiposed;
 
         public DisposableGuard()
         {
             this.countdown = new CountdownEvent(initialCount: 1);
-            this.emptyDisposable = new Disposable(null);
-            this.signalDisposable = new Disposable(this);
+            this.emptyDisposable = Disposable.Empty;
+            this.signalDisposable = Disposable.Create(this.exitEntered);
         }
 
         public void Dispose()

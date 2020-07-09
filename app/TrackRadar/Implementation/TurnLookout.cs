@@ -11,6 +11,7 @@ namespace TrackRadar.Implementation
         private const int crossroadsWarningLimit = 3;
 
         private readonly IRadarService service;
+        private readonly IAlarmSequencer alarmSequencer;
         private readonly ITimeStamper timeStamper;
         private readonly IGeoMap trackMap;
         private readonly GpxData gpxData;
@@ -18,9 +19,10 @@ namespace TrackRadar.Implementation
         private readonly IPointGrid pointGrid;
         private (int cxIndex, Turn turn) lastTurnInfo;
 
-        public TurnLookout(IRadarService service, ITimeStamper timeStamper, GpxData gpxData, IGeoMap map)
+        public TurnLookout(IRadarService service, IAlarmSequencer alarmSequencer, ITimeStamper timeStamper, GpxData gpxData, IGeoMap map)
         {
             this.service = service;
+            this.alarmSequencer = alarmSequencer;
             this.timeStamper = timeStamper;
 
             this.trackMap = map;
@@ -30,24 +32,42 @@ namespace TrackRadar.Implementation
             this.lastTurnInfo = (cxIndex: -1, turn: default);
         }
 
-        internal bool AlarmTurnAhead(in GeoPoint point, Speed currentSpeed, long now,out string reason)
+        internal 
+            //AlarmState
+            bool AlarmTurnAhead(in GeoPoint point, Speed currentSpeed, long now, out string reason)
+        {
+            var result = doAlarmTurnAhead(point, currentSpeed, now, out reason);
+            if (result)// == AlarmState.Played)
+                service.WriteCrossroad(latitudeDegrees: point.Latitude.Degrees, longitudeDegrees: point.Longitude.Degrees);
+
+            return result;
+        }
+
+        private 
+            //AlarmState 
+            bool doAlarmTurnAhead(in GeoPoint point, Speed currentSpeed, long now, out string reason)
         {
             if (service.TurnAheadAlarmDistance == TimeSpan.Zero)
             {
                 reason = $"Turn ahead distance is set to zero";
+                // return AlarmState.None;
                 return false;
             }
 
-            if (!this.service.TryGetLatestTurnAheadAlarmAt(out long last_turn_alarm_at))
+            if (!this.alarmSequencer.TryGetLatestTurnAheadAlarmAt(out long last_turn_alarm_at))
             {
                 reason = "Cannot alarm about turn ahead because something is playing";
-                return false; // something is still playing
+                alarmSequencer.NotifyAlarm(Alarm.Crossroad);
+//                return AlarmState.Postponed; 
+                return false;
             }
             var passed = timeStamper.GetSecondsSpan(now, last_turn_alarm_at);
 
             if (passed < service.TurnAheadAlarmInterval.TotalSeconds)
             {
                 reason = $"Cannot alarm now {now} about turn ahead. Last alarm was {last_turn_alarm_at}, {passed}s ago";
+                alarmSequencer.NotifyAlarm(Alarm.Crossroad);
+//                return AlarmState.Postponed;
                 return false;
             }
 
@@ -82,15 +102,16 @@ namespace TrackRadar.Implementation
             if (min_dist > turn_ahead_distance)
             {
                 reason = $"Too far {min_dist} to turn ahead alarm distance {turn_ahead_distance}";
+                //   return AlarmState.None;
                 return false;
             }
             if (this.crossroadAlarmCount[cx_index] >= crossroadsWarningLimit)
             {
                 reason = $"We already reach the limit {crossroadsWarningLimit} for turn ahead {cx_index} alarm";
+                alarmSequencer.NotifyAlarm(Alarm.Crossroad);
+                //return AlarmState.Postponed;
                 return false;
             }
-
-            bool played = false;
 
             TurnKind? turn_kind = null;
             {
@@ -106,30 +127,21 @@ namespace TrackRadar.Implementation
                 Turn turn = this.lastTurnInfo.turn;
 
                 Angle curr_bearing = GeoCalculator.GetBearing(point, closest_cx);
-                double a_diff = Math.Abs(turn.BearingA.Degrees - curr_bearing.Degrees);
-                double b_diff = Math.Abs(turn.BearingB.Degrees - curr_bearing.Degrees);
-                const int similar_bearing_limit = 20;
-
-                if (a_diff < b_diff && a_diff < similar_bearing_limit)
-                {
-                    turn_kind = getTurnKind(curr_bearing, turn.BearingB + Angle.PI); // make it opposite direction (from cx)
-                }
-                else if (b_diff < a_diff && b_diff < similar_bearing_limit)
-                {
-                    turn_kind = getTurnKind(curr_bearing, turn.BearingA + Angle.PI);
-                }
+                if (TryComputeTurnKind( curr_bearing, turn, out TurnKind tk))
+                    turn_kind = tk;
             }
 
 
             service.LogDebug(LogLevel.Info, $"Turn at {closest_cx}, dist {min_dist}, repeat {this.crossroadAlarmCount[cx_index]}");
 
+            bool played = false;
             string play_reason;
             if (turn_kind.HasValue)
             {
-                played = service.TryAlarm((Alarm)(turn_kind.Value), out play_reason);
+                played = alarmSequencer.TryAlarm((Alarm)(turn_kind.Value), out play_reason);
             }
             else
-                played = service.TryAlarm(Alarm.Crossroad, out play_reason);
+                played = alarmSequencer.TryAlarm(Alarm.Crossroad, out play_reason);
 
             if (played)
             {
@@ -139,7 +151,31 @@ namespace TrackRadar.Implementation
                 service.LogDebug(LogLevel.Warning, $"Turn ahead alarm, couldn't play, reason {play_reason}");
 
             reason = null;
-            return played;
+            return played;// ? AlarmState.Played : AlarmState.Failed;
+        }
+
+        internal static bool TryComputeTurnKind(Angle currBearing, in Turn turn, out TurnKind turnKind)
+        {
+            double a_diff = turn.BearingA.Degrees - currBearing.Degrees;
+            a_diff = Math.Min(Mather.Mod(a_diff, 360), Mather.Mod(-a_diff, 360));
+            double b_diff = turn.BearingB.Degrees - currBearing.Degrees;
+            b_diff = Math.Min(Mather.Mod(b_diff, 360), Mather.Mod(-b_diff, 360));
+
+            const int similar_bearing_limit = 12;
+
+            if (a_diff < b_diff && a_diff < similar_bearing_limit)
+            {
+                turnKind = getTurnKind(currBearing, turn.BearingB + Angle.PI); // make it opposite direction (from cx)
+                return true;
+            }
+            else if (b_diff < a_diff && b_diff < similar_bearing_limit)
+            {
+                turnKind = getTurnKind(currBearing, turn.BearingA + Angle.PI);
+                return true;
+            }
+
+            turnKind = default;
+            return false;
         }
 
 
@@ -161,11 +197,7 @@ namespace TrackRadar.Implementation
             // preserve bearing notion, 0 degrees then means we go ahead and counting clockwise
             // 90 degrees we turn to the right, and so on
             double degrees = (bearingTo - bearingFrom).Degrees;
-            if (degrees < 0)
-                degrees += 360;
-            else if (degrees > 360)
-                degrees -= 360;
-
+            degrees = Mather.Mod(degrees, 360);
 
             // since we have turn-zones of 45 degrees, split them in the middle
             const double margin = 45.0 / 2;

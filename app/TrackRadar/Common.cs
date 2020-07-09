@@ -63,7 +63,7 @@ namespace TrackRadar
         {
             vibrator?.Vibrate(TimeSpan.FromMilliseconds(500)); //ms
         }
-        public static IAlarmPlayer CreateMediaPlayer(Context context, Alarm alarm, string filename, int resourceId)
+        public static IAlarmPlayer CreateMediaPlayer(Context context, AlarmSound alarm, string filename, int resourceId)
         {
             MediaPlayer mp = CreateMediaPlayer(context, filename, resourceId);
             if (mp == null)

@@ -6,6 +6,43 @@ using TrackRadar.Implementation;
 
 namespace TrackRadar.Tests.Implementation
 {
+    internal sealed class CountingAlarmMaster : IAlarmMaster
+    {
+        private readonly IAlarmMaster master;
+        private readonly Dictionary<Alarm, int> alarmCount;
+        private readonly List<(Alarm alarm, int pointIndex)> alarms;
+        private int pointIndex;
+
+        public IReadOnlyDictionary<Alarm, int> AlarmCounters => this.alarmCount;
+        public IReadOnlyList<(Alarm alarm, int index)> Alarms => alarms;
+
+        public CountingAlarmMaster(IAlarmMaster master)
+        {
+            this.master = master;
+            this.alarmCount = LinqExtension.GetEnums<Alarm>().ToDictionary(alarm => alarm, _ => 0);
+            this.alarms = new List<(Alarm alarm, int pointIndex)>();
+        }
+        public bool TryAlarm(Alarm alarm, out string reason)
+        {
+            if (!this.master.TryAlarm(alarm, out reason))
+                return false;
+
+            this.alarms.Add((alarm, pointIndex));
+            ++alarmCount[alarm];
+            // Console.WriteLine($"ALARM {alarm}");
+            return true;
+        }
+        internal void SetPointIndex(int index)
+        {
+            this.pointIndex = index;
+        }
+
+        public bool TryGetLatestTurnAheadAlarmAt(out long timeStamp)
+        {
+            return master.TryGetLatestTurnAheadAlarmAt(out timeStamp);
+        }
+    }
+
     internal sealed class RadarService : IRadarService
     {
         public TimeSpan OffTrackAlarmInterval => prefs.OffTrackAlarmInterval;
@@ -15,39 +52,16 @@ namespace TrackRadar.Tests.Implementation
         public TimeSpan TurnAheadAlarmDistance => prefs.TurnAheadAlarmDistance;
         public TimeSpan TurnAheadAlarmInterval => prefs.TurnAheadAlarmInterval;
 
-        private readonly Dictionary<Alarm, int> alarmCount;
-        private readonly List<(Alarm alarm, int pointIndex)> alarms;
         private readonly IPreferences prefs;
         private readonly ITimeStamper timeStamper;
-        private readonly AlarmMaster alarmMaster;
-        private int pointIndex;
 
-        public IReadOnlyDictionary<Alarm, int> AlarmCounters => this.alarmCount;
-        public IReadOnlyList<(Alarm alarm, int index)> Alarms => alarms;
-
-
-        public RadarService(IPreferences prefs, ITimeStamper timeStamper, AlarmMaster alarmMaster)
+        public RadarService(IPreferences prefs, ITimeStamper timeStamper)
         {
-            this.alarmCount = LinqExtension.GetEnums<Alarm>().ToDictionary(alarm => alarm, _ => 0);
-            this.alarms = new List<(Alarm alarm, int pointIndex)>();
             this.prefs = prefs;
             this.timeStamper = timeStamper;
-            this.alarmMaster = alarmMaster;
         }
 
-        bool IRadarService.TryAlarm(Alarm alarm, out string reason)
-        {
-            if (!this.alarmMaster.TryPlay(alarm, out reason))
-                return false;
-
-            
-                this.alarms.Add((alarm, pointIndex));
-                ++alarmCount[alarm];
-                // Console.WriteLine($"ALARM {alarm}");
-                return true;
-        }
-
-        void IRadarService.LogDebug(LogLevel level, string message)
+        void ILogger.LogDebug(LogLevel level, string message)
         {
             //Console.WriteLine($"[{level}] {message}");
         }
@@ -62,14 +76,5 @@ namespace TrackRadar.Tests.Implementation
             ; // do nothing
         }
 
-        internal void SetPointIndex(int index)
-        {
-            this.pointIndex = index;
-        }
-
-        public bool TryGetLatestTurnAheadAlarmAt(out long timeStamp)
-        {
-            return this.alarmMaster.TryGetLatestTurnAheadAlarmAt(out timeStamp);
-        }
     }
 }

@@ -177,7 +177,7 @@ namespace TrackRadar
 
         private void SHORT_LIFECYCLE_OnStopPart()
         {
-            this.receiver.Dispose();
+            this.receiver.UnregisterReceiver();
             this.receiver = null;
 
             log_writer?.Dispose();

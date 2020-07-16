@@ -28,10 +28,12 @@ namespace TrackRadar
         {
         }
 
-        public new void Dispose()
+        // normally it would be Dispose and calling base.Dispose at the end, but I get some mysterious error
+        // System.NotSupportedException: Unable to activate instance of type TrackRadar.MainReceiver from native handle 0x405466e8 (key_handle 0x405466e8). ---> System.MissingMethodException: No constructor found for TrackRadar.MainReceiver::.ctor(System.IntPtr, Android.Runtime.JniHandleOwnership) ---> Java.Interop.JavaLocationException: Exception of type 'Java.Interop.JavaLocationException' was thrown.
+        // which has something to do with Android/Java-Xamarin object mapping
+        public void UnregisterReceiver()
         {
             context.UnregisterReceiver(this);
-            base.Dispose();
         }
 
         public void RegisterReceiver()

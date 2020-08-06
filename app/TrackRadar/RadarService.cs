@@ -29,13 +29,13 @@ namespace TrackRadar
         private RadarCore core;
 
         private HandlerThread handler;
-        private ServiceReceiver receiver;
+        private RadarReceiver receiver;
         private LogFile serviceLog;
         private GpxWriter offTrackWriter;
         private GpxWriter crossroadsWriter;
         private int gpsLastStatus;
         private DisposableGuard guard;
-        private int subsriptions;
+        private int subscriptions;
         private GpxWriter traceWriter;
 
         /*
@@ -48,7 +48,7 @@ private float mLastY;
 private float mLastZ;
 private long mLastTime;
 */
-        private bool hasSubscribers => this.subsriptions > 0;
+        private bool hasSubscribers => this.subscriptions > 0;
 
         private TrackRadarApp app => (TrackRadarApp)Application;
 
@@ -79,7 +79,7 @@ private long mLastTime;
             try
             {
                 this.guard = new DisposableGuard();
-                this.subsriptions = 1;
+                this.subscriptions = 1;
                 this.serviceLog = new LogFile(this, "service.log", DateTime.UtcNow.AddDays(-2));
 
                 if (!(Java.Lang.Thread.DefaultUncaughtExceptionHandler is CustomExceptionHandler))
@@ -133,7 +133,7 @@ private long mLastTime;
                     locationManager.RequestLocationUpdates(LocationManager.GpsProvider, 0, 0, this, this.handler.Looper);
                 }
 
-                this.receiver = ServiceReceiver.Create(this);
+                this.receiver = RadarReceiver.Create(this);
                 receiver.UpdatePrefs += receiver_UpdatePrefs;
                 receiver.InfoRequest += Receiver_InfoRequest;
                 receiver.Subscribe += Receiver_Subscribe;
@@ -221,7 +221,7 @@ private long mLastTime;
                 if (!allowed)
                     return;
 
-                int sub = Interlocked.Increment(ref this.subsriptions);
+                int sub = Interlocked.Increment(ref this.subscriptions);
                 this.logLocal(LogLevel.Verbose, $"Subscribing");
                 if (sub != 1)
                     this.logLocal(LogLevel.Error, $"Something wrong with sub {sub}");
@@ -235,7 +235,7 @@ private long mLastTime;
                 if (!allowed)
                     return;
 
-                int sub = Interlocked.Decrement(ref this.subsriptions);
+                int sub = Interlocked.Decrement(ref this.subscriptions);
                 this.logLocal(LogLevel.Verbose, $"Unsubscribing");
                 if (sub != 0)
                     this.logLocal(LogLevel.Error, $"Something wrong with unsub {sub}");
@@ -447,6 +447,8 @@ private long mLastTime;
         {
             try
             {
+                decorateMessage(ref message);
+
                 Common.Log(level, message);
                 if (level > LogLevel.Verbose)
                     this.serviceLog?.WriteLine(level, message);
@@ -477,6 +479,13 @@ private long mLastTime;
 
                 LogDebug(LogLevel.Verbose, "GPS ON on service");
             }
+        }
+
+        private static void decorateMessage(ref string message)
+        {
+            const string prefix = nameof(RadarService);
+            if (!message.StartsWith(prefix))
+                message = $"{prefix} {message}";
         }
 
         public void OnStatusChanged(string provider, [GeneratedEnum] Availability status, Bundle extras)

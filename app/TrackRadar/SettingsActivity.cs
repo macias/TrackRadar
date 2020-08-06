@@ -278,7 +278,7 @@ namespace TrackRadar
             this.rightCrossSettings.Destroy();
             this.rightSharpSettings.Destroy();
 
-            ServiceReceiver.SendUpdatePrefs(this);
+            RadarReceiver.SendUpdatePrefs(this);
 
             base.OnBackPressed();
         }
@@ -294,7 +294,7 @@ namespace TrackRadar
             if (item.ItemId == Resource.Id.UndoItem)
                 loadPreferences(app.Prefs);
             else if (item.ItemId == Resource.Id.DefaultItem)
-                loadPreferences(new Preferences());
+                loadPreferences(Preferences.Default);
             return true;
         }
     }

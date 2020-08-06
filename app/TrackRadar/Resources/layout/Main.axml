@@ -218,7 +218,7 @@
         android:layout_weight="1"
         android:id="@+id/android:list" />
     <TextView
-        android:text="Track is not available."
+        android:text="No valid data track file."
         android:textAppearance="?android:attr/textAppearanceSmall"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -241,15 +241,16 @@
         android:paddingRight="4sp" />
     <TextView
         android:text="GPS is turned off."
-        android:textAppearance="?android:attr/textAppearanceSmall"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:id="@+id/GpsInfoTextView"
         android:textColor="#ffff00"
+        android:textAppearance="?android:attr/textAppearanceSmall"
         android:paddingTop="2sp"
         android:paddingBottom="2sp"
         android:paddingLeft="4sp"
-        android:paddingRight="4sp" />
+        android:paddingRight="4sp" 
+	/>
     <Button
         android:text="@string/StartService"
         android:layout_width="match_parent"

@@ -8,6 +8,8 @@ namespace TrackRadar
 {
     public sealed class Preferences : IPreferences
     {
+        public static IPreferences Default { get; } = new Preferences();
+
         public const int OffTrackDefaultAudioId = Resource.Raw.sonar_ping;
         public const int GpsLostDefaultAudioId = Resource.Raw.KDE_Error;
         public const int GpsOnDefaultAudioId = Resource.Raw.KDE_Dialog_Appear;
@@ -36,7 +38,7 @@ namespace TrackRadar
         public string DistanceAudioFileName { get; set; }
         public int GpsLostAudioVolume { get; set; } // 0-100
         public string GpsLostAudioFileName { get; set; }
-        public int AcknowledgementAudioVolume  { get; set; } // 0-100
+        public int AcknowledgementAudioVolume { get; set; } // 0-100
         public string GpsOnAudioFileName { get; set; }
         public int DisengageAudioVolume { get; set; } // 0-100
         public string DisengageAudioFileName { get; set; }
@@ -81,11 +83,11 @@ namespace TrackRadar
 
         public Preferences()
         {
-            this.OffTrackAudioVolume 
-                = this.GpsLostAudioVolume 
+            this.OffTrackAudioVolume
+                = this.GpsLostAudioVolume
                 = this.DisengageAudioVolume
-                = this.TurnAheadAudioVolume 
-                = this.AcknowledgementAudioVolume  =  100;
+                = this.TurnAheadAudioVolume
+                = this.AcknowledgementAudioVolume = 100;
 
             this.OffTrackAlarmInterval = TimeSpan.FromSeconds(10);
             this.OffTrackAlarmDistance = Length.FromMeters(60);
@@ -94,7 +96,7 @@ namespace TrackRadar
             this.NoGpsAlarmFirstTimeout = TimeSpan.FromSeconds(5);
             this.RestSpeedThreshold = Speed.FromKilometersPerHour(5); // average walking speed: https://en.wikipedia.org/wiki/Walking
             this.RidingSpeedThreshold = Speed.FromKilometersPerHour(10); // erderly person: https://en.wikipedia.org/wiki/Bicycle_performance
-            this.TurnAheadAlarmDistance = TimeSpan.FromSeconds(13);
+            this.TurnAheadAlarmDistance = TimeSpan.FromSeconds(17);
             this.TurnAheadAlarmInterval = TimeSpan.FromSeconds(2);
             this.TurnAheadScreenTimeout = TimeSpan.FromSeconds(5);
         }
@@ -174,7 +176,7 @@ namespace TrackRadar
                     editor.PutInt(Keys.DisengageAudioVolume, data.DisengageAudioVolume);
                     editor.PutString(Keys.DisengageAudioFileName, data.DisengageAudioFileName);
 
-                    editor.PutInt(Keys.GpsOnAudioVolume, data.AcknowledgementAudioVolume );
+                    editor.PutInt(Keys.GpsOnAudioVolume, data.AcknowledgementAudioVolume);
                     editor.PutString(Keys.GpsOnAudioFileName, data.GpsOnAudioFileName);
 
                     editor.PutInt(Keys.TurnAheadAudioVolume, data.TurnAheadAudioVolume);
@@ -226,7 +228,7 @@ namespace TrackRadar
                 data.GpsLostAudioVolume = prefs.GetInt(Keys.GpsLostAudioVolume, data.GpsLostAudioVolume);
                 data.GpsLostAudioFileName = prefs.GetString(Keys.GpsLostAudioFileName, data.GpsLostAudioFileName);
 
-                data.AcknowledgementAudioVolume  = prefs.GetInt(Keys.GpsOnAudioVolume, data.AcknowledgementAudioVolume );
+                data.AcknowledgementAudioVolume = prefs.GetInt(Keys.GpsOnAudioVolume, data.AcknowledgementAudioVolume);
                 data.GpsOnAudioFileName = prefs.GetString(Keys.GpsOnAudioFileName, data.GpsOnAudioFileName);
 
                 data.TurnAheadAudioVolume = prefs.GetInt(Keys.TurnAheadAudioVolume, data.TurnAheadAudioVolume);
@@ -243,7 +245,7 @@ namespace TrackRadar
                 data.RestSpeedThreshold = Speed.FromKilometersPerHour(prefs.GetInt(Keys.RestSpeedThreshold, (int)data.RestSpeedThreshold.KilometersPerHour));
                 data.RidingSpeedThreshold = Speed.FromKilometersPerHour(prefs.GetInt(Keys.RidingSpeedThreshold, (int)data.RidingSpeedThreshold.KilometersPerHour));
 
-                data.TurnAheadAlarmDistance =TimeSpan.FromSeconds(prefs.GetInt(Keys.TurnAheadDistance, (int)data.TurnAheadAlarmDistance.TotalSeconds));
+                data.TurnAheadAlarmDistance = TimeSpan.FromSeconds(prefs.GetInt(Keys.TurnAheadDistance, (int)data.TurnAheadAlarmDistance.TotalSeconds));
                 data.TurnAheadAlarmInterval = TimeSpan.FromSeconds(prefs.GetInt(Keys.TurnAheadAlarmInterval, (int)data.TurnAheadAlarmInterval.TotalSeconds));
                 data.TurnAheadScreenTimeout = TimeSpan.FromSeconds(prefs.GetInt(Keys.TurnAheadScreenTimeout, (int)data.TurnAheadScreenTimeout.TotalSeconds));
 

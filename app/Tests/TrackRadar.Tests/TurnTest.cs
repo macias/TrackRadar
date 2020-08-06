@@ -148,7 +148,7 @@ namespace TrackRadar.Tests
         {
             const string plan_filename = @"Data/turning-excercise.gpx";
 
-            var prefs = new Preferences();
+            var prefs = Preferences.Default;
 
             trackPoints.AddRange(Toolbox.ReadTrackPoints(plan_filename).Select(it => GpxHelper.FromGpx(it)));
 

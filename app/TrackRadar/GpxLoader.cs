@@ -4,6 +4,7 @@ using MathUnit;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using TrackRadar.Implementation;
 
 namespace TrackRadar
@@ -24,34 +25,33 @@ namespace TrackRadar
             return new GpxData(segments, waypoints);
         }*/
 
-        public static GpxData ReadGpx(string filename, Length offTrackDistance, Action<Exception> onError)
+        public static GpxData ReadGpx(string filename, Length offTrackDistance,
+            Action<double> onProgress,
+            CancellationToken token)
         {
-            LoadGpxData(filename, out List<List<GpxLoader.NodePoint>> tracks, out List<GeoPoint> waypoints);
+            if (!TryLoadGpxData(filename, out List<List<GpxLoader.NodePoint>> tracks, out List<GeoPoint> waypoints, onProgress, token))
+                return null;
 
             // todo: bug -- this method swaps segments A-B into B-A
             // List<List<GpxLoader.NodePoint>> rich_tracks = tracks
             //   .Select(seg => seg.TrackPoints.Select((GpxTrackPoint p) => new GpxLoader.NodePoint() { Point = GeoPoint.FromGpx(p) })
             // .ToList()).ToList();
 
+            if (token.IsCancellationRequested)
+                return null;
+
             IEnumerable<Segment> segments = null;
             //Dictionary<GeoPoint, Turn> turn_info = null;
 
             //List<XGeoPoint> waypoints = gpx_waypoints.Select(it => GeoPoint.FromGpx(it)).ToList();
 
-            try
-            {
-                // add only distant intersections to user already marked waypoints
-                IEnumerable<GeoPoint> crossroads = filterDistant(waypoints,
-                    findCrossroads(tracks, offTrackDistance, out segments),
-                    offTrackDistance);
-                waypoints.AddRange(crossroads);
+            // add only distant intersections to user already marked waypoints
+            if (!tryFindCrossroads(tracks, offTrackDistance, out segments, out IEnumerable<GeoPoint> crossroads_found, token))
+                return null;
+            IEnumerable<GeoPoint> crossroads = filterDistant(waypoints, crossroads_found, offTrackDistance);
+            waypoints.AddRange(crossroads);
 
-              //  turn_info = computeTurns(segments, waypoints, turnAheadDistance);
-            }
-            catch (Exception ex)
-            {
-                onError?.Invoke(ex);
-            }
+            //  turn_info = computeTurns(segments, waypoints, turnAheadDistance);
 
             return new GpxData(segments, waypoints);//, turn_info);
         }
@@ -72,20 +72,29 @@ namespace TrackRadar
 
 
 
-        internal static void LoadGpxData(string filename, out List<List<GpxLoader.NodePoint>> tracks, out List<GeoPoint> waypoints)
+        internal static bool TryLoadGpxData(string filename, out List<List<GpxLoader.NodePoint>> tracks, out List<GeoPoint> waypoints,
+            Action<double> onProgress,
+            CancellationToken token)
         {
             tracks = new List<List<GpxLoader.NodePoint>>();
             waypoints = new List<GeoPoint>();
 
-            loadGpx(filename, tracks, waypoints);
+            return tryLoadGpx(filename, tracks, waypoints, onProgress, token);
         }
 
-        private static void loadGpx(string filename, List<List<GpxLoader.NodePoint>> tracks, List<GeoPoint> waypoints)
+        private static bool tryLoadGpx(string filename, List<List<GpxLoader.NodePoint>> tracks, List<GeoPoint> waypoints,
+            Action<double> onProgress,
+            CancellationToken token)
         {
-            using (GpxIOFactory.CreateReader(filename, out IGpxReader reader))
+            using (GpxIOFactory.CreateReader(filename, out IGpxReader reader, out IStreamProgress stream_progress))
             {
                 while (reader.Read(out GpxObjectType type))
                 {
+                    onProgress?.Invoke(stream_progress.Position * 1.0 / stream_progress.Length);
+
+                    if (token.IsCancellationRequested)
+                        return false;
+
                     switch (type)
                     {
                         case GpxObjectType.Metadata:
@@ -102,9 +111,9 @@ namespace TrackRadar
                             break;
                     }
                 }
-
-
             }
+
+            return true;
         }
 
         private static IEnumerable<GeoPoint> filterDistant(IEnumerable<GeoPoint> fixedPoints,
@@ -115,38 +124,62 @@ namespace TrackRadar
                     yield return pt;
         }
 
-        private static IEnumerable<GeoPoint> findCrossroads(List<List<GpxLoader.NodePoint>> tracks,
-            Length offTrackDistance, out IEnumerable<Segment> segments)
+        private static bool tryFindCrossroads(List<List<GpxLoader.NodePoint>> tracks,
+            Length offTrackDistance, out IEnumerable<Segment> segments, out IEnumerable<GeoPoint> crossroadsFound,
+            CancellationToken token)
         {
+            segments = null;
+            crossroadsFound = null;
+
             var crossroads = new List<GpxLoader.Crossroad>();
             for (int i = 0; i < tracks.Count; ++i)
                 for (int k = i + 1; k < tracks.Count; ++k)
                 {
+                    if (token.IsCancellationRequested)
+                        return false;
+
                     // mark each intersection with source index, this will allow us better averaging the points
-                    crossroads.AddRange(getTrackIntersections(tracks[i], tracks[k], offTrackDistance)
-                        .Select(it => { it.SourceIndex = new GpxLoader.TrackIndex(i, k); return it; }));
+                    IEnumerable<Crossroad> intersections = getTrackIntersections(tracks[i], tracks[k], offTrackDistance);
+                    crossroads.AddRange(intersections.Select(it => { it.SourceIndex = new GpxLoader.TrackIndex(i, k); return it; }));
+
                 }
+
+            if (token.IsCancellationRequested)
+                return false;
 
             removePassingBy(crossroads, offTrackDistance * 2);
 
+            if (token.IsCancellationRequested)
+                return false;
+
             while (averageNearby(crossroads, offTrackDistance, onlySameTracks: true))
             {
-                ;
+                if (token.IsCancellationRequested)
+                    return false;
             }
 
 
             while (averageNearby(crossroads, offTrackDistance, onlySameTracks: false))
             {
-                ;
+                if (token.IsCancellationRequested)
+                    return false;
             }
+
+            if (token.IsCancellationRequested)
+                return false;
 
             // do not export extensions of the tracks, only true intersections or passing by "> * <"
             // which we treat as almost-intersection
             removeExtensions(tracks, crossroads);
 
+            if (token.IsCancellationRequested)
+                return false;
+
             segments = buildTrackSegments(tracks);
 
-            return crossroads.Select(it => it.Node.Point);
+            crossroadsFound = crossroads.Select(it => it.Node.Point);
+
+            return true;
         }
 
         public static void WriteGpxPoints(string path, IEnumerable<GeoPoint> points)
@@ -154,7 +187,7 @@ namespace TrackRadar
             using (var file = new GpxDirtyWriter(path))
             {
                 foreach (var p in points)
-                    file.WritePoint(p,null);
+                    file.WritePoint(p, null);
             }
         }
 

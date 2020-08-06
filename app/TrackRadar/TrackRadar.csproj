@@ -77,6 +77,7 @@
     <Compile Include="Implementation\AlarmSequencer.cs" />
     <Compile Include="IAlarmVibrator.cs" />
     <Compile Include="IAlarmMaster.cs" />
+    <Compile Include="Implementation\JobQueue.cs" />
     <Compile Include="Implementation\ISignalCheckerService.cs" />
     <Compile Include="Implementation\DisposableGuard.cs" />
     <Compile Include="Implementation\Disposable.cs" />
@@ -92,6 +93,11 @@
     <Compile Include="IAlarmPlayer.cs" />
     <Compile Include="AlarmPlayer.cs" />
     <Compile Include="ILogger.cs" />
+    <Compile Include="LoaderService.cs" />
+    <Compile Include="LoaderReceiver.cs" />
+    <Compile Include="EventFileArgs.cs" />
+    <Compile Include="Implementation\CancelableJob.cs" />
+    <Compile Include="ProgressEventArgs.cs" />
     <Compile Include="Turn.cs" />
     <Compile Include="Implementation\GpxDirtyWriter.cs" />
     <Compile Include="Implementation\Option.cs" />
@@ -131,7 +137,7 @@
     <Compile Include="Statistics.cs" />
     <Compile Include="MessageEventArgs.cs" />
     <Compile Include="DistanceEventArgs.cs" />
-    <Compile Include="ServiceReceiver.cs" />
+    <Compile Include="RadarReceiver.cs" />
     <Compile Include="MainReceiver.cs" />
     <Compile Include="MainActivity.cs" />
     <Compile Include="Preferences.cs" />

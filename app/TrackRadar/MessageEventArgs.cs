@@ -6,9 +6,9 @@ namespace TrackRadar
     {
         public string Message { get; }
 
-        public MessageEventArgs(string s)
+        public MessageEventArgs(string message)
         {
-            this.Message = s;
+            this.Message = message;
         }
     }
 }

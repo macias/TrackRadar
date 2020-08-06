@@ -27,7 +27,7 @@ namespace TrackRadar.Tests.Implementation
         internal static IEnumerable<GpxTrackPoint> ReadTrackPoints(string ride_filename)
         {
             var track_points = new List<GpxTrackPoint>();
-            using (Gpx.GpxIOFactory.CreateReader(ride_filename, out IGpxReader reader))
+            using (Gpx.GpxIOFactory.CreateReader(ride_filename, out IGpxReader reader,out _))
             {
                 while (reader.Read(out GpxObjectType type))
                 {
@@ -44,7 +44,7 @@ namespace TrackRadar.Tests.Implementation
         internal static IEnumerable<GpxWayPoint> ReadWayPoints(string ride_filename)
         {
             var way_points = new List<GpxWayPoint>();
-            using (Gpx.GpxIOFactory.CreateReader(ride_filename, out IGpxReader reader))
+            using (Gpx.GpxIOFactory.CreateReader(ride_filename, out IGpxReader reader,out _))
             {
                 while (reader.Read(out GpxObjectType type))
                 {

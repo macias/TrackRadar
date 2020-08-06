@@ -4,25 +4,24 @@ using Android.Content;
 namespace TrackRadar
 {
     [BroadcastReceiver(Enabled = true, Exported = false)]
-    //[IntentFilter(new[] { "prefs", "dist" })]
-    public sealed class ServiceReceiver : BroadcastReceiver
+    public sealed class RadarReceiver : BroadcastReceiver
     {
         public event EventHandler UpdatePrefs;
         public event EventHandler InfoRequest;
         public event EventHandler Subscribe;
         public event EventHandler Unsubscribe;
 
-        public ServiceReceiver()
+        public RadarReceiver()
         {
 
         }
 
-        public static ServiceReceiver Create(Context context)
+        public static RadarReceiver Create(Context context)
         {
-            var receiver = new ServiceReceiver();
+            var receiver = new RadarReceiver();
             var filter = new IntentFilter();
             filter.AddAction(Message.Prefs);
-            filter.AddAction(Message.Req);
+            filter.AddAction(Message.RequestInfo);
             context.RegisterReceiver(receiver, filter);
             return receiver;
         }
@@ -31,11 +30,11 @@ namespace TrackRadar
         {
             if (intent.Action == Message.Prefs)
                 UpdatePrefs?.Invoke(this, new EventArgs());
-            else if (intent.Action == Message.Req)
+            else if (intent.Action == Message.RequestInfo)
                 InfoRequest?.Invoke(this, new EventArgs());
-            else if (intent.Action == Message.Sub)
+            else if (intent.Action == Message.Subscribe)
                 Subscribe?.Invoke(this, new EventArgs());
-            else if (intent.Action == Message.Unsub)
+            else if (intent.Action == Message.Unsubscribe)
                 Unsubscribe?.Invoke(this, new EventArgs());
 
             intent.Dispose();
@@ -51,19 +50,19 @@ namespace TrackRadar
         internal static void SendInfoRequest(Context context)
         {
             var intent = new Intent();
-            intent.SetAction(Message.Req);
+            intent.SetAction(Message.RequestInfo);
             context.SendBroadcast(intent);
         }
         internal static void SendSubscribe(Context context)
         {
             var intent = new Intent();
-            intent.SetAction(Message.Sub);
+            intent.SetAction(Message.Subscribe);
             context.SendBroadcast(intent);
         }
         internal static void SendUnsubscribe(Context context)
         {
             var intent = new Intent();
-            intent.SetAction(Message.Unsub);
+            intent.SetAction(Message.Unsubscribe);
             context.SendBroadcast(intent);
         }
 

@@ -1,7 +1,4 @@
 ﻿using Android.App;
-using Android.Views;
-using Gpx;
-using MathUnit;
 using System;
 using System.Linq;
 using System.Threading;
@@ -17,11 +14,11 @@ namespace TrackRadar
             get { return Interlocked.CompareExchange(ref trackData, null, null); }
             set { Interlocked.Exchange(ref trackData, value); }
         }
-        private string trackInfo;
-        public string TrackInfo
+        private int trackTag;
+        public int TrackTag
         {
-            get { return Interlocked.CompareExchange(ref trackInfo, null, null); }
-            set { Interlocked.Exchange(ref trackInfo, value); }
+            get { return Interlocked.CompareExchange(ref trackTag, 0, 0); }
+            set { Interlocked.Exchange(ref trackTag, value); }
         }
         private IPreferences prefs;
         public IPreferences Prefs
@@ -41,32 +38,24 @@ namespace TrackRadar
 
             this.Prefs = TrackRadar.Preferences.LoadAll(this);
 
-            LoadTrack(onError: null);
+          //  LoadTrack(onError: null);
         }
 
-        internal void LoadTrack(Action<Exception> onError)
+       /* internal void LoadTrack(Action<Exception> onError)
         {
             TrackData = null;
 
             string track_path = Prefs.TrackName;
             this.TrackInfo = track_path;
 
-            if (track_path == null || !System.IO.File.Exists(track_path))
-            {
-                this.TrackInfo = "Track is not available.";
-            }
-            else
-            {
-                GpxData gpx_data = GpxLoader.ReadGpx(track_path,
-                    offTrackDistance: Prefs.OffTrackAlarmDistance,
-                    onError);
+            GpxData gpx_data = new TrackLoader().LoadTrack(track_path,
+                Prefs.OffTrackAlarmDistance,
+                onProgress: s => this.TrackInfo = s, onError, 
+                CancellationToken.None);
 
-                if (gpx_data.Segments.Any())
-                    TrackData = gpx_data;
-                else
-                    this.TrackInfo = "Empty track.";
-            }
-        }
-
+            if (gpx_data != null)
+                TrackData = gpx_data;
+        }*/
     }
+
 }

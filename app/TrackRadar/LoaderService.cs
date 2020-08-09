@@ -16,7 +16,7 @@ namespace TrackRadar
         private readonly object threadLock = new object();
         private JobQueue queue;
         private LoaderReceiver receiver;
-        private LogFile serviceLog;
+      //  private LogFile serviceLog;
         private DisposableGuard guard;
         private int subscriptions;
         private string lastMessage;
@@ -52,11 +52,11 @@ namespace TrackRadar
             {
                 this.guard = new DisposableGuard();
                 this.subscriptions = 1;
-                this.serviceLog = new LogFile(this, "service.log", DateTime.UtcNow.AddDays(-2));
+                // this.serviceLog = new LogFile(this, "service.log", DateTime.UtcNow.AddDays(-2));
 
                 if (!(Java.Lang.Thread.DefaultUncaughtExceptionHandler is CustomExceptionHandler))
                     Java.Lang.Thread.DefaultUncaughtExceptionHandler
-                        = new CustomExceptionHandler(Java.Lang.Thread.DefaultUncaughtExceptionHandler, this.serviceLog);
+                        = new CustomExceptionHandler(Java.Lang.Thread.DefaultUncaughtExceptionHandler);//, this.serviceLog);
 
                 this.lastProgress = -1;
 
@@ -231,11 +231,11 @@ namespace TrackRadar
 
                 logDebug(LogLevel.Info, "OnDestroy: disposing log");
 
-                {
+                /*{
                     IDisposable disp = this.serviceLog;
                     this.serviceLog = null;
                     disp.Dispose();
-                }
+                }*/
 
                 base.OnDestroy();
             }
@@ -252,8 +252,8 @@ namespace TrackRadar
             try
             {
                 Common.Log(level, message);
-                if (level > LogLevel.Verbose)
-                    this.serviceLog?.WriteLine(level, message);
+                //if (level > LogLevel.Verbose)
+                  //  this.serviceLog?.WriteLine(level, message);
             }
             catch (Exception ex)
             {

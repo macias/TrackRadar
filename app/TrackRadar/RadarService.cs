@@ -30,7 +30,7 @@ namespace TrackRadar
 
         private HandlerThread handler;
         private RadarReceiver receiver;
-        private LogFile serviceLog;
+     //   private LogFile serviceLog;
         private GpxWriter offTrackWriter;
         private GpxWriter crossroadsWriter;
         private int gpsLastStatus;
@@ -80,11 +80,11 @@ private long mLastTime;
             {
                 this.guard = new DisposableGuard();
                 this.subscriptions = 1;
-                this.serviceLog = new LogFile(this, "service.log", DateTime.UtcNow.AddDays(-2));
+              //  this.serviceLog = new LogFile(this, "service.log", DateTime.UtcNow.AddDays(-2));
 
                 if (!(Java.Lang.Thread.DefaultUncaughtExceptionHandler is CustomExceptionHandler))
                     Java.Lang.Thread.DefaultUncaughtExceptionHandler
-                        = new CustomExceptionHandler(Java.Lang.Thread.DefaultUncaughtExceptionHandler, this.serviceLog);
+                        = new CustomExceptionHandler(Java.Lang.Thread.DefaultUncaughtExceptionHandler);//, this.serviceLog);
 
                 /*{
                     // Get a sensor manager to listen for shakes
@@ -364,11 +364,11 @@ private long mLastTime;
 
                 LogDebug(LogLevel.Info, "OnDestroy: disposing log");
 
-                {
+                /*{
                     IDisposable disp = this.serviceLog;
                     this.serviceLog = null;
                     disp.Dispose();
-                }
+                }*/
 
                 base.OnDestroy();
             }
@@ -450,8 +450,8 @@ private long mLastTime;
                 decorateMessage(ref message);
 
                 Common.Log(level, message);
-                if (level > LogLevel.Verbose)
-                    this.serviceLog?.WriteLine(level, message);
+                //if (level > LogLevel.Verbose)
+                  //  this.serviceLog?.WriteLine(level, message);
             }
             catch (Exception ex)
             {

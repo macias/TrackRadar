@@ -31,7 +31,7 @@ namespace TrackRadar
         private ArrayAdapter<string> adapter;
         private Button trackButton;
         private bool debugMode;
-        private LogFile log_writer;
+        //private LogFile log_writer;
         private GpsEvent lastGpsEvent_debug;
 
         private Intent radarServiceIntent;
@@ -201,10 +201,10 @@ namespace TrackRadar
 
         private void SHORT_LIFECYCLE_OnPartialCreatePart()
         {
-            logDebug(LogLevel.Verbose, $"Partial create {(log_writer == null ? "anew" : "prev")}");
-            if (this.log_writer == null)
+            logDebug(LogLevel.Verbose, $"Partial create {(receiver == null ? "anew" : "prev")}");
+            if (this.receiver == null)
             {
-                this.log_writer = new LogFile(this, "app.log", DateTime.UtcNow.AddDays(-2));
+                //this.log_writer = new LogFile(this, "app.log", DateTime.UtcNow.AddDays(-2));
 
                 this.receiver = MainReceiver.Create(this);
                 this.receiver.Start();
@@ -237,8 +237,8 @@ namespace TrackRadar
             this.receiver.Stop();
             this.receiver = null;
 
-            log_writer?.Dispose();
-            log_writer = null;
+            //log_writer?.Dispose();
+            //log_writer = null;
 
         }
 
@@ -390,7 +390,8 @@ namespace TrackRadar
                 logUI(message);
                 decorateMessage(ref message);
                 Common.Log(level, message);
-                log_writer?.WriteLine(level, message);
+
+                //log_writer?.WriteLine(level, message);
             }
             catch (Exception ex)
             {
@@ -568,7 +569,7 @@ namespace TrackRadar
             catch (Exception ex)
             {
                 this.logDebug(LogLevel.Error, $"We have error {ex.Message}");
-                log_writer?.WriteLine(LogLevel.Error, $"{ex}");
+                //log_writer?.WriteLine(LogLevel.Error, $"{ex}");
             }
         }
 

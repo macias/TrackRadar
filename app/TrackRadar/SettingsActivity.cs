@@ -224,46 +224,47 @@ namespace TrackRadar
 
         public override void OnBackPressed()
         {
-            app.Prefs = Preferences.SaveBehaviors(this, new Preferences()
-            {
-                ShowTurnAhead = showTurnAheadCheckBox.Checked,
-                UseVibration = vibrateCheckBox.Checked,
-                DebugKillingService = requestGpsCheckBox.Checked,
-                GpsDump = gpsDumpCheckBox.Checked,
-                GpsFilter = gpsFilterCheckBox.Checked,
-                OffTrackAlarmDistance = Length.FromMeters(int.Parse(offTrackDistanceEditText.Text)),
-                OffTrackAlarmInterval = TimeSpan.FromSeconds(int.Parse(offTrackIntervalEditText.Text)),
-                NoGpsAlarmAgainInterval = TimeSpan.FromMinutes(int.Parse(this.noGpsIntervalEditText.Text)),
-                NoGpsAlarmFirstTimeout = TimeSpan.FromSeconds(int.Parse(this.noGpsTimeoutEditText.Text)),
+            Preferences p = app.Prefs.Clone();
 
-                OffTrackAudioVolume = this.offTrackDistanceSettings.Volume,
-                DistanceAudioFileName = this.offTrackDistanceSettings.AudioFileName,
-                GpsLostAudioVolume = this.gpsLostSettings.Volume,
-                GpsLostAudioFileName = this.gpsLostSettings.AudioFileName,
-                AcknowledgementAudioVolume = this.gpsOnSettings.Volume,
-                GpsOnAudioFileName = this.gpsOnSettings.AudioFileName,
+            p.ShowTurnAhead = showTurnAheadCheckBox.Checked;
+            p.UseVibration = vibrateCheckBox.Checked;
+            p.DebugKillingService = requestGpsCheckBox.Checked;
+            p.GpsDump = gpsDumpCheckBox.Checked;
+            p.GpsFilter = gpsFilterCheckBox.Checked;
+            p.OffTrackAlarmDistance = Length.FromMeters(int.Parse(offTrackDistanceEditText.Text));
+            p.OffTrackAlarmInterval = TimeSpan.FromSeconds(int.Parse(offTrackIntervalEditText.Text));
+            p.NoGpsAlarmAgainInterval = TimeSpan.FromMinutes(int.Parse(this.noGpsIntervalEditText.Text));
+            p.NoGpsAlarmFirstTimeout = TimeSpan.FromSeconds(int.Parse(this.noGpsTimeoutEditText.Text));
 
-                DisengageAudioVolume = this.disengageSettings.Volume,
-                DisengageAudioFileName = this.disengageSettings.AudioFileName,
+            p.OffTrackAudioVolume = this.offTrackDistanceSettings.Volume;
+            p.DistanceAudioFileName = this.offTrackDistanceSettings.AudioFileName;
+            p.GpsLostAudioVolume = this.gpsLostSettings.Volume;
+            p.GpsLostAudioFileName = this.gpsLostSettings.AudioFileName;
+            p.AcknowledgementAudioVolume = this.gpsOnSettings.Volume;
+            p.GpsOnAudioFileName = this.gpsOnSettings.AudioFileName;
 
-                TurnAheadAudioVolume = this.turnAheadSettings.Volume,
-                TurnAheadAudioFileName = this.turnAheadSettings.AudioFileName,
+            p.DisengageAudioVolume = this.disengageSettings.Volume;
+            p.DisengageAudioFileName = this.disengageSettings.AudioFileName;
 
-                GoAheadAudioFileName = this.goAheadSettings.AudioFileName,
-                LeftEasyAudioFileName = this.leftEasySettings.AudioFileName,
-                LeftCrossAudioFileName = this.leftCrossSettings.AudioFileName,
-                LeftSharpAudioFileName = this.leftSharpSettings.AudioFileName,
-                RightEasyAudioFileName = this.rightEasySettings.AudioFileName,
-                RightCrossAudioFileName = this.rightCrossSettings.AudioFileName,
-                RightSharpAudioFileName = this.rightSharpSettings.AudioFileName,
+            p.TurnAheadAudioVolume = this.turnAheadSettings.Volume;
+            p.TurnAheadAudioFileName = this.turnAheadSettings.AudioFileName;
 
-                RestSpeedThreshold = Speed.FromKilometersPerHour(int.Parse(restSpeedThresholdEditText.Text)),
-                RidingSpeedThreshold = Speed.FromKilometersPerHour(int.Parse(ridingSpeedThresholdEditText.Text)),
+            p.GoAheadAudioFileName = this.goAheadSettings.AudioFileName;
+            p.LeftEasyAudioFileName = this.leftEasySettings.AudioFileName;
+            p.LeftCrossAudioFileName = this.leftCrossSettings.AudioFileName;
+            p.LeftSharpAudioFileName = this.leftSharpSettings.AudioFileName;
+            p.RightEasyAudioFileName = this.rightEasySettings.AudioFileName;
+            p.RightCrossAudioFileName = this.rightCrossSettings.AudioFileName;
+            p.RightSharpAudioFileName = this.rightSharpSettings.AudioFileName;
 
-                TurnAheadAlarmDistance = TimeSpan.FromSeconds(int.Parse(turnAheadDistanceEditText.Text)),
-                TurnAheadAlarmInterval = TimeSpan.FromSeconds(int.Parse(turnAheadIntervalEditText.Text)),
-                TurnAheadScreenTimeout = TimeSpan.FromSeconds(int.Parse(turnAheadScreenTimeoutEditText.Text)),
-            });
+            p.RestSpeedThreshold = Speed.FromKilometersPerHour(int.Parse(restSpeedThresholdEditText.Text));
+            p.RidingSpeedThreshold = Speed.FromKilometersPerHour(int.Parse(ridingSpeedThresholdEditText.Text));
+
+            p.TurnAheadAlarmDistance = TimeSpan.FromSeconds(int.Parse(turnAheadDistanceEditText.Text));
+            p.TurnAheadAlarmInterval = TimeSpan.FromSeconds(int.Parse(turnAheadIntervalEditText.Text));
+            p.TurnAheadScreenTimeout = TimeSpan.FromSeconds(int.Parse(turnAheadScreenTimeoutEditText.Text));
+
+            app.Prefs = Preferences.SaveBehaviors(this, p);
 
             this.gpsLostSettings.Destroy();
             this.offTrackDistanceSettings.Destroy();

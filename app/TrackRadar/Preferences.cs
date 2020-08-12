@@ -8,6 +8,56 @@ namespace TrackRadar
 {
     public sealed class Preferences : IPreferences
     {
+        private static class Keys
+        {
+            public const string TotalClimbs = "TotalClimbs";
+            public const string RidingDistance = "RidingDistance";
+            public const string RidingTime = "RidingTime";
+            public const string TopSpeed = "TopSpeed";
+
+            public const string TrackFileName = "TrackFileName";
+            public const string UseVibration = "UseVibration";
+            public const string ShowTurnAhead = "ShowTurnAhead";
+            public const string DebugKillingService = "DebugKillingService";
+            public const string GpsFilter = "GpsFilter";
+            public const string GpsDump = "GpsDump";
+
+            public const string OffTrackAlarmInterval = "OffTrackAlarmInterval";
+            public const string OffTrackAlarmDistance = "OffTrackAlarmDistance";
+            public const string NoGpsAgainAlarmInterval = "NoGpsAlarmInterval";
+            public const string NoGpsFirstAlarmTimeout = "NoGpsAlarmTimeout";
+
+            public const string DistanceAudioVolume = "DistanceAudioVolume";
+            public const string DistanceAudioFileName = "DistanceAudioFileName";
+
+            public const string GpsLostAudioVolume = "GpsLostAudioVolume";
+            public const string GpsLostAudioFileName = "GpsLostAudioFileName";
+
+            public const string DisengageAudioVolume = "DisengageAudioVolume";
+            public const string DisengageAudioFileName = "DisengageAudioFileName";
+
+            public const string GpsOnAudioVolume = "GpsOnAudioVolume";
+            public const string GpsOnAudioFileName = "GpsOnAudioFileName";
+
+            public const string TurnAheadAudioVolume = "CrossroadsAudioVolume";
+            public const string TurnAheadAudioFileName = "CrossroadsAudioFileName";
+
+            public const string GoAheadAudioFileName = "GoAheadAudioFileName";
+            public const string LeftEasyAudioFileName = "LeftEasyAudioFileName";
+            public const string LeftCrossAudioFileName = "LeftCrossAudioFileName";
+            public const string LeftSharpAudioFileName = "LeftSharpAudioFileName";
+            public const string RightEasyAudioFileName = "RightEasyAudioFileName";
+            public const string RightCrossAudioFileName = "RightCrossAudioFileName";
+            public const string RightSharpAudioFileName = "RightSharpAudioFileName";
+
+            public const string RestSpeedThreshold = "RestSpeedThreshold";
+            public const string RidingSpeedThreshold = "RidingSpeedThreshold";
+
+            public const string TurnAheadDistance = "TurnAheadDistance";
+            public const string TurnAheadAlarmInterval = "TurnAheadAlarmInterval";
+            public const string TurnAheadScreenTimeout = "TurnAheadScreenTimeout";
+        }
+
         public static IPreferences Default { get; } = new Preferences();
 
         public const int OffTrackDefaultAudioId = Resource.Raw.sonar_ping;
@@ -101,56 +151,10 @@ namespace TrackRadar
             this.TurnAheadScreenTimeout = TimeSpan.FromSeconds(5);
         }
 
-        private class Keys
+        public Preferences Clone()
         {
-            public const string TotalClimbs = "TotalClimbs";
-            public const string RidingDistance = "RidingDistance";
-            public const string RidingTime = "RidingTime";
-            public const string TopSpeed = "TopSpeed";
-
-            public const string TrackFileName = "TrackFileName";
-            public const string UseVibration = "UseVibration";
-            public const string ShowTurnAhead = "ShowTurnAhead";
-            public const string DebugKillingService = "DebugKillingService";
-            public const string GpsFilter = "GpsFilter";
-            public const string GpsDump = "GpsDump";
-
-            public const string OffTrackAlarmInterval = "OffTrackAlarmInterval";
-            public const string OffTrackAlarmDistance = "OffTrackAlarmDistance";
-            public const string NoGpsAgainAlarmInterval = "NoGpsAlarmInterval";
-            public const string NoGpsFirstAlarmTimeout = "NoGpsAlarmTimeout";
-
-            public const string DistanceAudioVolume = "DistanceAudioVolume";
-            public const string DistanceAudioFileName = "DistanceAudioFileName";
-
-            public const string GpsLostAudioVolume = "GpsLostAudioVolume";
-            public const string GpsLostAudioFileName = "GpsLostAudioFileName";
-
-            public const string DisengageAudioVolume = "DisengageAudioVolume";
-            public const string DisengageAudioFileName = "DisengageAudioFileName";
-
-            public const string GpsOnAudioVolume = "GpsOnAudioVolume";
-            public const string GpsOnAudioFileName = "GpsOnAudioFileName";
-
-            public const string TurnAheadAudioVolume = "CrossroadsAudioVolume";
-            public const string TurnAheadAudioFileName = "CrossroadsAudioFileName";
-
-            public const string GoAheadAudioFileName = "GoAheadAudioFileName";
-            public const string LeftEasyAudioFileName = "LeftEasyAudioFileName";
-            public const string LeftCrossAudioFileName = "LeftCrossAudioFileName";
-            public const string LeftSharpAudioFileName = "LeftSharpAudioFileName";
-            public const string RightEasyAudioFileName = "RightEasyAudioFileName";
-            public const string RightCrossAudioFileName = "RightCrossAudioFileName";
-            public const string RightSharpAudioFileName = "RightSharpAudioFileName";
-
-            public const string RestSpeedThreshold = "RestSpeedThreshold";
-            public const string RidingSpeedThreshold = "RidingSpeedThreshold";
-
-            public const string TurnAheadDistance = "TurnAheadDistance";
-            public const string TurnAheadAlarmInterval = "TurnAheadAlarmInterval";
-            public const string TurnAheadScreenTimeout = "TurnAheadScreenTimeout";
+            return (Preferences)MemberwiseClone();
         }
-
         public static IPreferences SaveBehaviors(Context context, IPreferences data)
         {
             using (ISharedPreferences prefs = PreferenceManager.GetDefaultSharedPreferences(context))
@@ -249,7 +253,7 @@ namespace TrackRadar
                 data.TurnAheadAlarmInterval = TimeSpan.FromSeconds(prefs.GetInt(Keys.TurnAheadAlarmInterval, (int)data.TurnAheadAlarmInterval.TotalSeconds));
                 data.TurnAheadScreenTimeout = TimeSpan.FromSeconds(prefs.GetInt(Keys.TurnAheadScreenTimeout, (int)data.TurnAheadScreenTimeout.TotalSeconds));
 
-                data.TrackName = prefs.GetString(Keys.TrackFileName, "");
+                data.TrackName = prefs.GetString(Keys.TrackFileName, data.TrackName);
 
                 data.TotalClimbs = Length.FromMeters(prefs.GetFloat(Keys.TotalClimbs, 0));
                 data.RidingDistance = Length.FromMeters(prefs.GetFloat(Keys.RidingDistance, 0));
@@ -260,19 +264,19 @@ namespace TrackRadar
             }
         }
 
-        public void SaveTrackFileName(Context context, string data)
+        public void SaveTrackFileName(Context context, string trackPath)
         {
             using (ISharedPreferences prefs = PreferenceManager.GetDefaultSharedPreferences(context))
             {
                 using (ISharedPreferencesEditor editor = prefs.Edit())
                 {
-                    editor.PutString(Keys.TrackFileName, data);
+                    editor.PutString(Keys.TrackFileName, trackPath);
 
                     editor.Commit();
                 }
             }
 
-            this.TrackName = data;
+            this.TrackName = trackPath;
         }
 
         public void SaveRideStatistics(Context context, Length totalClimbs, Length ridingDistance, TimeSpan ridingTime, Speed topSpeed)

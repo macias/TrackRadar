@@ -47,6 +47,7 @@ namespace TrackRadar
         TimeSpan RidingTime { get; }
         Speed TopSpeed { get; }
 
+        Preferences Clone();
         void SaveTrackFileName(Android.Content.Context context, string data);
         void SaveRideStatistics(Android.Content.Context context, Length totalClimbs, Length ridingDistance, TimeSpan ridingTime, Speed topSpeed);
     }

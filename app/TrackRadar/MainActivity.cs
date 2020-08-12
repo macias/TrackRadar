@@ -109,8 +109,6 @@ namespace TrackRadar
                 this.enableButton.Click += EnableButtonClicked;
                 this.trackButton.Click += trackSelectionClicked;
 
-                this.trackErrorTextView.Text = "No file selected";
-
                 // we moved it to onResume, because Android performs short onResume-onPause loop, but then we need it here, because now we load tracks in the background
                 SHORT_LIFECYCLE_OnPartialCreatePart();
 
@@ -450,38 +448,6 @@ namespace TrackRadar
             }
         }
 
-        /* private void loadTrack()
-         {
-             app.TrackData = null;
-
-             string track_path = Preferences.LoadTrackFileName(this);
-             bool track_enabled = track_path != null && System.IO.File.Exists(track_path);
-             this.trackFileNameTextView.Text = track_path;
-
-             if (!track_enabled)
-             {
-                 this.trackInfoTextView.Text = "Track is not available.";
-             }
-             else
-             {
-                 GpxData gpx_data = GpxLoader.ReadGpx(track_path,
-                      Length.FromMeters(app.Prefs.OffTrackAlarmDistance),
-                      ex => logDebug(LogLevel.Error, $"Error while loading GPX {ex.Message}"));
-
-                 if (gpx_data.Segments.Any())
-                     app.TrackData = gpx_data;
-                 else
-                 {
-                     track_enabled = false;
-                     this.trackInfoTextView.Text = "Empty track.";
-                 }
-
-                 logUI($"Found {gpx_data.Crossroads.Count()} crossroads");
-             }
-
-             this.trackInfoTextView.Visibility = track_enabled ? ViewStates.Gone : ViewStates.Visible;
-         }*/
-
         private void trackSelectionClicked(object sender, System.EventArgs e)
         {
             try
@@ -658,7 +624,10 @@ namespace TrackRadar
                         break;
 
                     case Resource.Id.TurnAheadMenuItem:
-                        StartActivity(typeof(TurnAheadActivity));
+                        app.Prefs.SaveTrackFileName(this, null);
+                        app.TrackData = null;
+                        updateReadiness(out _);
+                        //StartActivity(typeof(TurnAheadActivity));
                         break;
 
                     case Resource.Id.ClearStatsMenuItem:

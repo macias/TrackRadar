@@ -23,7 +23,7 @@
             android:id="@+id/TrackFileNameTextView"
             android:singleLine="true"
             android:ellipsize="start"
-            android:hint="track filename"
+            android:hint=" "
             android:layout_gravity="center_vertical"
             android:padding="4sp" />
     </LinearLayout>
@@ -218,7 +218,7 @@
         android:layout_weight="1"
         android:id="@+id/android:list" />
     <TextView
-        android:text="No valid data track file."
+        android:text="No track selected."
         android:textAppearance="?android:attr/textAppearanceSmall"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

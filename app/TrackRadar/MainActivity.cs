@@ -8,6 +8,7 @@ using Android.Locations;
 using Android.Runtime;
 using System.Collections.Generic;
 using MathUnit;
+using System.Reflection;
 
 namespace TrackRadar
 {
@@ -76,7 +77,7 @@ namespace TrackRadar
 
                 this.debugMode = Common.IsDebugMode(this);
 
-                logDebug(LogLevel.Info, "app started x+x+x+x+x+x+x+x+x+x+x+x+x+x+x+x+x+x+");
+                logDebug(LogLevel.Info, $"app started x+x+x+x+x+x+x+x+x+x+x+x+x+x+x+x+x+x+");
 
                 this.radarServiceIntent = new Intent(this, typeof(RadarService));
                 this.loaderServiceIntent = new Intent(this, typeof(LoaderService));
@@ -116,7 +117,7 @@ namespace TrackRadar
 
                 updateStatistics(totalClimbs: app.Prefs.TotalClimbs, ridingDistance: app.Prefs.RidingDistance, ridingTime: app.Prefs.RidingTime, topSpeed: app.Prefs.TopSpeed);
 
-                this.logDebug(LogLevel.Verbose, $"Done OnCreate");
+                this.logDebug(LogLevel.Verbose, $"Done {Assembly.GetExecutingAssembly().GetName().Version} OnCreate with {app.Prefs.TrackName}.");
             }
             catch (Exception ex)
             {
@@ -137,6 +138,7 @@ namespace TrackRadar
 
             if (isServiceRunning<LoaderService>())
             {
+                this.logDebug(LogLevel.Verbose, "Stopping loader");
                 StopService(this.loaderServiceIntent);
             }
 
@@ -173,11 +175,13 @@ namespace TrackRadar
                     this.receiver.ProgressUpdate += Receiver_ProgressUpdate;
                     LoaderReceiver.SendSubscribe(this);
                     LoaderReceiver.SendInfoRequest(this);
-                }
-                // if the loader service is running do not load anything automatically
-                else if (!isTrackLoaded)
-                    startLoadingTrack();
 
+                }
+
+                if (!isTrackLoading && !isTrackLoaded)
+                    startLoadingTrack();
+                else
+                    logDebug(LogLevel.Verbose, $"Skipping init-load, {(isTrackLoading ? "loading" : "loaded")}");
 
                 {
                     updateReadiness(out bool is_radar_running);
@@ -441,7 +445,7 @@ namespace TrackRadar
                 if (!isRadarRunning)
                     showAlarm("inactive", Android.Graphics.Color.Blue);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 //this.logDebug(LogLevel.Error, $"updateReadiness {ex}");
                 throw;
@@ -650,7 +654,10 @@ namespace TrackRadar
         {
             string track_path = app.Prefs.TrackName;
             if (String.IsNullOrEmpty(track_path))
+            {
+                logDebug(LogLevel.Verbose, "Skipping loading because empty path");
                 return;
+            }
 
             app.TrackData = null;
 
@@ -660,20 +667,20 @@ namespace TrackRadar
 
             ++this.loadTrackRequestTag;
 
-            if (!isServiceRunning<LoaderService>())
+            if (isServiceRunning<LoaderService>())
+            {
+                logDebug(LogLevel.Verbose, $"Sending load request {this.loadTrackRequestTag}");
+                LoaderReceiver.SendLoadRequest(this, this.loadTrackRequestTag, track_path, app.Prefs.OffTrackAlarmDistance);
+
+                logDebug(LogLevel.Verbose, "load request sent");
+            }
+            else
             {
                 this.receiver.ProgressUpdate += Receiver_ProgressUpdate;
 
                 logDebug(LogLevel.Verbose, $"Starting load service {this.loadTrackRequestTag}");
                 LoaderReceiver.SetLoadRequestData(this.loaderServiceIntent, this.loadTrackRequestTag, track_path, app.Prefs.OffTrackAlarmDistance);
                 StartService(this.loaderServiceIntent);
-            }
-            else
-            {
-                logDebug(LogLevel.Verbose, $"Sending load request {this.loadTrackRequestTag}");
-                LoaderReceiver.SendLoadRequest(this, this.loadTrackRequestTag, track_path, app.Prefs.OffTrackAlarmDistance);
-
-                logDebug(LogLevel.Verbose, "load request sent");
             }
 
             updateReadiness(out _);
@@ -688,8 +695,8 @@ namespace TrackRadar
 
                 updateReadiness(out _);
             }
-            else 
-                this.trackFileNameTextView.Text = $"Loading {(int)(e.Progress*100)}% ...";
+            else
+                this.trackFileNameTextView.Text = $"Loading {(int)(e.Progress * 100)}% ...";
 
         }
 

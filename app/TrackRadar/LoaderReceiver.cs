@@ -50,7 +50,7 @@ namespace TrackRadar
         public void ProcessLoadRequest(Intent intent)
         {
             string path = intent.GetStringExtra(Message.PathKey);
-            double off_dist = intent.GetDoubleExtra(Message.DistanceKey, Preferences.Default.OffTrackAlarmDistance.Meters);
+            double off_dist = intent.GetDoubleExtra(Message.DistanceKey, Preferences.DefaultOffTrackAlarmDistance.Meters);
             int tag_request = intent.GetIntExtra(Message.TagKey, -1);
             LoadRequest?.Invoke(this, new EventFileArgs(tag_request, path, Length.FromMeters(off_dist)));
         }

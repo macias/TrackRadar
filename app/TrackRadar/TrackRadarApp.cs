@@ -38,24 +38,7 @@ namespace TrackRadar
 
             this.Prefs = TrackRadar.Preferences.LoadAll(this);
 
-          //  LoadTrack(onError: null);
         }
-
-       /* internal void LoadTrack(Action<Exception> onError)
-        {
-            TrackData = null;
-
-            string track_path = Prefs.TrackName;
-            this.TrackInfo = track_path;
-
-            GpxData gpx_data = new TrackLoader().LoadTrack(track_path,
-                Prefs.OffTrackAlarmDistance,
-                onProgress: s => this.TrackInfo = s, onError, 
-                CancellationToken.None);
-
-            if (gpx_data != null)
-                TrackData = gpx_data;
-        }*/
     }
 
 }

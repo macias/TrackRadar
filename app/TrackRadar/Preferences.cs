@@ -58,8 +58,6 @@ namespace TrackRadar
             public const string TurnAheadScreenTimeout = "TurnAheadScreenTimeout";
         }
 
-        public static IPreferences Default { get; } = new Preferences();
-
         public const int OffTrackDefaultAudioId = Resource.Raw.sonar_ping;
         public const int GpsLostDefaultAudioId = Resource.Raw.KDE_Error;
         public const int GpsOnDefaultAudioId = Resource.Raw.KDE_Dialog_Appear;
@@ -75,6 +73,8 @@ namespace TrackRadar
         public const int RightEasyDefaultAudioId = Resource.Raw.ttsMP3_com_right_easy;
         public const int RightCrossDefaultAudioId = Resource.Raw.ttsMP3_com_right_cross;
         public const int RightSharpDefaultAudioId = Resource.Raw.ttsMP3_com_right_sharp;
+
+        public static Length DefaultOffTrackAlarmDistance => Length.FromMeters(60);
 
         public Speed RestSpeedThreshold { get; set; }
         public Speed RidingSpeedThreshold { get; set; }
@@ -140,7 +140,7 @@ namespace TrackRadar
                 = this.AcknowledgementAudioVolume = 100;
 
             this.OffTrackAlarmInterval = TimeSpan.FromSeconds(10);
-            this.OffTrackAlarmDistance = Length.FromMeters(60);
+            this.OffTrackAlarmDistance = DefaultOffTrackAlarmDistance;
             this.NoGpsAlarmAgainInterval = TimeSpan.FromMinutes(3);
             // please note that we won't make better than one update per second
             this.NoGpsAlarmFirstTimeout = TimeSpan.FromSeconds(5);
@@ -151,10 +151,12 @@ namespace TrackRadar
             this.TurnAheadScreenTimeout = TimeSpan.FromSeconds(5);
         }
 
+
         public Preferences Clone()
         {
             return (Preferences)MemberwiseClone();
         }
+
         public static IPreferences SaveBehaviors(Context context, IPreferences data)
         {
             using (ISharedPreferences prefs = PreferenceManager.GetDefaultSharedPreferences(context))

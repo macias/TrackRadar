@@ -295,7 +295,7 @@ namespace TrackRadar
             if (item.ItemId == Resource.Id.UndoItem)
                 loadPreferences(app.Prefs);
             else if (item.ItemId == Resource.Id.DefaultItem)
-                loadPreferences(Preferences.Default);
+                loadPreferences(new Preferences());
             return true;
         }
     }

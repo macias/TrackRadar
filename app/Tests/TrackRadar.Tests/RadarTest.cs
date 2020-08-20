@@ -5,6 +5,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using TrackRadar.Implementation;
 using TrackRadar.Tests.Implementation;
@@ -14,6 +15,16 @@ namespace TrackRadar.Tests
     [TestClass]
     public class RadarTest
     {
+        [TestMethod]
+        public void PreferencesTrackNameTest()
+        {
+            var prefs = new Preferences();
+            PropertyInfo property = prefs.GetType().GetProperty(nameof(Preferences.TrackName));
+            property.SetValue(prefs, "foobar");
+            Assert.AreEqual("foobar", prefs.TrackName);
+            var clone = prefs.Clone();
+            Assert.AreEqual("foobar", clone.TrackName);
+        }
         [TestMethod]
         public void TestSignalChecker()
         {
@@ -114,7 +125,7 @@ namespace TrackRadar.Tests
         [DataRow(@"Data/single-point.gpx")]
         public void TestLoading(string planFilename)
         {
-            var prefs =  Preferences.Default;
+            var prefs =  new Preferences();
             GpxData gpx_data = GpxLoader.ReadGpx(planFilename, prefs.OffTrackAlarmDistance, onProgress: null, CancellationToken.None);
 
             //ClockStamper clock = new ClockStamper(DateTimeOffset.UtcNow);

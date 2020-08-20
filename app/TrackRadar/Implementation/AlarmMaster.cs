@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 
-//[assembly: InternalsVisibleToAttribute("")]
+[assembly: InternalsVisibleToAttribute("TrackRadar.Tests")]
 
 namespace TrackRadar.Implementation
 {

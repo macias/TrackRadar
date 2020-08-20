@@ -68,7 +68,7 @@ namespace TrackRadar
                 receiver.Subscribe += Receiver_Subscribe;
                 receiver.Unsubscribe += Receiver_Unsubscribe;
 
-                logDebug(LogLevel.Info, $"started (+testing log)");
+                logDebug(LogLevel.Info, $"started");
 
                 this.receiver.ProcessLoadRequest(loadIntent);
 
@@ -78,7 +78,7 @@ namespace TrackRadar
                 logDebug(LogLevel.Error, $"Error on start {ex}");
             }
 
-            return StartCommandResult.Sticky;
+            return StartCommandResult.NotSticky;
         }
 
         private void Receiver_InfoRequest(object sender, EventArgs _)
@@ -154,10 +154,11 @@ namespace TrackRadar
         {
             SendProgress(tagRequest, null, 0);
 
+            GpxData data = null;
+            string failure = null;
+
             try
             {
-                GpxData data = null;
-                string failure = null;
                 if (path == null || !System.IO.File.Exists(path))
                 { 
                     failure = "Track is not available.";
@@ -181,19 +182,18 @@ namespace TrackRadar
 
                 if (token.IsCancellationRequested)
                     return;
-
-                app.TrackData = data; // null on fail, non-null on success
-                app.TrackTag = tagRequest;
-
-                SendProgress(tagRequest, failure, 1);
             }
             catch (Exception ex)
             {
                 logDebug(LogLevel.Error, $"Error while loading GPX {ex.Message}");
 
-                SendProgress(tagRequest, "Error while loading GPX", 1);
+                failure = "Error while loading GPX";
             }
 
+            app.TrackData = data; // null on fail, non-null on success
+            app.TrackTag = tagRequest;
+
+            SendProgress(tagRequest, failure, 1);
         }
 
         public override void OnLowMemory()
@@ -222,7 +222,7 @@ namespace TrackRadar
                 this.receiver.Subscribe -= Receiver_Subscribe;
                 this.receiver.Unsubscribe -= Receiver_Unsubscribe;
 
-                logDebug(LogLevel.Verbose, $" unregistering receiver");
+                logDebug(LogLevel.Verbose, $"unregistering receiver");
 
                 UnregisterReceiver(this.receiver);
                 this.receiver = null;
@@ -252,8 +252,6 @@ namespace TrackRadar
             try
             {
                 Common.Log(level, message);
-                //if (level > LogLevel.Verbose)
-                  //  this.serviceLog?.WriteLine(level, message);
             }
             catch (Exception ex)
             {

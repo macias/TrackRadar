@@ -35,7 +35,7 @@ namespace TrackRadar.Tests.Implementation
             ++GpsOnAlarmCounter;
         }
 
-        public void GpsOffAlarm()
+        public void GpsOffAlarm(string _)
         {
             ++GpsOffAlarmCounter;
         }

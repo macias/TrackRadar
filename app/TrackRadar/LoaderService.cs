@@ -190,6 +190,8 @@ namespace TrackRadar
                 failure = "Error while loading GPX";
             }
 
+            logDebug( LogLevel.Verbose, $"Finished loading {(data==null?"null":"ok")} {failure} req: {tagRequest}");
+
             app.TrackData = data; // null on fail, non-null on success
             app.TrackTag = tagRequest;
 

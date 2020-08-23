@@ -39,7 +39,12 @@ namespace TrackRadar
         private Intent loaderServiceIntent;
         private MainReceiver receiver;
 
-        private int loadTrackRequestTag;
+        // ugly hack, because OnRestoreInstanceState digs some old data from previous runs, and I need truly temporary storage
+        private int loadTrackRequestTag
+        {
+            get { return this.app.MainActivity_loadTrackRequestTag; }
+            set { this.app.MainActivity_loadTrackRequestTag = value; }
+        }
 
 
         private TrackRadarApp app => (TrackRadarApp)Application;
@@ -49,6 +54,7 @@ namespace TrackRadar
 
         public MainActivity()
         {
+            logLocal(LogLevel.Verbose, "Constructor called");
         }
 
         // https://developer.android.com/guide/components/activities/activity-lifecycle
@@ -77,7 +83,7 @@ namespace TrackRadar
 
                 this.debugMode = Common.IsDebugMode(this);
 
-                logDebug(LogLevel.Info, $"app started x+x+x+x+x+x+x+x+x+x+x+x+x+x+x+x+x+x+");
+                logDebug(LogLevel.Info, $"app started {(bundle == null ? "from scratch" : "with bundle")} x+x+x+x+x+x+x+x+x+x+x+x+x+x+x+x+x+x+");
 
                 this.radarServiceIntent = new Intent(this, typeof(RadarService));
                 this.loaderServiceIntent = new Intent(this, typeof(LoaderService));
@@ -134,15 +140,12 @@ namespace TrackRadar
 
         protected override void OnDestroy()
         {
-            this.logDebug(LogLevel.Verbose, "Entering OnDestroy");
+            logLocal(LogLevel.Verbose, "Entering OnDestroy");
 
-            if (isServiceRunning<LoaderService>())
-            {
-                this.logDebug(LogLevel.Verbose, "Stopping loader");
-                StopService(this.loaderServiceIntent);
-            }
+            bool loader_running = isServiceRunning<LoaderService>();
+            logLocal(LogLevel.Verbose, $"loader running {loader_running}");
 
-            this.logDebug(LogLevel.Verbose, "Done OnDestroy");
+            logLocal(LogLevel.Verbose, "Done OnDestroy");
             base.OnDestroy();
         }
 
@@ -170,7 +173,8 @@ namespace TrackRadar
                     RadarReceiver.SendSubscribe(this);
                 }
 
-                if (this.isServiceRunning<LoaderService>())
+                bool loader_running = this.isServiceRunning<LoaderService>();
+                if (loader_running)
                 {
                     this.receiver.ProgressUpdate += Receiver_ProgressUpdate;
                     LoaderReceiver.SendSubscribe(this);
@@ -181,7 +185,7 @@ namespace TrackRadar
                 if (!isTrackLoading && !isTrackLoaded)
                     startLoadingTrack();
                 else
-                    logDebug(LogLevel.Verbose, $"Skipping init-load, {(isTrackLoading ? "loading" : "loaded")}");
+                    logDebug(LogLevel.Verbose, $"Skipping init-load, {(isTrackLoading ? "loading" : "loaded")}, {(loader_running ? "with" : "no")} loader");
 
                 {
                     updateReadiness(out bool is_radar_running);
@@ -211,27 +215,6 @@ namespace TrackRadar
                 this.receiver = MainReceiver.Create(this);
                 this.receiver.Start();
             }
-        }
-
-        protected override void OnRestoreInstanceState(Bundle savedInstanceState)
-        {
-            base.OnRestoreInstanceState(savedInstanceState);
-
-            this.logDebug(LogLevel.Info, $"OnRestoreInstanceState");
-            if (savedInstanceState != null)
-            {
-                loadTrackRequestTag = savedInstanceState.GetInt(nameof(this.loadTrackRequestTag), loadTrackRequestTag);
-                this.logDebug(LogLevel.Info, $"restoring loadTrackRequestTag {loadTrackRequestTag}");
-            }
-        }
-
-        protected override void OnSaveInstanceState(Bundle outState)
-        {
-            base.OnSaveInstanceState(outState);
-
-            this.logDebug(LogLevel.Info, $"OnSaveInstanceState");
-            outState.PutInt(nameof(this.loadTrackRequestTag), loadTrackRequestTag);
-            this.logDebug(LogLevel.Info, $"saving loadTrackRequestTag {loadTrackRequestTag}");
         }
 
         private void SHORT_LIFECYCLE_OnStopPart()
@@ -288,15 +271,24 @@ namespace TrackRadar
 
         }
 
+        protected override void OnRestart()
+        {
+            base.OnRestart();
+
+            this.logDebug(LogLevel.Verbose, "OnRestart");
+        }
+
         protected override void OnStop()
         {
             try
             {
                 //SHORT_LIFECYCLE_OnStopPart(); 
 
+                this.logDebug(LogLevel.Verbose, "OnStop enter");
+
                 base.OnStop();
 
-                this.logDebug(LogLevel.Verbose, "OnStop");
+                this.logDebug(LogLevel.Verbose, "OnStop done");
             }
             catch (Exception ex)
             {
@@ -381,7 +373,7 @@ namespace TrackRadar
             }
             catch (Exception ex)
             {
-                Common.Log(LogLevel.Error, $"CRASH logUI {ex}");
+                logLocal(LogLevel.Error, $"CRASH logUI {ex}");
             }
         }
 
@@ -390,17 +382,22 @@ namespace TrackRadar
             try
             {
                 logUI(message);
-                decorateMessage(ref message);
-                Common.Log(level, message);
+                logLocal(level, message);
 
                 //log_writer?.WriteLine(level, message);
             }
             catch (Exception ex)
             {
-                Common.Log(LogLevel.Error, $"CRASH log {ex}");
+                logLocal(LogLevel.Error, $"CRASH log {ex}");
             }
         }
 
+        private static string logLocal(LogLevel level, string message)
+        {
+            decorateMessage(ref message);
+            Common.Log(level, message);
+            return message;
+        }
 
         private void updateReadiness(out bool isRadarRunning)
         {
@@ -706,6 +703,28 @@ namespace TrackRadar
             if (!message.StartsWith(prefix))
                 message = $"{prefix} {message}";
         }
+
+     /*   protected override void OnRestoreInstanceState(Bundle savedInstanceState)
+        {
+            base.OnRestoreInstanceState(savedInstanceState);
+
+            this.logDebug(LogLevel.Info, $"OnRestoreInstanceState");
+            if (savedInstanceState != null)
+            {
+                loadTrackRequestTag = savedInstanceState.GetInt(nameof(this.loadTrackRequestTag), loadTrackRequestTag);
+                this.logDebug(LogLevel.Info, $"restoring loadTrackRequestTag {loadTrackRequestTag}");
+            }
+        }
+
+        protected override void OnSaveInstanceState(Bundle outState)
+        {
+            base.OnSaveInstanceState(outState);
+
+            this.logDebug(LogLevel.Info, $"OnSaveInstanceState");
+            outState.PutInt(nameof(this.loadTrackRequestTag), loadTrackRequestTag);
+            this.logDebug(LogLevel.Info, $"saving loadTrackRequestTag {loadTrackRequestTag}");
+        }
+        */
 
     }
 }

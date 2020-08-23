@@ -534,9 +534,9 @@ private long mLastTime;
             return new WrapTimer(callback);
         }
 
-        void ISignalCheckerService.GpsOffAlarm()
+        void ISignalCheckerService.GpsOffAlarm(string message)
         {
-            LogDebug(LogLevel.Warning, "GPS OFF");
+            LogDebug(LogLevel.Warning, $"GPS OFF {message}");
             if (this.hasSubscribers)
                 MainReceiver.SendAlarm(this, Message.NoSignalText);
 

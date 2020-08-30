@@ -13,7 +13,6 @@ namespace TrackRadar
     {
         CheckBox vibrateCheckBox;
         CheckBox showTurnAheadCheckBox;
-        CheckBox requestGpsCheckBox;
         CheckBox gpsFilterCheckBox;
         CheckBox gpsDumpCheckBox;
         EditText offTrackDistanceEditText;
@@ -124,7 +123,6 @@ namespace TrackRadar
 
             this.vibrateCheckBox = FindViewById<CheckBox>(Resource.Id.VibrateCheckBox);
             this.showTurnAheadCheckBox = FindViewById<CheckBox>(Resource.Id.ShowTurnAheadCheckBox);
-            this.requestGpsCheckBox = FindViewById<CheckBox>(Resource.Id.RequestGpsCheckBox);
             this.gpsFilterCheckBox = FindViewById<CheckBox>(Resource.Id.GpsFilterCheckBox);
             this.gpsDumpCheckBox = FindViewById<CheckBox>(Resource.Id.GpsDumpCheckBox);
             this.offTrackDistanceEditText = FindViewById<EditText>(Resource.Id.OffTrackDistanceEditText);
@@ -150,7 +148,6 @@ namespace TrackRadar
             this.playbackInitialized = false;
 
             this.vibrateCheckBox.Checked = prefs.UseVibration;
-            this.requestGpsCheckBox.Checked = prefs.DebugKillingService;
             this.gpsFilterCheckBox.Checked = prefs.GpsFilter;
             this.gpsDumpCheckBox.Checked = prefs.GpsDump;
             this.showTurnAheadCheckBox.Checked = prefs.ShowTurnAhead;
@@ -228,7 +225,6 @@ namespace TrackRadar
 
             p.ShowTurnAhead = showTurnAheadCheckBox.Checked;
             p.UseVibration = vibrateCheckBox.Checked;
-            p.DebugKillingService = requestGpsCheckBox.Checked;
             p.GpsDump = gpsDumpCheckBox.Checked;
             p.GpsFilter = gpsFilterCheckBox.Checked;
             p.OffTrackAlarmDistance = Length.FromMeters(int.Parse(offTrackDistanceEditText.Text));

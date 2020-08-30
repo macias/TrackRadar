@@ -52,6 +52,8 @@ namespace TrackRadar
         private bool isTrackLoading => app.TrackTag != this.loadTrackRequestTag;
         private bool isTrackLoaded => app.TrackData != null && !isTrackLoading;
 
+        private bool isUiRunning;
+
         public MainActivity()
         {
             logLocal(LogLevel.Verbose, "Constructor called");
@@ -116,6 +118,8 @@ namespace TrackRadar
                 this.enableButton.Click += EnableButtonClicked;
                 this.trackButton.Click += trackSelectionClicked;
 
+                this.isUiRunning = true;
+
                 // we moved it to onResume, because Android performs short onResume-onPause loop, but then we need it here, because now we load tracks in the background
                 SHORT_LIFECYCLE_OnPartialCreatePart();
 
@@ -153,6 +157,8 @@ namespace TrackRadar
         {
             try
             {
+                this.isUiRunning = true;
+
                 this.logDebug(LogLevel.Verbose, "Entering OnResume");
 
                 base.OnResume();
@@ -282,9 +288,11 @@ namespace TrackRadar
         {
             try
             {
-                //SHORT_LIFECYCLE_OnStopPart(); 
+                //SHORT_LIFECYCLE_OnStopPart();
 
                 this.logDebug(LogLevel.Verbose, "OnStop enter");
+
+                this.isUiRunning = false;
 
                 base.OnStop();
 
@@ -363,7 +371,7 @@ namespace TrackRadar
         {
             try
             {
-                if (this.debugMode && this.adapter != null)
+                if (this.isUiRunning && this.debugMode && this.adapter != null)
                 {
                     // limit UI to small number of items on the list
                     if (this.adapter.Count == 100)
@@ -475,6 +483,8 @@ namespace TrackRadar
         {
             try
             {
+                this.isUiRunning = true;
+
                 this.logDebug(LogLevel.Verbose, "Entering OnActivityResult");
 
                 base.OnActivityResult(requestCode, resultCode, intent);
@@ -509,15 +519,14 @@ namespace TrackRadar
                 bool running = isServiceRunning<RadarService>();
                 if (running)
                 {
-                    //this.logDebug(LogLevel.Verbose, "stopping service");
+                    this.logDebug(LogLevel.Verbose, "stopping service");
                     this.receiver.DistanceUpdate -= Receiver_DistanceUpdate;
                     this.StopService(radarServiceIntent);
                 }
                 else
                 {
-                    //this.logDebug(LogLevel.Verbose, "starting service service");
+                    this.logDebug(LogLevel.Verbose, "starting service");
 
-                    this.adapter.Clear();
                     this.receiver.DistanceUpdate += Receiver_DistanceUpdate;
 
                     showAlarm("running", Android.Graphics.Color.GreenYellow);

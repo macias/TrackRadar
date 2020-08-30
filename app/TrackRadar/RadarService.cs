@@ -139,7 +139,7 @@ private long mLastTime;
                 receiver.Subscribe += Receiver_Subscribe;
                 receiver.Unsubscribe += Receiver_Unsubscribe;
 
-                if (!prefs.DebugKillingService)
+                // preventing service from being killed by the system
                 {
                     // https://stackoverflow.com/a/36018368/210342
                     LogDebug(LogLevel.Info, "Building notification");
@@ -362,7 +362,7 @@ private long mLastTime;
                         ridingTime: core.RidingTimeReadout, topSpeed: core.TopSpeedReadout);
                 }
 
-                LogDebug(LogLevel.Info, "OnDestroy: disposing log");
+                LogDebug(LogLevel.Info, "OnDestroy: done");
 
                 /*{
                     IDisposable disp = this.serviceLog;
@@ -466,7 +466,7 @@ private long mLastTime;
                 if (!allowed)
                     return;
 
-                LogDebug(LogLevel.Verbose, "GPS OFF on service");
+                LogDebug(LogLevel.Verbose, "GPS provider switched to disabled");
             }
         }
 
@@ -477,7 +477,7 @@ private long mLastTime;
                 if (!allowed)
                     return;
 
-                LogDebug(LogLevel.Verbose, "GPS ON on service");
+                LogDebug(LogLevel.Verbose, "GPS provided switched to enabled");
             }
         }
 

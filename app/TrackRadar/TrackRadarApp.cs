@@ -54,7 +54,7 @@ namespace TrackRadar
 
         public override void OnConfigurationChanged(Configuration newConfig)
         {
-            Common.Log(LogLevel.Verbose, "app OnConfigurationChanged");
+            Common.Log(LogLevel.Verbose, "APP OnConfigurationChanged");
 
             base.OnConfigurationChanged(newConfig);
         }

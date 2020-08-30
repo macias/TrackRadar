@@ -43,7 +43,7 @@ namespace TrackRadar.Implementation
         {
             lock (this.threadLock)
             {
-                this.service.Log(LogLevel.Info, $"Watchdog disposing {DEBUG_CHECKS}, {DEBUG_NO_GPS}, {DEBUG_ALARMS}");
+                this.service.Log(LogLevel.Info, $"Watchdog disposing {stats(this.timeStamper.GetTimestamp())}");
 
                 if (this.isDisposed)
                     return;
@@ -68,7 +68,7 @@ namespace TrackRadar.Implementation
                     ++this.DEBUG_NO_GPS;
 
                     if (gpsSignalCounter != 0)
-                        this.service.Log(LogLevel.Verbose, $"Watchdog: we lost GPS signal {now}/{this.lastNoGpsAlarmAtTicks}");
+                        this.service.Log(LogLevel.Verbose, $"Watchdog: we lost GPS signal. Stats {stats(now)}");
 
                     gpsSignalCounter = 0;
 
@@ -76,7 +76,7 @@ namespace TrackRadar.Implementation
                     {
                         try
                         {
-                            service.GpsOffAlarm(DEBUG_ALARMS.ToString());
+                            service.GpsOffAlarm(stats(now));
                             ++this.DEBUG_ALARMS;
                         }
                         catch (Exception ex)
@@ -88,13 +88,18 @@ namespace TrackRadar.Implementation
                     }
                 }
 
-                if (this.DEBUG_CHECKS % 900 == 0) // every 15 minutes
-                    this.service.Log(LogLevel.Verbose, $"Gps watchdog stats {DEBUG_CHECKS}, {DEBUG_NO_GPS}, {DEBUG_ALARMS}");
+                if (this.DEBUG_CHECKS % 300 == 0) // every 5 minutes
+                    this.service.Log(LogLevel.Verbose, $"Gps watchdog stats {stats(now)}");
 
                 ++this.DEBUG_CHECKS;
 
                 this.timer.Change(TimeSpan.FromSeconds(1), System.Threading.Timeout.InfiniteTimeSpan);
             }
+        }
+
+        private string stats(long now)
+        {
+            return $"stats: {DEBUG_CHECKS}, {DEBUG_NO_GPS}, {DEBUG_ALARMS}; now {now}/{this.timeStamper.Frequency}; gps {this.lastGpsPresentAtTicks}, timeout {service.NoGpsFirstTimeout.TotalSeconds}s; no-gps {this.lastNoGpsAlarmAtTicks}, interval {service.NoGpsAgainInterval.TotalSeconds}s";
         }
 
         public bool UpdateGpsIsOn()
@@ -104,7 +109,10 @@ namespace TrackRadar.Implementation
                 this.lastGpsPresentAtTicks = timeStamper.GetTimestamp();
 
                 if (++this.gpsSignalCounter < 10)
+                {
+                    service.Log(LogLevel.Verbose, $"Fresh GPS signal received {this.lastGpsPresentAtTicks}, {service.NoGpsFirstTimeout.TotalSeconds}, freq. {this.timeStamper.Frequency}");
                     return false;
+                }
 
                 if (this.lastNoGpsAlarmAtTicks != this.timeStamper.GetBeforeTimeTimestamp())
                 {

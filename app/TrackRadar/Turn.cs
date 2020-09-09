@@ -13,5 +13,10 @@ namespace TrackRadar
             this.BearingA = bearingA;
             this.BearingB = bearingB;
         }
+
+        public override string ToString()
+        {
+            return $"{BearingA} X {BearingB}";
+        }
     }
 }

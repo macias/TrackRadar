@@ -91,8 +91,24 @@ namespace Geo.Implementation
                 return false;
             }
 
-            lonIndex = (int)Math.Floor((this.longitudeCount - 1) * (point.Longitude - westmost) / (eastmost - westmost));
-            latIndex = (int)Math.Floor((this.latitudeCount - 1) * (point.Latitude - southmost) / (northmost - southmost));
+            if (this.longitudeCount == 1) // maybe we should check boundaries?
+                lonIndex = 0;
+            else
+            {
+                Angle lon_span = eastmost - westmost;
+                Angle lon_relative = point.Longitude - westmost;
+                lonIndex = (int)Math.Floor((this.longitudeCount - 1) * lon_relative / lon_span);
+            }
+
+            if (this.latitudeCount == 1) // as above
+                latIndex = 0;
+            else
+            {
+                Angle lat_span = northmost - southmost;
+                Angle lat_relative = (point.Latitude - southmost);
+                latIndex = (int)Math.Floor((this.latitudeCount - 1) * lat_relative / lat_span);
+            }
+
 
             if (lonIndex < 0 || lonIndex >= this.longitudeCount || latIndex < 0 || latIndex >= this.latitudeCount)
             {
@@ -106,8 +122,17 @@ namespace Geo.Implementation
         {
             tryGetTileIndices(point, out int pt_lon_index, out int pt_lat_index);
 
-            int lon_half_count = 1 + (int)Math.Floor(upperLimit / this.minLongitudeTileLength);
-            int lat_half_count = 1 + (int)Math.Floor(upperLimit / this.latitudeTileLength);
+            int lon_half_count;
+            if (this.longitudeCount == 1) // there is only one tile, so there is no point in computing span (and besides calculation would be wrong when tile contains only single point)
+                lon_half_count = 1;
+            else
+                lon_half_count = 1 + (int)Math.Floor(upperLimit / this.minLongitudeTileLength);
+
+            int lat_half_count;
+            if (this.latitudeCount == 1) // see remark above
+                lat_half_count = 1;
+            else
+                lat_half_count = 1 + (int)Math.Floor(upperLimit / this.latitudeTileLength);
 
             var indices = new List<(int lon, int lat)>();
             for (int lon_idx = pt_lon_index - lon_half_count; lon_idx <= pt_lon_index + lon_half_count; ++lon_idx)

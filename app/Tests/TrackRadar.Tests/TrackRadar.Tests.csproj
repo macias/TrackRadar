@@ -30,6 +30,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="Data\dup-turn-point.plan.gpx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Data\dup-turn-point.tracked.gpx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="Data\single-point.gpx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

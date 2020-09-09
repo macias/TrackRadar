@@ -18,7 +18,7 @@ namespace TrackRadar.Tests
         [TestMethod]
         public void PreferencesTrackNameTest()
         {
-            var prefs = new Preferences();
+            var prefs = new Preferences() { TurnAheadAlarmDistance = TimeSpan.FromSeconds(13) };
             PropertyInfo property = prefs.GetType().GetProperty(nameof(Preferences.TrackName));
             property.SetValue(prefs, "foobar");
             Assert.AreEqual("foobar", prefs.TrackName);
@@ -30,7 +30,7 @@ namespace TrackRadar.Tests
         {
             //var stamper = new ClockStamper(DateTimeOffset.UtcNow);
             var stamper = new SecondStamper();
-            var service = new ManualSignalService(noGpsFirstTimeout: TimeSpan.FromSeconds(1), 
+            var service = new ManualSignalService(noGpsFirstTimeout: TimeSpan.FromSeconds(1),
                 noGpsAgainInterval: TimeSpan.FromSeconds(2));
 
             var checker = new GpsWatchdog(service, stamper);
@@ -125,7 +125,7 @@ namespace TrackRadar.Tests
         [DataRow(@"Data/single-point.gpx")]
         public void TestLoading(string planFilename)
         {
-            var prefs =  new Preferences();
+            var prefs = new Preferences() { TurnAheadAlarmDistance = TimeSpan.FromSeconds(13) };
             GpxData gpx_data = GpxLoader.ReadGpx(planFilename, prefs.OffTrackAlarmDistance, onProgress: null, CancellationToken.None);
 
             //ClockStamper clock = new ClockStamper(DateTimeOffset.UtcNow);
@@ -143,5 +143,6 @@ namespace TrackRadar.Tests
                 clock.Advance();
             }
         }
+
     }
 }

@@ -13,6 +13,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Geo.Tests", "Tests\Geo.Test
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TrackRadar.Tests", "Tests\TrackRadar.Tests\TrackRadar.Tests.csproj", "{E6B7BD13-91A2-4858-8325-C93CA2A5C825}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestRunner", "Tests\TestRunner\TestRunner.csproj", "{E331FDF0-4232-4592-B8BE-37C05E33C0E2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -37,6 +39,10 @@ Global
 		{E6B7BD13-91A2-4858-8325-C93CA2A5C825}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E6B7BD13-91A2-4858-8325-C93CA2A5C825}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E6B7BD13-91A2-4858-8325-C93CA2A5C825}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E331FDF0-4232-4592-B8BE-37C05E33C0E2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E331FDF0-4232-4592-B8BE-37C05E33C0E2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E331FDF0-4232-4592-B8BE-37C05E33C0E2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E331FDF0-4232-4592-B8BE-37C05E33C0E2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -44,6 +50,7 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{8E92A618-1F7C-4B00-A1D1-A54D2F7332B1} = {21D18899-F036-42A9-AC18-9AF08677D62A}
 		{E6B7BD13-91A2-4858-8325-C93CA2A5C825} = {21D18899-F036-42A9-AC18-9AF08677D62A}
+		{E331FDF0-4232-4592-B8BE-37C05E33C0E2} = {21D18899-F036-42A9-AC18-9AF08677D62A}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {7B88F586-2FFC-42D6-AE5E-7AA52D26CE69}

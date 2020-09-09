@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using TrackRadar.Implementation;
 using TrackRadar.Tests.Implementation;
 
@@ -17,14 +18,58 @@ namespace TrackRadar.Tests
         private const double precision = 0.00000001;
 
         [TestMethod]
+        public void DuplicateTurnPointTest()
+        {
+            string plan_filename = @"Data/dup-turn-point.plan.gpx";
+            string tracked_filename = @"Data/dup-turn-point.tracked.gpx";
+
+            var prefs = new Preferences();
+            GpxData gpx_data = GpxLoader.ReadGpx(plan_filename, prefs.OffTrackAlarmDistance, onProgress: null, CancellationToken.None);
+
+            var track_points = Toolbox.ReadTrackPoints(tracked_filename).ToArray();
+
+            var clock = new SecondStamper();
+            using (var raw_alarm_master = new AlarmMaster(clock))
+            {
+                raw_alarm_master.PopulateAlarms();
+
+                var counting_alarm_master = new CountingAlarmMaster(raw_alarm_master);
+
+                var service = new TrackRadar.Tests.Implementation.RadarService(prefs, clock);
+                AlarmSequencer sequencer = new AlarmSequencer(service, counting_alarm_master);
+                var core = new TrackRadar.Implementation.RadarCore(service, sequencer, clock, gpx_data, Length.Zero, Length.Zero, TimeSpan.Zero, Speed.Zero);
+
+                int point_index = 0;
+                foreach (var pt in track_points)
+                {
+                    using (sequencer.OpenAlarmContext(gpsAcquired: false, hasGpsSignal: true))
+                    {
+                        counting_alarm_master.SetPointIndex(point_index);
+                        core.UpdateLocation(GpxHelper.FromGpx(pt), pt.Elevation == null ? (Length?)null : Length.FromMeters(pt.Elevation.Value), accuracy: null);
+                        clock.Advance();
+                        ++point_index;
+                    }
+                }
+
+                Assert.AreEqual(3, counting_alarm_master.AlarmCounters[Alarm.Crossroad]);
+            }
+
+        }
+
+        [TestMethod]
         public void TurnKindsOnBearingTest()
         {
+            {
+                var turn = new Turn(Angle.FromDegrees(231.745654889123), Angle.FromDegrees(306.502092791698));
+                Assert.IsFalse(TurnLookout.TryComputeTurnKind(Angle.FromDegrees(293.147847303439), turn, out TurnKind tk));
+
+            }
             {
                 // we have basically turn
                 // +-
                 // |
                 // and we are comming from the bottom, going up
-                var turn = new Turn(Angle.FromDegrees(359),Angle.FromDegrees(270));
+                var turn = new Turn(Angle.FromDegrees(359), Angle.FromDegrees(270));
                 Assert.IsTrue(TurnLookout.TryComputeTurnKind(Angle.FromDegrees(1), turn, out TurnKind tk));
                 Assert.AreEqual(TurnKind.RightCross, tk);
             }
@@ -148,7 +193,7 @@ namespace TrackRadar.Tests
         {
             const string plan_filename = @"Data/turning-excercise.gpx";
 
-            var prefs = new Preferences();
+            var prefs = new Preferences() { TurnAheadAlarmDistance = TimeSpan.FromSeconds(13) };
 
             trackPoints.AddRange(Toolbox.ReadTrackPoints(plan_filename).Select(it => GpxHelper.FromGpx(it)));
 

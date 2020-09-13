@@ -1,4 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
+using TrackRadar.Implementation;
 
 [assembly: InternalsVisibleTo("TrackRadar.Tests")]
 
@@ -33,6 +34,11 @@ namespace TrackRadar
                 return AlarmSound.BackOnTrack;
             else
                 return (AlarmSound)alarm;
+        }
+
+        public static Alarm ToAlarm(this TurnKind turnKind)
+        {
+            return (Alarm)turnKind;
         }
     }
 }

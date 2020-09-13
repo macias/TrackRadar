@@ -222,14 +222,16 @@ namespace TrackRadar.Tests
                 long start = Stopwatch.GetTimestamp();
 
                 int point_index = 0;
+                GeoPoint last_pt = trackPoints.First();
                 foreach (var pt in trackPoints)
                 {
                     using (sequencer.OpenAlarmContext(gpsAcquired: false, hasGpsSignal: true))
                     {
                         clock.Advance();
                         counting_alarm_master.SetPointIndex(point_index);
-                        lookout.AlarmTurnAhead(pt, ride_speed, clock.GetTimestamp(), out _);
+                        lookout.AlarmTurnAhead(last_pt, pt, ride_speed, clock.GetTimestamp(), out _);
                         ++point_index;
+                        last_pt = pt;
                     }
                 }
 
@@ -246,6 +248,98 @@ namespace TrackRadar.Tests
 
                 alarms = counting_alarm_master.Alarms;
                 return run_time;
+            }
+        }
+
+        [TestMethod]
+        public void DeadSpotOnTurningPointTest()
+        {
+            var prefs = new Preferences();
+            Speed ride_speed = prefs.RidingSpeedThreshold + Speed.FromKilometersPerHour(10);
+
+            // L-shape, but here it is irrelevant
+            var points = new[] { GeoPoint.FromDegrees(41,6),
+                GeoPoint.FromDegrees(38,6),
+                GeoPoint.FromDegrees(38,11) };
+            var turning_point = points[1];
+
+            var gpx_data = new GpxData(Enumerable.Range(0, points.Count() - 1)
+                .Select(i => new Segment(points[i], points[i + 1])),
+                // set each in-track point as turning one
+                points.Skip(1).SkipLast(1));
+
+            var clock = new SecondStamper();
+            using (var raw_alarm_master = new AlarmMaster(clock))
+            {
+                raw_alarm_master.PopulateAlarms();
+                var counting_alarm_master = new CountingAlarmMaster(raw_alarm_master);
+                var service = new Implementation.RadarService(prefs, clock);
+                var sequencer = new AlarmSequencer(service, counting_alarm_master);
+                var lookout = new TurnLookout(service, sequencer, clock, gpx_data, MapHelper.CreateDefaultGrid(gpx_data.Segments));
+                // simulate we are exactly at turning point (no bearing then) and look out for program crash
+                lookout.AlarmTurnAhead(turning_point, turning_point, ride_speed, clock.GetTimestamp(), out _);
+
+                Assert.AreEqual(1, counting_alarm_master.AlarmCounters[Alarm.Crossroad]);
+            }
+        }
+
+
+        [TestMethod]
+        public void LeavingTurningPointTest()
+        {
+            var prefs = new Preferences();
+
+            // L-shape, but here it is irrelevant
+            const double leaving_latitude = 38;
+            const double leaving_longitude_start = 6;
+            const double leaving_longitude_end = 6.1;
+
+            var span_points = new[] { GeoPoint.FromDegrees(38.1,leaving_longitude_start),
+                GeoPoint.FromDegrees(leaving_latitude,leaving_longitude_start),
+                GeoPoint.FromDegrees(leaving_latitude,leaving_longitude_end) };
+
+            IEnumerable<GeoPoint> track_points;
+            {
+                const int parts = 1000;
+                track_points = Enumerable.Range(0, parts).Select(i => GeoPoint.FromDegrees(leaving_latitude,
+                     leaving_longitude_start + i * (leaving_longitude_end - leaving_longitude_start) / parts))
+                     .Take(100)
+                     .Skip(10)
+                     .ToArray();
+            }
+
+            var gpx_data = new GpxData(Enumerable.Range(0, span_points.Count() - 1)
+                .Select(i => new Segment(span_points[i], span_points[i + 1])),
+                // set each in-track point as turning one
+                span_points.Skip(1).SkipLast(1));
+
+
+            var clock = new SecondStamper();
+            using (var raw_alarm_master = new AlarmMaster(clock))
+            {
+                raw_alarm_master.PopulateAlarms();
+
+                var counting_alarm_master = new CountingAlarmMaster(raw_alarm_master);
+
+                var service = new TrackRadar.Tests.Implementation.RadarService(prefs, clock);
+                AlarmSequencer sequencer = new AlarmSequencer(service, counting_alarm_master);
+                var core = new TrackRadar.Implementation.RadarCore(service, sequencer, clock, gpx_data, Length.Zero, Length.Zero, TimeSpan.Zero, Speed.Zero);
+
+                int point_index = 0;
+                foreach (var pt in track_points)
+                {
+                    using (sequencer.OpenAlarmContext(gpsAcquired: false, hasGpsSignal: true))
+                    {
+                        counting_alarm_master.SetPointIndex(point_index);
+                        core.UpdateLocation(pt, altitude: null, accuracy: null);
+                        clock.Advance();
+                        ++point_index;
+                    }
+                }
+
+                Assert.AreEqual(1, counting_alarm_master.AlarmCounters[Alarm.Crossroad]);
+                foreach (var turn_kind in EnumHelper.GetValues<TurnKind>())
+                    Assert.AreEqual(0, counting_alarm_master.AlarmCounters[turn_kind.ToAlarm()]);
             }
         }
     }

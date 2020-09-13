@@ -75,7 +75,7 @@ namespace TrackRadar.Implementation
         public Speed TopSpeedReadout => this.topSpeed;
         public Length TotalClimbsReadout => this.totalClimbs;
 
-     //   private Alarm? pendingAlarm;
+        //   private Alarm? pendingAlarm;
 
         public RadarCore(IRadarService service, IAlarmSequencer alarmSequencer, ITimeStamper timeStamper, GpxData gpxData,
             Length totalClimbs, Length startRidingDistance, TimeSpan ridingTime, Speed topSpeed)
@@ -125,12 +125,14 @@ namespace TrackRadar.Implementation
                     this.totalClimbs += climb;
             }
 
-            {
-                IEnumerable<(GeoPoint point, Length? altitude, long timestamp)> loc_pieces = this.lastPoints.Reverse()
-                    .SkipWhile(point_ts => now - point_ts.timestamp < this.speedTicksWindow);
-                Option<(GeoPoint, Length?, long)> opt = loc_pieces.FirstOrNone();
+            Option<(GeoPoint lastPoint, Length? altitude, long timestamp)> older_point;
 
-                if (!opt.HasValue)
+            {
+                IEnumerable<(GeoPoint point, Length? altitude, long timestamp)> older_points = this.lastPoints.Reverse()
+                    .SkipWhile(point_ts => now - point_ts.timestamp < this.speedTicksWindow);
+                older_point = older_points.FirstOrNone();
+
+                if (!older_point.HasValue)
                 {
                     if (this.lastPoints.Count == this.lastPoints.Capacity)
                     {
@@ -141,7 +143,7 @@ namespace TrackRadar.Implementation
                 }
                 else
                 {
-                    (GeoPoint last_point, Length? last_alt, long last_ts) = opt.Value;
+                    (GeoPoint last_point, Length? last_alt, long last_ts) = older_point.Value;
 
                     double time_s_passed = timeStamper.GetSecondsSpan(now, last_ts);
 
@@ -169,7 +171,7 @@ namespace TrackRadar.Implementation
                     if (this.ridingSpeed != Speed.Zero)
                     {
                         this.overlappingRidingDistance += Length.FromMeters(moved_dist_m);
-                        this.ridingPieces += loc_pieces.Count() - 1;
+                        this.ridingPieces += older_points.Count() - 1;
                         ++this.ridingCount;
                     }
                     //   service.LogDebug(LogLevel.Verbose, $"[TEMP] speed: clipped {this.ridingSpeed} computed {curr_speed}, moved {moved_dist} in {time_s_passed}, at {currentPoint.Latitude.Degrees.ToString(GeoPointFormat)} x {currentPoint.Longitude.Degrees.ToString(GeoPointFormat)} from {last_point.Latitude.Degrees.ToString(GeoPointFormat)} x {last_point.Longitude.Degrees.ToString(GeoPointFormat)}");
@@ -182,42 +184,16 @@ namespace TrackRadar.Implementation
 
             this.lastPoints.Enqueue((currentPoint, altitude, now));
 
-            //Alarm? alarm = 
-            handleAlarm(currentPoint, on_track, prev_riding, now);//, out AlarmState played);
+            // todo: think about it -- while do we call it when we don't have an older point??? 
+            handleAlarm(older_point.HasValue ? older_point.Value.lastPoint : currentPoint,
+                currentPoint, on_track, prev_riding, now);//, out AlarmState played);
 
-            // todo: move it to AlarmMaster? or make it another class
-
-            // we have 3 kinds of dynamic/fragile alarms -- gps acquired, engaged (user started riding), disengage (user stopped)
-            // so if we failed to played those we need to remember this, because on the next update we won't trigger those alarms
-           /* if (played == AlarmState.Failed
-                && (alarm == Alarm.Disengage || alarm == Alarm.Engaged)
-                // dis/engage override gps acquired (without gps we wouldn't trigger those alarms)
-                && (!pendingAlarm.HasValue || pendingAlarm == Alarm.GpsAcquired
-                    || pendingAlarm == Alarm.Disengage || pendingAlarm == Alarm.Engaged))
-            {
-                this.pendingAlarm = alarm;
-            }
-            else if (pendingAlarm.HasValue)
-            {
-                if (played == AlarmState.Played) // every played alarm renders useless both Dis/engage and GpsAcquired
-                    pendingAlarm = null;
-                else if (!alarm.HasValue)
-                {
-                    if (alarmSequencer.TryAlarm(pendingAlarm.Value, out string reason))
-                    {
-                        pendingAlarm = null;
-                    }
-                    else
-                        service.LogDebug(LogLevel.Info, $"Cannot play {pendingAlarm}, reason: {reason}");
-                }
-            }
-            */
             return dist;
         }
 
-        private 
+        private
             //Alarm? 
-            void handleAlarm(in GeoPoint currentPoint, bool isOnTrack, Speed prevRiding, long now)//, out AlarmState played)
+            void handleAlarm(in GeoPoint somePreviousPoint, in GeoPoint currentPoint, bool isOnTrack, Speed prevRiding, long now)//, out AlarmState played)
         {
             //played = AlarmState.None;
             //Alarm? alarm = default;
@@ -240,21 +216,21 @@ namespace TrackRadar.Implementation
             else if (isOnTrack)
             {
                 //played = 
-                    turn_lookout.AlarmTurnAhead(currentPoint, this.ridingSpeed, now, out string turn_reason);
+                turn_lookout.AlarmTurnAhead(somePreviousPoint, currentPoint, this.ridingSpeed, now, out string turn_reason);
                 //if (played != AlarmState.None)
-                  //  alarm = Alarm.Crossroad;
+                //  alarm = Alarm.Crossroad;
 
                 if (prevRiding == Speed.Zero  // we started riding, engagement
                     || this.lastOnTrackAlarmAt < this.lastOffTrackAlarmAt) // we were previously off-track
                 {
-                   // if (!alarm.HasValue)
+                    // if (!alarm.HasValue)
                     //{
-                       var alarm = prevRiding == Speed.Zero ? Alarm.Engaged : Alarm.BackOnTrack;
+                    var alarm = prevRiding == Speed.Zero ? Alarm.Engaged : Alarm.BackOnTrack;
                     var played = alarmSequencer.TryAlarm(alarm, out string reason);//? AlarmState.Played : AlarmState.Failed;
-                        service.LogDebug(LogLevel.Verbose, $"ACK played {played}, reason: {reason}, back on track");
+                    service.LogDebug(LogLevel.Verbose, $"ACK played {played}, reason: {reason}, back on track");
                     //}
 
-                    if (played )//== AlarmState.Played)
+                    if (played)//== AlarmState.Played)
                         this.lastOnTrackAlarmAt = now;
                 }
 
@@ -264,11 +240,11 @@ namespace TrackRadar.Implementation
             }
             else
             {
-               // alarm = Alarm.OffTrack;
+                // alarm = Alarm.OffTrack;
 
                 if (timeStamper.GetSecondsSpan(now, this.lastOffTrackAlarmAt) < service.OffTrackAlarmInterval.TotalSeconds)
                 {
-                  //  played = AlarmState.Postponed;
+                    //  played = AlarmState.Postponed;
                     this.alarmSequencer.NotifyAlarm(Alarm.OffTrack);
                 }
                 else
@@ -292,7 +268,7 @@ namespace TrackRadar.Implementation
                 }
             }
 
-          //  return alarm;
+            //  return alarm;
         }
 
         /// <param name="dist">negative value means on track</param>
@@ -304,19 +280,19 @@ namespace TrackRadar.Implementation
             return PositionCalculator.IsOnTrack(point, trackMap, limit, out dist);
         }
 
- /*       internal void UpdateGpsPendingAlarm(bool gpsAcquired, bool hasGpsSignal)
-        {
-            if (gpsAcquired)
-            {
-                if (!this.pendingAlarm.HasValue)
-                    this.pendingAlarm = Alarm.GpsAcquired;
-            }
-            else if (!hasGpsSignal)
-            {
-                if (this.pendingAlarm == Alarm.GpsAcquired)
-                    this.pendingAlarm = null;
-            }
+        /*       internal void UpdateGpsPendingAlarm(bool gpsAcquired, bool hasGpsSignal)
+               {
+                   if (gpsAcquired)
+                   {
+                       if (!this.pendingAlarm.HasValue)
+                           this.pendingAlarm = Alarm.GpsAcquired;
+                   }
+                   else if (!hasGpsSignal)
+                   {
+                       if (this.pendingAlarm == Alarm.GpsAcquired)
+                           this.pendingAlarm = null;
+                   }
 
-        }*/
+               }*/
     }
 }

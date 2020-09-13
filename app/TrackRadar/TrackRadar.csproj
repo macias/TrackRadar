@@ -81,13 +81,13 @@
     <Compile Include="Implementation\ISignalCheckerService.cs" />
     <Compile Include="Implementation\DisposableGuard.cs" />
     <Compile Include="Implementation\Disposable.cs" />
+    <Compile Include="Implementation\EnumHelper.cs" />
     <Compile Include="Implementation\MatrixInverter2.cs" />
     <Compile Include="Implementation\KalmanFilter.cs" />
     <Compile Include="Implementation\KalmanFunctions.cs" />
     <Compile Include="Implementation\MapHelper.cs" />
     <Compile Include="Implementation\MatrixInverter.cs" />
     <Compile Include="Implementation\Matrix.cs" />
-    <Compile Include="Implementation\Mather.cs" />
     <Compile Include="Implementation\TurnLookout.cs" />
     <Compile Include="Implementation\TurnCalculator.cs" />
     <Compile Include="IAlarmPlayer.cs" />

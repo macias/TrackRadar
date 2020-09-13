@@ -20,6 +20,13 @@ namespace Geo
             return degrees * Radian;
         }
 
+        public static Angle AbsoluteBearingDifference(in Angle bearingA, in Angle bearingB)
+        {
+            double a_diff = bearingB.Degrees - bearingA.Degrees;
+            a_diff = Math.Min(Mather.Mod(a_diff, 360), Mather.Mod(-a_diff, 360));
+            return Angle.FromDegrees(a_diff);
+        }
+
         // intersection has to lie within both segments
         private static bool withinSegment(in GeoPoint cx, in GeoPoint startA, in GeoPoint endA, in GeoPoint startB, in GeoPoint endB,
              Angle angleA, Angle angleB)

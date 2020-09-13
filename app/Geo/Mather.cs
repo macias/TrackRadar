@@ -1,6 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
 
-namespace TrackRadar.Implementation
+namespace Geo
 {
     public static class Mather
     {
@@ -10,5 +10,6 @@ namespace TrackRadar.Implementation
             x %= y;
             return x < 0 ? x + y : x;
         }
+
     }
 }

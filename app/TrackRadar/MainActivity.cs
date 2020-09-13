@@ -243,8 +243,7 @@ namespace TrackRadar
 
             if (this.isServiceRunning<LoaderService>())
             {
-                this.receiver.ProgressUpdate -= Receiver_ProgressUpdate;
-                LoaderReceiver.SendUnsubscribe(this);
+                unsubscribeFromLoader();
             }
 
             this.receiver.AlarmUpdate -= Receiver_AlarmUpdate;
@@ -255,6 +254,11 @@ namespace TrackRadar
             lm.RemoveGpsStatusListener(this);
         }
 
+        private void unsubscribeFromLoader()
+        {
+            this.receiver.ProgressUpdate -= Receiver_ProgressUpdate;
+            LoaderReceiver.SendUnsubscribe(this);
+        }
 
         protected override void OnPause()
         {
@@ -432,6 +436,9 @@ namespace TrackRadar
                     // we need it in case loader is not working any longer (so we cannot ask it for progress report) but we know
                     // we have fully loaded track
                     this.trackFileNameTextView.Text = app.Prefs.TrackName;
+
+                    unsubscribeFromLoader();
+                    this.StopService(loaderServiceIntent);
                 }
                 else if (!isTrackLoading)
                 {

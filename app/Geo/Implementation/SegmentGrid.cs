@@ -9,14 +9,11 @@ namespace Geo.Implementation
 {
     internal sealed class SegmentGrid : Grid<ISegment, ITile>, IGeoMap
     {
-        //private readonly IGraph graph;
-
         public IEnumerable<Geo.ISegment> Segments => this.tiles.SelectMany(it => it.Segments).Distinct();
 
         public SegmentGrid(IEnumerable<Geo.ISegment> segments) : base(segments, segs => segs.SelectMany(it => it.Points()),
-            segments.Any() ? segments.Max(it => GeoCalculator.GetDistance(it.A, it.B)) : Length.Zero)
+            segments.Any() ? segments.Max(it => it.GetLength()) : Length.Zero)
         {
-          //  this.graph = new Graph(segments.Select(it => it.Points()));
         }
 
         protected override IReadOnlyList<ITile> tileBuckets(IEnumerable<ISegment> segments, List<List<ISegment>> buckets)
@@ -36,32 +33,43 @@ namespace Geo.Implementation
             return buckets.Select(it => new PlainTile(it)).ToList();
         }
 
-        public bool FindCloseEnough(in Geo.GeoPoint point, Length limit, out ISegment nearby, out Length? distance)
-
+        public bool FindCloseEnough(in Geo.GeoPoint point, Length limit, out ISegment nearby, out Length? distance, out GeoPoint crosspoint)
         {
             distance = null;
             nearby = default(ISegment);
+            crosspoint = default;
 
             bool result = false;
             foreach (ITile tile in getTilesCloserThan(point, limit))
-                if (tile.FindCloseEnough(point, limit, ref nearby, ref distance))
+                if (tile.FindCloseEnough(point, limit, ref nearby, ref distance, out GeoPoint cx))
+                {
+                    crosspoint = cx;
                     result = true;
+                    break;
+                }
 
             return result;
         }
 
-        public bool FindClosest(in Geo.GeoPoint point, out ISegment nearby, out Length? distance)
+        public bool FindClosest(in Geo.GeoPoint point, Length? limit, out ISegment nearby, out Length? distance, out GeoPoint crosspoint)
         {
             distance = null;
             nearby = default(ISegment);
+            crosspoint = default;
+            bool result = false;
 
-            foreach (ITile tile in getTilesCloserThan(point, upperLimit: Length.Zero))
+            foreach (ITile tile in getTilesCloserThan(point, upperLimit: limit?? Length.Zero))
             {
-                if (tile.FindClosest(point, ref nearby, ref distance))
-                    return true;
+                if (tile.FindClosest(point, ref nearby, ref distance, out GeoPoint cx))
+                {
+                    result = true;
+                    crosspoint = cx;
+                    if (distance == Length.Zero)
+                        break;
+                }
             }
 
-            return false;
+            return result && distance <= (limit ?? Length.MaxValue);
         }
 
         public bool IsWithinLimit(in Geo.GeoPoint point, Length limit, out Length? distance)
@@ -107,16 +115,5 @@ namespace Geo.Implementation
                     || isWithinRegion(seg.B, westmost, eastmost, northmost, southmost))
                     yield return seg;
         }
-
-        /*public IEnumerable<GeoPoint> GetAdjacent(in GeoPoint node)
-        {
-            return this.graph.GetAdjacent(node);
-        }*/
-
-        /*public GeoPoint GetReference(Angle latitude, Angle longitude)
-        {
-            return this.graph.GetReference(latitude, longitude);
-        }
-        */
     }
 }

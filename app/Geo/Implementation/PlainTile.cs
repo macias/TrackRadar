@@ -17,36 +17,40 @@ namespace Geo.Implementation
             this.segments = segments.ToArray();
         }
 
-        public bool FindCloseEnough(in Geo.GeoPoint point, Length limit, ref ISegment nearby, ref Length? distance)
+        public bool FindCloseEnough(in Geo.GeoPoint point, Length limit, ref ISegment nearby, ref Length? distance, out GeoPoint crosspoint)
         {
-            return find(point, limit, ref nearby, ref distance, returnFirst: false);
+            return find(point, limit, ref nearby, ref distance, out crosspoint, returnFirst: true);
         }
 
-        public bool FindClosest(in Geo.GeoPoint point, ref ISegment nearby, ref Length? distance)
+        /*public bool FindClosest(in Geo.GeoPoint point, ref ISegment nearby, ref Length? distance, out GeoPoint crosspoint)
         {
-            return find(point, Length.Zero, ref nearby, ref distance, returnFirst: false);
-        }
+            return find(point, limit: Length.Zero, ref nearby, ref distance, out crosspoint, returnFirst: true);
+        }*/
 
         public bool IsWithinLimit(in Geo.GeoPoint point, Length limit, out Length? distance)
         {
             distance = null;
             ISegment nearby = default;
 
-            return find(point, limit, ref nearby, ref distance, returnFirst: true);
+            return find(point, limit, ref nearby, ref distance, out GeoPoint _, returnFirst: true);
         }
 
-        private bool find(in Geo.GeoPoint point, Length limit, ref ISegment nearby, ref Length? bestDistance, bool returnFirst)
+        private bool find(in Geo.GeoPoint point, Length limit, ref ISegment nearby, ref Length? bestDistance, out GeoPoint crosspoint,
+            bool returnFirst)
         {
             bool found = false;
+            crosspoint = default;
 
             foreach (ISegment segment in this.segments)
             {
-                Length dist = point.GetDistanceToArcSegment(segment.A, segment.B);
+                Length dist = point.GetDistanceToArcSegment(segment.A, segment.B, out GeoPoint cx);
 
-                if (bestDistance==null || dist < bestDistance || (dist == bestDistance && segment.CompareImportance(nearby) == Ordering.Greater))
+                if (bestDistance == null || dist < bestDistance 
+                    || (dist == bestDistance && segment.CompareImportance(nearby) == Ordering.Greater))
                 {
                     bestDistance = dist;
                     nearby = segment;
+                    crosspoint = cx;
                     found = true;
                 }
 
@@ -57,18 +61,18 @@ namespace Geo.Implementation
 
             }
 
-            return found && limit== Length.Zero;
+            return found && limit == Length.Zero;
         }
 
-        public IEnumerable<IMeasuredPinnedSegment> FindAll( Geo.GeoPoint point, Length limit)
+        public IEnumerable<IMeasuredPinnedSegment> FindAll(Geo.GeoPoint point, Length limit)
         {
             foreach (ISegment segment in this.segments)
             {
-                Length dist = point.GetDistanceToArcSegment(segment.A, segment.B,out Geo.GeoPoint cx);
+                Length dist = point.GetDistanceToArcSegment(segment.A, segment.B, out Geo.GeoPoint cx);
 
                 if (dist <= limit)
                 {
-                    yield return MeasuredPinnedSegment.Create(cx, segment,dist);
+                    yield return MeasuredPinnedSegment.Create(cx, segment, dist);
                 }
             }
         }

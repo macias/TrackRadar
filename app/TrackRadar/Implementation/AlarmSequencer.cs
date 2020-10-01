@@ -74,6 +74,11 @@ namespace TrackRadar.Implementation
             return master.TryGetLatestTurnAheadAlarmAt(out timeStamp);
         }
 
+        public void PostMessage(string reason)
+        {
+            master.PostMessage(reason);
+        }
+
         public IDisposable OpenAlarmContext(bool gpsAcquired, bool hasGpsSignal)
         {
             if (gpsAcquired)
@@ -120,5 +125,6 @@ namespace TrackRadar.Implementation
             this.failedMask = 0;
             this.alarmPlayed = null;
         }
+
     }
 }

@@ -2,13 +2,16 @@
 
 namespace Geo
 {
-    public sealed class Segment : ISegment
+    // todo: use tracknode as segment
+    /*public sealed class Segment : ISegment
     {
+        public int SectionId { get; }
         public GeoPoint A { get; }
         public GeoPoint B { get; }
 
-        public Segment(in GeoPoint a, in GeoPoint b)
+        public Segment(int sectionId, in GeoPoint a, in GeoPoint b)
         {
+            SectionId = sectionId;
             A = a;
             B = b;
         }
@@ -26,5 +29,5 @@ namespace Geo
             return $"{A} » {B}";
         }
 
-    }
+    }*/
 }

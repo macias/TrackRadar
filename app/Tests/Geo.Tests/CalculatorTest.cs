@@ -4,7 +4,6 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Geo.Tests
 {
-
     [TestClass]
     public class CalculatorTest
     {
@@ -28,8 +27,8 @@ namespace Geo.Tests
 
             Length cx1_p10 = GeoCalculator.GetSignedDistance(cx1, point10);
             Length cx2_p10 = GeoCalculator.GetSignedDistance(cx2, point10);
-            Length cx1op_p10 = GeoCalculator.OppositePointSignedDistance(cx1_p10);
-            Length cx2op_p10 = GeoCalculator.OppositePointSignedDistance(cx2_p10);
+            Length cx1op_p10 = GeoCalculator.EarthOppositePointSignedDistance(cx1_p10);
+            Length cx2op_p10 = GeoCalculator.EarthOppositePointSignedDistance(cx2_p10);
 
             Assert.AreNotEqual(cx2_p10.Sign(), sig_len.Sign());
 
@@ -39,6 +38,7 @@ namespace Geo.Tests
             Assert.AreEqual(cx1_p10.Sign(), cx2op_p10.Sign());
 
         }
+
         [TestMethod]
         public void DistanceToArcSegmentTest()
         {
@@ -49,6 +49,17 @@ namespace Geo.Tests
 
             Length d2 = GeoCalculator.GetDistanceToArcSegment(point, segmentB, segmentA);
             Assert.AreEqual(distance, d2.Meters, precision);
+        }
+
+        [TestMethod]
+        public void DistanceToExtensionOfArcSegmentTest()
+        {
+            // the purpose of this test is to check if we won't get zero distances all of the sudden
+            Length d1 = GeoCalculator.GetDistanceToArcSegment(GeoPoint.FromDegrees(40,5), GeoPoint.FromDegrees(41,5), GeoPoint.FromDegrees(42,5),out GeoPoint _);
+            Assert.AreEqual(111194.926644558, d1.Meters, precision);
+
+            Length d2 = GeoCalculator.GetDistanceToArcSegment(GeoPoint.FromDegrees(40, 5), GeoPoint.FromDegrees(40, 6), GeoPoint.FromDegrees(40, 7), out GeoPoint _);
+            Assert.AreEqual(85179.8089502884, d2.Meters, precision);
         }
 
         [TestMethod]

@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace Geo.Implementation
 {
-    internal sealed class GeoMap : IGeoMap
+    /*internal sealed class GeoMap : IGeoMap
     {
         //private readonly IGraph graph;
         private readonly ITile map;
@@ -65,15 +65,9 @@ namespace Geo.Implementation
                     yield return seg;
         }
 
-        /*public IEnumerable<GeoPoint> GetAdjacent(in GeoPoint node)
-        {
-            return this.graph.GetAdjacent(node);
-        }
-        */
-        /*public GeoPoint GetReference(Angle latitude, Angle longitude)
-        {
-            return this.graph.GetReference(latitude, longitude);
-        }*/
+        //public IEnumerable<GeoPoint> GetAdjacent(in GeoPoint node)        {            return this.graph.GetAdjacent(node);        }
+        
+        //public GeoPoint GetReference(Angle latitude, Angle longitude)        {            return this.graph.GetReference(latitude, longitude);        }
 
-    }
+    }*/
 }

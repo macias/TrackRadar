@@ -159,7 +159,7 @@ namespace Geo
             return true;
         }
 
-        public static Length OppositePointSignedDistance(Length len)
+        public static Length EarthOppositePointSignedDistance(Length len)
         {
             Length result;
             if (len > Length.Zero)
@@ -171,7 +171,10 @@ namespace Geo
 
         public static GeoPoint OppositePoint(in GeoPoint p)
         {
-            return new GeoPoint(latitude: -p.Latitude, longitude: p.Longitude + Angle.PI);
+            Angle longitude = p.Longitude + Angle.PI;
+            if (longitude > Angle.PI)
+                longitude -= 2 * Angle.PI;
+            return new GeoPoint(latitude: -p.Latitude, longitude: longitude);
         }
 
         public static Vector CrossProduct(in GeoPoint a, in GeoPoint b)
@@ -197,46 +200,21 @@ namespace Geo
         {
             // https://www.movable-type.co.uk/scripts/latlong.html
 
-            var λ1 = pointA.Longitude.Radians;
-            var φ1 = pointA.Latitude.Radians;
-            var λ2 = pointB.Longitude.Radians;
-            var φ2 = pointB.Latitude.Radians;
+            var lon1 = pointA.Longitude.Radians;
+            var lat1 = pointA.Latitude.Radians;
+            var lon2 = pointB.Longitude.Radians;
+            var lat2 = pointB.Latitude.Radians;
 
-            double cos_φ2 = Math.Cos(φ2);
-            double cos_φ1 = Math.Cos(φ1);
+            double cos_lat2 = Math.Cos(lat2);
+            double cos_lat1 = Math.Cos(lat1);
 
-            var Bx = cos_φ2 * Math.Cos(λ2 - λ1);
-            var By = cos_φ2 * Math.Sin(λ2 - λ1);
-            var φ3 = Math.Atan2(Math.Sin(φ1) + Math.Sin(φ2),
-                                Math.Sqrt((cos_φ1 + Bx) * (cos_φ1 + Bx) + By * By));
-            var λ3 = λ1 + Math.Atan2(By, cos_φ1 + Bx);
+            var Bx = cos_lat2 * Math.Cos(lon2 - lon1);
+            var By = cos_lat2 * Math.Sin(lon2 - lon1);
+            var φ3 = Math.Atan2(Math.Sin(lat1) + Math.Sin(lat2),
+                                Math.Sqrt((cos_lat1 + Bx) * (cos_lat1 + Bx) + By * By));
+            var λ3 = lon1 + Math.Atan2(By, cos_lat1 + Bx);
 
             return new GeoPoint(latitude: Angle.FromRadians(φ3), longitude: Angle.FromRadians(λ3));
-        }
-
-        public static Length GetDistance(in GeoPoint start, in GeoPoint end)
-        {
-            return GetDistance(start, end, out _, out _);
-        }
-
-        public static Length GetDistance(in GeoPoint start, in GeoPoint end, out double bearingY, out double bearingX)
-        {
-            // https://en.wikipedia.org/wiki/Great-circle_distance#Computational_formulas
-
-            //double latA = start.Latitude.Radians;
-            double latB = end.Latitude.Radians;
-            // double lonA = start.Longitude.Radians;
-            // double lonB = end.Longitude.Radians;
-
-            //double delta_lon = lonB - lonA;
-
-            double cos_latB = Math.Cos(latB);
-            double sin_latB = Math.Sin(latB);
-            // double sin_latA = Math.Sin(latA);
-            //double cos_latA = Math.Cos(latA);
-            //double cos_delta_lon = Math.Cos(delta_lon);
-
-            return GetDistance(start, sin_latB, cos_latB, end.Longitude, out bearingY, out bearingX);
         }
 
         public static Length GetDistance(in GeoPoint start, double sinEndLatitude, double cosEndLatitude, Angle endLongitude,
@@ -269,6 +247,32 @@ namespace Geo
             double delta_angle = Math.Atan2(y, x);
 
             return EarthRadius * Math.Abs(delta_angle);
+        }
+
+
+        public static Length GetDistance(in GeoPoint start, in GeoPoint end)
+        {
+            return GetDistance(start, end, out _, out _);
+        }
+
+        public static Length GetDistance(in GeoPoint start, in GeoPoint end, out double bearingY, out double bearingX)
+        {
+            // https://en.wikipedia.org/wiki/Great-circle_distance#Computational_formulas
+
+            //double latA = start.Latitude.Radians;
+            double latB = end.Latitude.Radians;
+            // double lonA = start.Longitude.Radians;
+            // double lonB = end.Longitude.Radians;
+
+            //double delta_lon = lonB - lonA;
+
+            double cos_latB = Math.Cos(latB);
+            double sin_latB = Math.Sin(latB);
+            // double sin_latA = Math.Sin(latA);
+            //double cos_latA = Math.Cos(latA);
+            //double cos_delta_lon = Math.Cos(delta_lon);
+
+            return GetDistance(start, sin_latB, cos_latB, end.Longitude, out bearingY, out bearingX);
         }
 
         public static Length GetSignedDistance(in GeoPoint start, in GeoPoint end)
@@ -391,6 +395,7 @@ namespace Geo
             double bearing_diff = Math.Abs(bear13 - bear12);
             if (bearing_diff > Math.PI)
                 bearing_diff = 2 * Math.PI - bearing_diff;
+
             if (bearing_diff > (Math.PI / 2))
             {
                 crossPoint = arcP1;

@@ -9,8 +9,8 @@ namespace TrackRadar
     [Application]
     public sealed class TrackRadarApp : Application
     {
-        private GpxData trackData;
-        public GpxData TrackData
+        private IPlanData trackData;
+        public IPlanData TrackData
         {
             get { return Interlocked.CompareExchange(ref trackData, null, null); }
             set { Interlocked.Exchange(ref trackData, value); }

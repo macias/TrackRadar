@@ -154,7 +154,7 @@ namespace TrackRadar
         {
             SendProgress(tagRequest, null, 0);
 
-            GpxData data = null;
+            IPlanData data = null;
             string failure = null;
 
             try

@@ -6,6 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Geo.Tests\Geo.Tests.csproj" />
     <ProjectReference Include="..\TrackRadar.Tests\TrackRadar.Tests.csproj" />
   </ItemGroup>
 

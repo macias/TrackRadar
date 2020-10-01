@@ -1,11 +1,15 @@
-﻿using System.Collections.Generic;
+﻿using MathUnit;
+using System.Collections.Generic;
 
 namespace Geo
 {
     public interface ISegment
     {
+        int SectionId { get; }
         GeoPoint A { get; }
         GeoPoint B { get; }
+
+        Length GetLength();
 
         Ordering CompareImportance(ISegment other);
     }

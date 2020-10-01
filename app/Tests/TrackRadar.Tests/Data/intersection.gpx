@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx
+  version="1.0"
+  creator="GPSBabel - http://www.gpsbabel.org"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://www.topografix.com/GPX/1/0"
+  xsi:schemaLocation="http://www.topografix.com/GPX/1/0 http://www.topografix.com/GPX/1/0/gpx.xsd">
+<time>2020-09-22T15:18:48Z</time>
+<bounds minlat="38.807893100" minlon="-3.805790600" maxlat="38.821201700" maxlon="-3.777380600"/>
+<trk>
+  <name>Line 1</name>
+<trkseg>
+<trkpt lat="38.821201700" lon="-3.805790600">
+  <ele>0.000000</ele>
+</trkpt>
+<trkpt lat="38.817690900" lon="-3.797765400">
+  <ele>0.000000</ele>
+</trkpt>
+<trkpt lat="38.812742000" lon="-3.783345800">
+  <ele>0.000000</ele>
+</trkpt>
+<trkpt lat="38.807893100" lon="-3.783217100">
+  <ele>0.000000</ele>
+</trkpt>
+</trkseg>
+</trk>
+<trk>
+  <name>Line 2</name>
+<trkseg>
+<trkpt lat="38.819295900" lon="-3.777380600">
+  <ele>0.000000</ele>
+</trkpt>
+<trkpt lat="38.817925000" lon="-3.786779100">
+  <ele>0.000000</ele>
+</trkpt>
+<trkpt lat="38.812407600" lon="-3.794246300">
+  <ele>0.000000</ele>
+</trkpt>
+<trkpt lat="38.811371000" lon="-3.804803500">
+  <ele>0.000000</ele>
+</trkpt>
+</trkseg>
+</trk>
+</gpx>

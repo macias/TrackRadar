@@ -8,7 +8,7 @@
             None, // regular point, not a crossroad
 
             Intersection, // true intersection, X
-            Extension, // -- * --
+            Extension, // -- * -- (it is connection between ends of the tracks)
             PassingBy, // distant "intersection", > * <
         }
         

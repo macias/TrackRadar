@@ -6,14 +6,6 @@ using System.Linq;
 
 namespace TrackRadar.Implementation
 {
-    /*public enum AlarmState
-    {
-        None,
-        Failed,
-        Played,
-        Postponed,
-    }*/
-
     internal sealed class RadarCore
     {
         internal const string GeoPointFormat = "0.00000000000000";
@@ -40,8 +32,6 @@ namespace TrackRadar.Implementation
         private readonly TurnLookout turn_lookout;
         private readonly RoundQueue<(GeoPoint point, Length? altitude, long timestamp)> lastPoints;
         private readonly IGeoMap trackMap;
-        //private readonly IReadOnlyList<GeoPoint> trackCrossroads;
-        //private readonly IEnumerable<ISegment> segments;
         private long lastOffTrackAlarmAt;
         private long lastOnTrackAlarmAt;
         private long ridingStartedAt;
@@ -75,9 +65,7 @@ namespace TrackRadar.Implementation
         public Speed TopSpeedReadout => this.topSpeed;
         public Length TotalClimbsReadout => this.totalClimbs;
 
-        //   private Alarm? pendingAlarm;
-
-        public RadarCore(IRadarService service, IAlarmSequencer alarmSequencer, ITimeStamper timeStamper, GpxData gpxData,
+        public RadarCore(IRadarService service, IAlarmSequencer alarmSequencer, ITimeStamper timeStamper, IPlanData planData,
             Length totalClimbs, Length startRidingDistance, TimeSpan ridingTime, Speed topSpeed)
         {
             // keeping window of 3 points seems like a good balance for measuring travelled distance (and speed)
@@ -97,11 +85,16 @@ namespace TrackRadar.Implementation
 
             this.StartedAt = timeStamper.GetTimestamp();
 
-            this.trackMap = MapHelper.CreateDefaultGrid(gpxData.Segments);
+            this.trackMap = CreateTrackMap(planData.Segments);
 
-            this.turn_lookout = new TurnLookout(service, alarmSequencer, timeStamper, gpxData, this.trackMap);
+            this.turn_lookout = new TurnLookout(service, alarmSequencer, timeStamper, planData, this.trackMap);
 
             service.LogDebug(LogLevel.Info, $"{trackMap.Segments.Count()} segments in {timeStamper.GetSecondsSpan(StartedAt)}s");
+        }
+
+        internal static IGeoMap CreateTrackMap(IEnumerable<ISegment> segments)
+        {
+            return GeoMapFactory.CreateGrid(segments);
         }
 
         /// <returns>negative value means on track</returns>
@@ -110,7 +103,7 @@ namespace TrackRadar.Implementation
             double dist;
             long now = timeStamper.GetTimestamp();
 
-            bool on_track = isOnTrack(currentPoint, accuracy, out dist);
+            bool on_track = isOnTrack(currentPoint, accuracy, out ISegment segment, out dist, out GeoPoint crosspoint);
 
             Speed prev_riding = this.ridingSpeed;
 
@@ -186,18 +179,15 @@ namespace TrackRadar.Implementation
 
             // todo: think about it -- while do we call it when we don't have an older point??? 
             handleAlarm(older_point.HasValue ? older_point.Value.lastPoint : currentPoint,
-                currentPoint, on_track, prev_riding, now);//, out AlarmState played);
+                currentPoint, segment, crosspoint, on_track, prev_riding, now);
 
             return dist;
         }
 
-        private
-            //Alarm? 
-            void handleAlarm(in GeoPoint somePreviousPoint, in GeoPoint currentPoint, bool isOnTrack, Speed prevRiding, long now)//, out AlarmState played)
+        private void handleAlarm(in GeoPoint somePreviousPoint, in GeoPoint currentPoint,
+            ISegment segment, in GeoPoint crosspoint,
+            bool isOnTrack, Speed prevRiding, long now)
         {
-            //played = AlarmState.None;
-            //Alarm? alarm = default;
-
             // do not trigger alarm if we stopped moving
             if (this.ridingSpeed == Speed.Zero)
             {
@@ -216,21 +206,18 @@ namespace TrackRadar.Implementation
             else if (isOnTrack)
             {
                 //played = 
-                turn_lookout.AlarmTurnAhead(somePreviousPoint, currentPoint, this.ridingSpeed, now, out string turn_reason);
-                //if (played != AlarmState.None)
-                //  alarm = Alarm.Crossroad;
+                turn_lookout.AlarmTurnAhead(somePreviousPoint, currentPoint,
+                    segment, crosspoint,
+                    this.ridingSpeed, now, out string _);
 
                 if (prevRiding == Speed.Zero  // we started riding, engagement
                     || this.lastOnTrackAlarmAt < this.lastOffTrackAlarmAt) // we were previously off-track
                 {
-                    // if (!alarm.HasValue)
-                    //{
                     var alarm = prevRiding == Speed.Zero ? Alarm.Engaged : Alarm.BackOnTrack;
                     var played = alarmSequencer.TryAlarm(alarm, out string reason);//? AlarmState.Played : AlarmState.Failed;
                     service.LogDebug(LogLevel.Verbose, $"ACK played {played}, reason: {reason}, back on track");
-                    //}
 
-                    if (played)//== AlarmState.Played)
+                    if (played)
                         this.lastOnTrackAlarmAt = now;
                 }
 
@@ -272,12 +259,12 @@ namespace TrackRadar.Implementation
         }
 
         /// <param name="dist">negative value means on track</param>
-        private bool isOnTrack(in GeoPoint point, Length? accuracy, out double dist)
+        private bool isOnTrack(in GeoPoint point, Length? accuracy, out ISegment segment, out double dist, out GeoPoint crosspoint)
         {
             Length limit = service.OffTrackAlarmDistance;
             if (accuracy.HasValue)
                 limit += accuracy.Value;
-            return PositionCalculator.IsOnTrack(point, trackMap, limit, out dist);
+            return PositionCalculator.IsOnTrack(point, trackMap, limit, out segment, out dist, out crosspoint);
         }
 
         /*       internal void UpdateGpsPendingAlarm(bool gpsAcquired, bool hasGpsSignal)

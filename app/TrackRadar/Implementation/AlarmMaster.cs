@@ -201,5 +201,10 @@ namespace TrackRadar.Implementation
             }
         }
 
+        public void PostMessage(string reason)
+        {
+            ; // do nothing, we could send it to UI but this makes little sense
+        }
+
     }
 }

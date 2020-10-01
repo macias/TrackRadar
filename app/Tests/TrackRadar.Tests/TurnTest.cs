@@ -18,13 +18,111 @@ namespace TrackRadar.Tests
         private const double precision = 0.00000001;
 
         [TestMethod]
+        public void WRONG_PickingMiddleTurnTest()
+        {
+            // we have very long segment, and 3 turnings points. The purpose of the test is to check if we get
+            // notification for the "middle" turn point which is far from segment points (but it lies on the segment)
+
+            var prefs = Toolbox.LowThresholdSpeedPreferences();
+            Speed ride_speed = prefs.RidingSpeedThreshold + Speed.FromKilometersPerHour(10);
+
+            // flat line
+            var turning_points = new[] { GeoPoint.FromDegrees(40, 5), GeoPoint.FromDegrees(40.05, 5), GeoPoint.FromDegrees(40.1, 5) };
+
+            IPlanData gpx_data = Toolbox.CreateTrackData(new[] { turning_points.First(), turning_points.Last() },
+                turning_points, prefs.OffTrackAlarmDistance);
+
+            var track_points = new[] { turning_points.First(), turning_points.Last() }.ToList();
+            Toolbox.PopulateTrackDensely(track_points);
+
+            Toolbox.Ride(prefs, gpx_data, track_points, out var alarm_counters, out var alarms, out var messages);
+
+            Assert.AreEqual(7, alarms.Count());
+
+            Assert.AreEqual((Alarm.Crossroad, 3), alarms[0]);
+
+            Assert.AreEqual((Alarm.Crossroad, 2031), alarms[1]);
+            Assert.AreEqual((Alarm.GoAhead, 2033), alarms[2]);
+            Assert.AreEqual((Alarm.GoAhead, 2035), alarms[3]);
+
+            Assert.AreEqual((Alarm.Crossroad, 4079), alarms[4]);
+            Assert.AreEqual((Alarm.LeftSharp, 4081), alarms[5]);
+            Assert.AreEqual((Alarm.LeftSharp, 4083), alarms[6]);
+
+            Assert.AreEqual((TurnLookout.LeavingTurningPoint, 5), messages[0]);
+        }
+
+        [TestMethod]
+        public void ZTwoLeftTurnsSlowSpeedTest()
+        {
+            string plan_filename = @"Data/z-two-left-turns.plan.gpx";
+            string tracked_filename = @"Data/z-two-left-turns.tracked.gpx";
+
+            var prefs = new Preferences(); // regular thresholds for speed
+            IPlanData gpx_data = GpxLoader.ReadGpx(plan_filename, prefs.OffTrackAlarmDistance, onProgress: null, CancellationToken.None);
+
+            var track_points = Toolbox.ReadTrackPoints(tracked_filename).Select(it => GpxHelper.FromGpx(it)).ToList();
+
+            Toolbox.PopulateTrackDensely(track_points);
+
+            //Toolbox.SaveSegments("seg.gpx", gpx_data.Segments);
+            //Toolbox.SaveGpx("aaa.gpx", track_points);
+
+            Toolbox.Ride(prefs, gpx_data, track_points, out IReadOnlyDictionary<Alarm, int> alarmCounters,
+                out IReadOnlyList<(Alarm alarm, int index)> alarms,
+                out IReadOnlyList<(string message, int index)> messages);
+
+            Assert.AreEqual(1, alarms.Count());
+
+            Assert.AreEqual((Alarm.Crossroad,1027), alarms[0]);
+
+            Assert.AreEqual((TurnLookout.LeavingTurningPoint, 1029), messages[0]);
+        }
+
+
+        [TestMethod]
+        public void ZTwoLeftTurnsTest()
+        {
+            string plan_filename = @"Data/z-two-left-turns.plan.gpx";
+            string tracked_filename = @"Data/z-two-left-turns.tracked.gpx";
+
+            var prefs = Toolbox.LowThresholdSpeedPreferences();
+            IPlanData gpx_data = GpxLoader.ReadGpx(plan_filename, prefs.OffTrackAlarmDistance, onProgress: null, CancellationToken.None);
+
+            var track_points = Toolbox.ReadTrackPoints(tracked_filename).Select(it => GpxHelper.FromGpx(it)).ToList();
+
+            Toolbox.PopulateTrackDensely(track_points);
+
+            Assert.AreEqual(3, gpx_data.Segments.Select(it => it.SectionId).Distinct().Count());
+
+            Toolbox.Ride(prefs, gpx_data, track_points, out var alarm_counters, out var alarms, out var messages);
+
+            Assert.AreEqual(7, alarms.Count());
+
+            Assert.AreEqual(Alarm.Engaged, alarms[0].alarm);
+            Assert.AreEqual(3, alarms[0].index);
+            Assert.AreEqual(Alarm.Crossroad, alarms[1].alarm);
+            Assert.AreEqual(495, alarms[1].index);
+            Assert.AreEqual(Alarm.LeftSharp, alarms[2].alarm);
+            Assert.AreEqual(497, alarms[2].index);
+            Assert.AreEqual(Alarm.LeftSharp, alarms[3].alarm);
+            Assert.AreEqual(499, alarms[3].index);
+            Assert.AreEqual(Alarm.Crossroad, alarms[4].alarm);
+            Assert.AreEqual(1006, alarms[4].index);
+            Assert.AreEqual(Alarm.RightSharp, alarms[5].alarm);
+            Assert.AreEqual(1008, alarms[5].index);
+            Assert.AreEqual(Alarm.RightSharp, alarms[6].alarm);
+            Assert.AreEqual(1010, alarms[6].index);
+        }
+
+        [TestMethod]
         public void DuplicateTurnPointTest()
         {
             string plan_filename = @"Data/dup-turn-point.plan.gpx";
             string tracked_filename = @"Data/dup-turn-point.tracked.gpx";
 
             var prefs = new Preferences();
-            GpxData gpx_data = GpxLoader.ReadGpx(plan_filename, prefs.OffTrackAlarmDistance, onProgress: null, CancellationToken.None);
+            IPlanData gpx_data = GpxLoader.ReadGpx(plan_filename, prefs.OffTrackAlarmDistance, onProgress: null, CancellationToken.None);
 
             var track_points = Toolbox.ReadTrackPoints(tracked_filename).ToArray();
 
@@ -51,6 +149,10 @@ namespace TrackRadar.Tests
                     }
                 }
 
+                Assert.AreEqual(1, counting_alarm_master.AlarmCounters[Alarm.Engaged]);
+                Assert.AreEqual(Alarm.Engaged, counting_alarm_master.Alarms[0].alarm);
+                Assert.AreEqual(3, counting_alarm_master.Alarms[0].index);
+
                 Assert.AreEqual(3, counting_alarm_master.AlarmCounters[Alarm.Crossroad]);
             }
 
@@ -61,7 +163,7 @@ namespace TrackRadar.Tests
         {
             {
                 var turn = new Turn(Angle.FromDegrees(231.745654889123), Angle.FromDegrees(306.502092791698));
-                Assert.IsFalse(TurnLookout.TryComputeTurnKind(Angle.FromDegrees(293.147847303439), turn, out TurnKind tk));
+                Assert.IsFalse(TurnLookout.LegacyComputeTurnKind(Angle.FromDegrees(293.147847303439), turn, out TurnKind tk));
 
             }
             {
@@ -70,12 +172,12 @@ namespace TrackRadar.Tests
                 // |
                 // and we are comming from the bottom, going up
                 var turn = new Turn(Angle.FromDegrees(359), Angle.FromDegrees(270));
-                Assert.IsTrue(TurnLookout.TryComputeTurnKind(Angle.FromDegrees(1), turn, out TurnKind tk));
+                Assert.IsTrue(TurnLookout.LegacyComputeTurnKind(Angle.FromDegrees(1), turn, out TurnKind tk));
                 Assert.AreEqual(TurnKind.RightCross, tk);
             }
             {
                 var turn = new Turn(Angle.FromDegrees(1), Angle.FromDegrees(270));
-                Assert.IsTrue(TurnLookout.TryComputeTurnKind(Angle.FromDegrees(359), turn, out TurnKind tk));
+                Assert.IsTrue(TurnLookout.LegacyComputeTurnKind(Angle.FromDegrees(359), turn, out TurnKind tk));
                 Assert.AreEqual(TurnKind.RightCross, tk);
 
             }
@@ -131,7 +233,8 @@ namespace TrackRadar.Tests
                 GeoPoint b = GeoPoint.FromDegrees(37.65278, -94.70453);
                 GeoPoint c = GeoPoint.FromDegrees(37.84314, -94.70957);
 
-                Assert.IsTrue(TurnCalculator.TryComputeTurn(b, MapHelper.CreateDefaultGrid(new[] { new Segment(a, b), new Segment(b, c) }),
+                IGeoMap map = Toolbox.CreateTrackMap(new[] { a, b, c });
+                Assert.IsTrue(TurnCalculator.TryComputeTurn(b, map,
                     turn_ahead_distance, out Turn turn));
                 Assert.AreEqual(359.475341177312, turn.BearingA.Degrees, precision);
                 Assert.AreEqual(178.802134619193, turn.BearingB.Degrees, precision);
@@ -142,7 +245,9 @@ namespace TrackRadar.Tests
                 GeoPoint b = GeoPoint.FromDegrees(37.65278, -94.70453);
                 GeoPoint c = GeoPoint.FromDegrees(37.49093, -94.4816);
 
-                Assert.IsTrue(TurnCalculator.TryComputeTurn(b, MapHelper.CreateDefaultGrid(new[] { new Segment(a, b), new Segment(b, c) }),
+                Assert.IsTrue(TurnCalculator.TryComputeTurn(b,
+                    Toolbox.CreateTrackMap(new[] { a, b, c }),
+                    //                    RadarCore.CreateTrackMap(new[] { new Segment(a, b), new Segment(b, c) }),
                     turn_ahead_distance, out Turn turn));
                 Assert.AreEqual(359.475341177312, turn.BearingA.Degrees, precision);
                 Assert.AreEqual(312.425971052848, turn.BearingB.Degrees, precision);
@@ -153,7 +258,9 @@ namespace TrackRadar.Tests
                 GeoPoint b = GeoPoint.FromDegrees(37.65278, -94.70453);
                 GeoPoint c = GeoPoint.FromDegrees(37.70202, -94.47611);
 
-                Assert.IsTrue(TurnCalculator.TryComputeTurn(b, MapHelper.CreateDefaultGrid(new[] { new Segment(a, b), new Segment(b, c) }),
+                Assert.IsTrue(TurnCalculator.TryComputeTurn(b,
+                    Toolbox.CreateTrackMap(new[] { a, b, c }),
+                    //                    RadarCore.CreateTrackMap(new[] { new Segment(a, b), new Segment(b, c) }),
                     turn_ahead_distance, out Turn turn));
                 Assert.AreEqual(359.475341177312, turn.BearingA.Degrees, precision);
                 Assert.AreEqual(254.698737269103, turn.BearingB.Degrees, precision);
@@ -164,7 +271,9 @@ namespace TrackRadar.Tests
                 GeoPoint b = GeoPoint.FromDegrees(37.65278, -94.70453);
                 GeoPoint c = GeoPoint.FromDegrees(37.84639, -94.58322);
 
-                Assert.IsTrue(TurnCalculator.TryComputeTurn(b, MapHelper.CreateDefaultGrid(new[] { new Segment(a, b), new Segment(b, c) }),
+                Assert.IsTrue(TurnCalculator.TryComputeTurn(b,
+                    Toolbox.CreateTrackMap(new[] { a, b, c }),
+                    //                    RadarCore.CreateTrackMap(new[] { new Segment(a, b), new Segment(b, c) }),
                     turn_ahead_distance, out Turn turn));
                 Assert.AreEqual(359.475341177312, turn.BearingA.Degrees, precision);
                 Assert.AreEqual(206.32012655082, turn.BearingB.Degrees, precision);
@@ -175,7 +284,7 @@ namespace TrackRadar.Tests
         public void RideWithTurnsTest()
         {
             const string result_filename = @"Data/turning-excercise.result.gpx";
-            IReadOnlyList<GpxWayPoint> turn_points = Toolbox.ReadWayPoints(result_filename).ToList();
+            IReadOnlyList<GpxWayPoint> turn_points = Toolbox.ReadWaypoints(result_filename).ToList();
 
             List<GeoPoint> track_points = new List<GeoPoint>();
             RideWithTurns(track_points, out IReadOnlyList<(Alarm alarm, int index)> alarms);
@@ -197,17 +306,14 @@ namespace TrackRadar.Tests
 
             trackPoints.AddRange(Toolbox.ReadTrackPoints(plan_filename).Select(it => GpxHelper.FromGpx(it)));
 
-            var gpx_data = new GpxData(Enumerable.Range(0, trackPoints.Count - 1)
-                .Select(i => new Segment(trackPoints[i], trackPoints[i + 1])),
+            var gpx_data = Toolbox.CreateTrackData(trackPoints,
+                //new TrackData(Enumerable.Range(0, trackPoints.Count - 1)
+                //.Select(i => new Segment(trackPoints[i], trackPoints[i + 1])),
                 // set each in-track point as turning one
-                trackPoints.Skip(1).SkipLast(1));
+                trackPoints.Skip(1).SkipLast(1), prefs.OffTrackAlarmDistance);
 
             // populate densely the "ride" points (better than having 1MB file on disk)
-            for (int i = 0; i < trackPoints.Count - 1; ++i)
-            {
-                while (GeoCalculator.GetDistance(trackPoints[i], trackPoints[i + 1]).Meters > 3)
-                    trackPoints.Insert(i + 1, GeoCalculator.GetMidPoint(trackPoints[i], trackPoints[i + 1]));
-            }
+            Toolbox.PopulateTrackDensely(trackPoints);
 
             var clock = new SecondStamper();
             using (var raw_alarm_master = new AlarmMaster(clock))
@@ -216,7 +322,8 @@ namespace TrackRadar.Tests
                 var counting_alarm_master = new CountingAlarmMaster(raw_alarm_master);
                 var service = new Implementation.RadarService(prefs, clock);
                 var sequencer = new AlarmSequencer(service, counting_alarm_master);
-                var lookout = new TurnLookout(service, sequencer, clock, gpx_data, MapHelper.CreateDefaultGrid(gpx_data.Segments));
+                IGeoMap map = RadarCore.CreateTrackMap(gpx_data.Segments);
+                var lookout = new TurnLookout(service, sequencer, clock, gpx_data, map);
                 Speed ride_speed = Speed.FromKilometersPerHour(10);
 
                 long start = Stopwatch.GetTimestamp();
@@ -229,7 +336,9 @@ namespace TrackRadar.Tests
                     {
                         clock.Advance();
                         counting_alarm_master.SetPointIndex(point_index);
-                        lookout.AlarmTurnAhead(last_pt, pt, ride_speed, clock.GetTimestamp(), out _);
+                        PositionCalculator.IsOnTrack(pt, map, prefs.OffTrackAlarmDistance,
+                            out ISegment segment, out _, out GeoPoint crosspoint);
+                        lookout.AlarmTurnAhead(last_pt, pt, segment, crosspoint, ride_speed, clock.GetTimestamp(), out _);
                         ++point_index;
                         last_pt = pt;
                     }
@@ -251,6 +360,8 @@ namespace TrackRadar.Tests
             }
         }
 
+
+
         [TestMethod]
         public void DeadSpotOnTurningPointTest()
         {
@@ -263,10 +374,12 @@ namespace TrackRadar.Tests
                 GeoPoint.FromDegrees(38,11) };
             var turning_point = points[1];
 
-            var gpx_data = new GpxData(Enumerable.Range(0, points.Count() - 1)
-                .Select(i => new Segment(points[i], points[i + 1])),
+            var gpx_data = Toolbox.CreateTrackData(points,
+                //new TrackData(
+                //Enumerable.Range(0, points.Count() - 1)
+                //.Select(i => new Segment(points[i], points[i + 1])),
                 // set each in-track point as turning one
-                points.Skip(1).SkipLast(1));
+                points.Skip(1).SkipLast(1), prefs.OffTrackAlarmDistance);
 
             var clock = new SecondStamper();
             using (var raw_alarm_master = new AlarmMaster(clock))
@@ -275,9 +388,12 @@ namespace TrackRadar.Tests
                 var counting_alarm_master = new CountingAlarmMaster(raw_alarm_master);
                 var service = new Implementation.RadarService(prefs, clock);
                 var sequencer = new AlarmSequencer(service, counting_alarm_master);
-                var lookout = new TurnLookout(service, sequencer, clock, gpx_data, MapHelper.CreateDefaultGrid(gpx_data.Segments));
+                IGeoMap map = RadarCore.CreateTrackMap(gpx_data.Segments);
+                var lookout = new TurnLookout(service, sequencer, clock, gpx_data, map);
+                PositionCalculator.IsOnTrack(turning_point, map, prefs.OffTrackAlarmDistance,
+                    out ISegment segment, out _, out GeoPoint crosspoint);
                 // simulate we are exactly at turning point (no bearing then) and look out for program crash
-                lookout.AlarmTurnAhead(turning_point, turning_point, ride_speed, clock.GetTimestamp(), out _);
+                lookout.AlarmTurnAhead(turning_point, turning_point, segment, crosspoint, ride_speed, clock.GetTimestamp(), out _);
 
                 Assert.AreEqual(1, counting_alarm_master.AlarmCounters[Alarm.Crossroad]);
             }
@@ -308,10 +424,11 @@ namespace TrackRadar.Tests
                      .ToArray();
             }
 
-            var gpx_data = new GpxData(Enumerable.Range(0, span_points.Count() - 1)
-                .Select(i => new Segment(span_points[i], span_points[i + 1])),
+            var gpx_data = Toolbox.CreateTrackData(span_points,
+                //new TrackData(Enumerable.Range(0, span_points.Count() - 1)
+                //.Select(i => new Segment(span_points[i], span_points[i + 1])),
                 // set each in-track point as turning one
-                span_points.Skip(1).SkipLast(1));
+                span_points.Skip(1).SkipLast(1), prefs.OffTrackAlarmDistance);
 
 
             var clock = new SecondStamper();
@@ -340,6 +457,7 @@ namespace TrackRadar.Tests
                 Assert.AreEqual(1, counting_alarm_master.AlarmCounters[Alarm.Crossroad]);
                 foreach (var turn_kind in EnumHelper.GetValues<TurnKind>())
                     Assert.AreEqual(0, counting_alarm_master.AlarmCounters[turn_kind.ToAlarm()]);
+
             }
         }
     }

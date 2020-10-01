@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Geo.Implementation
 {
-    internal sealed class PointGrid : Grid<GeoPoint, PointTile>, IPointGrid
+/*    internal sealed class PointGrid : Grid<GeoPoint, PointTile>, IPointGrid
     {
         public PointGrid(IEnumerable<GeoPoint> points, Length tileSize) : base(points, x => x, tileSize)
         {
@@ -30,6 +30,6 @@ namespace Geo.Implementation
             return getTilesCloserThan(point, limit)
                 .SelectMany(it => it.Points);
         }
-
-    }
+        
+    }*/
 }

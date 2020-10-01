@@ -11,16 +11,19 @@ namespace TrackRadar.Tests.Implementation
         private readonly IAlarmMaster master;
         private readonly Dictionary<Alarm, int> alarmCount;
         private readonly List<(Alarm alarm, int pointIndex)> alarms;
+        private readonly List<(string message, int pointIndex)> messages;
         private int pointIndex;
 
         public IReadOnlyDictionary<Alarm, int> AlarmCounters => this.alarmCount;
         public IReadOnlyList<(Alarm alarm, int index)> Alarms => alarms;
+        public IReadOnlyList<(string message, int index)> Messages => messages;
 
         public CountingAlarmMaster(IAlarmMaster master)
         {
             this.master = master;
             this.alarmCount = LinqExtension.GetEnums<Alarm>().ToDictionary(alarm => alarm, _ => 0);
             this.alarms = new List<(Alarm alarm, int pointIndex)>();
+            this.messages = new List<(string message, int pointIndex)>();
         }
         public bool TryAlarm(Alarm alarm, out string reason)
         {
@@ -31,6 +34,10 @@ namespace TrackRadar.Tests.Implementation
             ++alarmCount[alarm];
             // Console.WriteLine($"ALARM {alarm}");
             return true;
+        }
+        public void PostMessage(string message)
+        {
+            this.messages.Add((message, pointIndex));
         }
         internal void SetPointIndex(int index)
         {

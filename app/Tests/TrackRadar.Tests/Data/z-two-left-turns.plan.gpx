@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx
+  version="1.0"
+  creator="GPSBabel - http://www.gpsbabel.org"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://www.topografix.com/GPX/1/0"
+  xsi:schemaLocation="http://www.topografix.com/GPX/1/0 http://www.topografix.com/GPX/1/0/gpx.xsd">
+<time>2020-09-17T18:14:51Z</time>
+<bounds minlat="53.014476800" minlon="-0.906138300" maxlat="53.020947300" maxlon="-0.896010300"/>
+<wpt lat="53.020534200" lon="-0.896047400">
+  <ele>0.000000</ele>
+  <name>Point 4</name>
+  <cmt>Point 4</cmt>
+  <desc>Point 4</desc>
+</wpt>
+<wpt lat="53.015164400" lon="-0.905789200">
+  <ele>0.000000</ele>
+  <name>Point 5</name>
+  <cmt>Point 5</cmt>
+  <desc>Point 5</desc>
+</wpt>
+<trk>
+  <name>Line 3</name>
+<trkseg>
+<trkpt lat="53.014867500" lon="-0.905644300">
+  <ele>0.000000</ele>
+</trkpt>
+<trkpt lat="53.020534200" lon="-0.896047400">
+  <ele>0.000000</ele>
+</trkpt>
+<trkpt lat="53.015164400" lon="-0.905789200">
+  <ele>0.000000</ele>
+</trkpt>
+<trkpt lat="53.020947300" lon="-0.897206100">
+  <ele>0.000000</ele>
+</trkpt>
+</trkseg>
+</trk>
+</gpx>

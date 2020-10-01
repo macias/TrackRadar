@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace Geo.Implementation
 {
-    internal sealed class Graph : IGraph
+/*    internal sealed class Graph : IGraph
     {
         private readonly Dictionary<Geo.GeoPoint, List<Geo.GeoPoint>> data;
 
@@ -44,13 +44,6 @@ namespace Geo.Implementation
             return this.data[node];
         }
 
-        /*internal GeoPoint GetReference(Angle latitude, Angle longitude)
-        {
-            foreach (var point in this.data.Keys)
-                if (point.Latitude == latitude && point.Longitude == longitude)
-                    return point;
-
-            throw new ArgumentException($"{latitude}, {longitude} not found");
-        }*/
-    }
+        
+    }*/
 }

@@ -17,6 +17,8 @@ namespace TrackRadar
             // null in the value indicates such node was already processed (so do NOT reintroduce it)
             private readonly Dictionary<TrackNode, PairingHeapNode<Length, TurnNodeInfo>> heapNodes;
 
+            public IEnumerable<(TrackNode,GeoPoint)> NodeTurnPoints => this.heapNodes.Select(it => (it.Key,it.Value.Tag.TurnPoint));
+
             public NodeQueue()
             {
                 this.heapNodes = new Dictionary<TrackNode, PairingHeapNode<Length, TurnNodeInfo>>();
@@ -45,6 +47,18 @@ namespace TrackRadar
             public bool Contains(TrackNode node)
             {
                 return heapNodes.ContainsKey(node);
+            }
+
+            public bool TryGetTurnPoint(TrackNode node,out GeoPoint turnPoint)
+            {
+                if (!heapNodes.TryGetValue(node, out PairingHeapNode<Length, TurnNodeInfo> heap_node))
+                {
+                    turnPoint = default;
+                    return false;
+                }
+
+                turnPoint = heap_node.Tag.TurnPoint;
+                return true;
             }
 
             public void Update(TrackNode trackNode, GeoPoint turnPoint, int hops, Length distance)

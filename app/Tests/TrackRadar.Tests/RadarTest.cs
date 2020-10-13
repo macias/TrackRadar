@@ -123,6 +123,7 @@ namespace TrackRadar.Tests
         }
         */
 
+#if DEBUG
         [TestMethod]
         public void TurnGraphVerificationTest()
         {
@@ -139,7 +140,7 @@ namespace TrackRadar.Tests
                 ++index;
             }
         }
-
+#endif
 
         [TestMethod]
         public void OffTrackComparison_DuplicateTurnPoint_Test()

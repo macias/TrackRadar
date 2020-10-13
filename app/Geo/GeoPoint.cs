@@ -10,8 +10,8 @@ namespace Geo
             return new GeoPoint(latitude: Angle.FromDegrees(latitude), longitude: Angle.FromDegrees(longitude));
         }
 
-        public Angle Latitude { get; }
-        public Angle Longitude { get; }
+        public Angle Latitude { get; } // Y, -90 to +90
+        public Angle Longitude { get; } // X, -180 to +180
 
         public GeoPoint(Angle latitude, Angle longitude)
         {

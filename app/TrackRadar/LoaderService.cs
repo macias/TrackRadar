@@ -7,6 +7,7 @@ using System.Threading;
 using TrackRadar.Implementation;
 using MathUnit;
 using System.Linq;
+using System.Diagnostics;
 
 namespace TrackRadar
 {
@@ -156,6 +157,7 @@ namespace TrackRadar
 
             IPlanData data = null;
             string failure = null;
+            long start = Stopwatch.GetTimestamp();
 
             try
             {
@@ -190,7 +192,7 @@ namespace TrackRadar
                 failure = "Error while loading GPX";
             }
 
-            logDebug( LogLevel.Verbose, $"Finished loading {(data==null?"null":"ok")} {failure} req: {tagRequest}");
+            logDebug( LogLevel.Verbose, $"Finished loading {(data==null?"null":"ok")} in {(((Stopwatch.GetTimestamp()-start-0.0)/Stopwatch.Frequency).ToString("0.###"))}s {failure} req: {tagRequest}");
 
             app.TrackData = data; // null on fail, non-null on success
             app.TrackTag = tagRequest;

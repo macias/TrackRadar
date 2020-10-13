@@ -94,6 +94,9 @@ namespace TrackRadar.Implementation
 
         internal static IGeoMap CreateTrackMap(IEnumerable<ISegment> segments)
         {
+            // todo: switch to graph
+            // on acquiring gps signal we would need to check entire graph, but after that only last and its
+            // adjacent segments
             return GeoMapFactory.CreateGrid(segments);
         }
 
@@ -205,7 +208,6 @@ namespace TrackRadar.Implementation
             }
             else if (isOnTrack)
             {
-                //played = 
                 turn_lookout.AlarmTurnAhead(somePreviousPoint, currentPoint,
                     segment, crosspoint,
                     this.ridingSpeed, now, out string _);

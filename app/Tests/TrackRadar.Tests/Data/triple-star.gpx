@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx
+version="1.0"
+creator="TrackRadar https://github.com/macias/TrackRadar"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xmlns="http://www.topografix.com/GPX/1/0"
+xsi:schemaLocation="http://www.topografix.com/GPX/1/0 http://www.topografix.com/GPX/1/0/gpx.xsd">
+<trk>
+<name>0</name>
+<trkseg>
+<trkpt lat="48.532101" lon="-23.667591"/>
+<trkpt lat="48.531859" lon="-23.667044"/>
+<trkpt lat="48.53171" lon="-23.666196"/>
+</trkseg>
+</trk>
+<trk>
+<name>1</name>
+<trkseg>
+<trkpt lat="48.606315" lon="-23.707604"/>
+<trkpt lat="48.604589" lon="-23.703956"/>
+<trkpt lat="48.532078" lon="-23.66765"/>
+<trkpt lat="48.53093" lon="-23.668852"/>
+</trkseg>
+</trk>
+</gpx>

@@ -5,6 +5,9 @@ namespace Geo
 {
     public interface ISegment
     {
+#if DEBUG
+        int __DEBUG_id { get; }
+#endif
         int SectionId { get; }
         GeoPoint A { get; }
         GeoPoint B { get; }

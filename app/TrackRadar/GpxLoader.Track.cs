@@ -10,21 +10,12 @@ namespace TrackRadar
         {
 #if DEBUG
             public int DEBUG_Count => this.Nodes.Count();
+            public bool DEBUG_AllNodesSectionSet => this.Nodes.All(it => it.IsSectionSet);
 #endif
             public TrackNode Head { get; }
 
-            public IEnumerable<TrackNode> Nodes
-            {
-                get
-                {
-                    TrackNode current = Head;
-                    while (current!=null)
-                    {
-                        yield return current;
-                        current = current.Next;
-                    }
-                }
-            }
+            public IEnumerable<TrackNode> Nodes => this.Head.Nodes;
+
             public IEnumerable<GeoPoint> GeoPoints => this.Nodes.Select(it => it.Point);
 
             public Track(IEnumerable<GeoPoint> points)

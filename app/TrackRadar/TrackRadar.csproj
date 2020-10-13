@@ -97,6 +97,8 @@
     <Compile Include="Implementation\Matrix.cs" />
     <Compile Include="Implementation\MeasuredGraph.cs" />
     <Compile Include="Implementation\PairingHeap.cs" />
+    <Compile Include="Implementation\ArmSectionPoints.cs" />
+    <Compile Include="Implementation\ITurnGraph.cs" />
     <Compile Include="Implementation\TurnPointInfo.cs" />
     <Compile Include="Implementation\TurnGraph.cs" />
     <Compile Include="Implementation\TurnLookout.cs" />

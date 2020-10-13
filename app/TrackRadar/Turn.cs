@@ -18,10 +18,12 @@ namespace TrackRadar
             SectionPoints = new ArmSectionPoints( sectionPoints);
         }
 
+#if DEBUG
         public override string ToString()
         {
             return $"{SectionId}";
         }
+#endif
     }
 
     public readonly struct Turn

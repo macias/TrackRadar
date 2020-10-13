@@ -9,5 +9,8 @@ namespace TrackRadar
         IReadOnlyList<GeoPoint> Crossroads { get; }
         IEnumerable<ISegment> Segments { get; }
         ITurnGraph Graph { get; }
+#if DEBUG
+        int DEBUG_ExtensionCount { get; }
+#endif
     }
 }

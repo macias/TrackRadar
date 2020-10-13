@@ -29,7 +29,7 @@ namespace TrackRadar.Implementation
             file.Dispose();
         }
 
-        public void WriteTrack(string name, params GeoPoint[] points)
+        public void WriteTrack(string name, IEnumerable<GeoPoint> points)
         {
             file.WriteLine("<trk>");
             file.WriteLine($"<name>{name}</name>");
@@ -41,7 +41,7 @@ namespace TrackRadar.Implementation
             file.WriteLine("</trkseg>");
             file.WriteLine("</trk>");
         }
-        public void WritePoint(in GeoPoint point, string name)
+        public void WritePoint( string name,in GeoPoint point)
         {
             file.WriteLine($"<wpt {str(point)}>");
             if (name != null)

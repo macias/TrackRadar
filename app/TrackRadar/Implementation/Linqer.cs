@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace TrackRadar.Implementation
 {
@@ -11,6 +12,15 @@ namespace TrackRadar.Implementation
             {
                 yield return (elem, index);
                 ++index;
+            }
+        }
+
+        public static IEnumerable<TElem> ForEach<TElem>(this IEnumerable<TElem> collection,Action<TElem> action)
+        {
+            foreach (TElem elem in collection)
+            {
+                action(elem);
+                yield return elem;
             }
         }
     }

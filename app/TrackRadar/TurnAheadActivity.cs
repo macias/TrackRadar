@@ -43,8 +43,6 @@ namespace TrackRadar
     // todo: voices from https://www.naturalreaders.com/online/
 
     // todo: [test] nie ma alarmu dla sytuacji -- wrocilem na sciezke i od razu stanalem
-    // todo: katy zakretu
-    // todo: nie grac cross road po minieciu
     // todo: climbs sie nie zliczaja
     // todo: przed statsami z lewej strony ikonka rowerzysty/pieszego
     // todo: na razie troche zle liczymy statsy, bo jesli gosc bedzie jechal wolno pod gore to nie zaliczymy ani czasu ani predkosci

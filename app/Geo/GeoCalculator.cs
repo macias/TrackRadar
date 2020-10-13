@@ -4,6 +4,9 @@ using System.Runtime.CompilerServices;
 
 namespace Geo
 {
+    // todo: read it
+    // https://blog.mapbox.com/fast-geodesic-approximations-with-cheap-ruler-106f229ad016
+
     public static partial class GeoCalculator
     {
         public static Length EarthRadius { get; } = Length.FromKilometers(6371);
@@ -72,7 +75,7 @@ namespace Geo
             cx1 = withinSegment(cx1_arc, startA, endA, startB, endB, angle_a, angle_b) ? cx1_arc : (GeoPoint?)null;
             cx2 = withinSegment(cx2_arc, startA, endA, startB, endB, angle_a, angle_b) ? cx2_arc : (GeoPoint?)null;
 
-            if (cx1==null && cx2!=null)
+            if (cx1 == null && cx2 != null)
             {
                 cx1 = cx2;
                 cx2 = null;
@@ -134,12 +137,13 @@ namespace Geo
             return true;
         }
 
-        public static bool TryGetArcIntersection(in GeoPoint startA, in GeoPoint endA, in GeoPoint startB, in GeoPoint endB, 
+        public static bool TryGetArcIntersection(in GeoPoint startA, in GeoPoint endA, in GeoPoint startB, in GeoPoint endB,
             out GeoPoint p1)
         {
             // http://blog.mbedded.ninja/mathematics/geometry/spherical-geometry/finding-the-intersection-of-two-arcs-that-lie-on-a-sphere
 
-            return TryGetArcIntersection(CrossProduct(startA, endA), startB, endB, out p1);
+            Vector a_cross_product = CrossProduct(startA, endA);
+            return TryGetArcIntersection(a_cross_product, startB, endB, out p1);
         }
 
         public static bool TryGetArcIntersection(Vector aCrossProduct, in GeoPoint startB, in GeoPoint endB, out GeoPoint p1)
@@ -208,8 +212,10 @@ namespace Geo
             double cos_lat2 = Math.Cos(lat2);
             double cos_lat1 = Math.Cos(lat1);
 
-            var Bx = cos_lat2 * Math.Cos(lon2 - lon1);
-            var By = cos_lat2 * Math.Sin(lon2 - lon1);
+            double delta_lon = lon2 - lon1;
+
+            var Bx = cos_lat2 * Math.Cos(delta_lon);
+            var By = cos_lat2 * Math.Sin(delta_lon);
             var φ3 = Math.Atan2(Math.Sin(lat1) + Math.Sin(lat2),
                                 Math.Sqrt((cos_lat1 + Bx) * (cos_lat1 + Bx) + By * By));
             var λ3 = lon1 + Math.Atan2(By, cos_lat1 + Bx);
@@ -223,14 +229,11 @@ namespace Geo
             // https://en.wikipedia.org/wiki/Great-circle_distance#Computational_formulas
 
             double latA = start.Latitude.Radians;
-            //            double latB = end.Latitude.Radians;
             double lonA = start.Longitude.Radians;
             double lonB = endLongitude.Radians;
 
             double delta_lon = lonB - lonA;
 
-            //  double cos_latB = Math.Cos(latB);
-            //double sin_latB = Math.Sin(latB);
             double sin_latA = Math.Sin(latA);
             double cos_latA = Math.Cos(latA);
             double cos_delta_lon = Math.Cos(delta_lon);
@@ -293,30 +296,38 @@ namespace Geo
 
         public static GeoPoint GetDestinationPoint(in GeoPoint point, Angle bearing, Length distance)
         {
-            var φ1 = point.Latitude;
-            var λ1 = point.Longitude;
+            var lat = point.Latitude;
+            var lon = point.Longitude;
             // https://www.movable-type.co.uk/scripts/latlong.html
             double d_cos = Math.Cos(distance / EarthRadius);
             double d_sin = Math.Sin(distance / EarthRadius);
-            double φ1_sin = φ1.Sin();
-            double φ1_cos = φ1.Cos();
-            var φ2 = Angle.FromRadians(Math.Asin(φ1_sin * d_cos + φ1_cos * d_sin * bearing.Cos()));
-            var λ2 = λ1 + Angle.FromRadians(Math.Atan2(bearing.Sin() * d_sin * φ1_cos, d_cos - φ1_sin * φ2.Sin()));
+            double lat_sin = lat.Sin();
+            double lat_cos = lat.Cos();
+            double lat_cos_d_sin = lat_cos * d_sin;
+            var dst_lat = Angle.FromRadians(Math.Asin(lat_sin * d_cos + lat_cos_d_sin * bearing.Cos()));
+            var dst_lon = lon + Angle.FromRadians(Math.Atan2(bearing.Sin() * lat_cos_d_sin, d_cos - lat_sin * dst_lat.Sin()));
 
-            return new GeoPoint(latitude: φ2, longitude: λ2);
+            return new GeoPoint(latitude: dst_lat, longitude: dst_lon);
         }
 
         public static Length GetDistanceToArcSegment(this in GeoPoint point, in GeoPoint segmentStart, in GeoPoint segmentEnd,
             out GeoPoint crossPoint)
         {
-            return getDistanceToArcSegment(point, segmentStart, segmentEnd, out crossPoint, computeCrossPoint: true);
+            return getDistanceToArcSegment(point, segmentStart, segmentEnd, out crossPoint,out _, computeCrossPoint: true);
+        }
+
+        public static Length GetDistanceToArcSegment(this in GeoPoint point, in GeoPoint segmentStart, in GeoPoint segmentEnd,
+            out GeoPoint crossPoint,out Length distanceAlongSegment)
+        {
+            return getDistanceToArcSegment(point, segmentStart, segmentEnd, out crossPoint, out distanceAlongSegment,  
+                computeCrossPoint: true);
         }
 
         private static Length getDistanceToArcSegment(in GeoPoint pointP3, in GeoPoint arcP1, in GeoPoint arcP2,
-            out GeoPoint crossPoint, bool computeCrossPoint)
+            out GeoPoint crossPoint, out Length distanceAlongSegment, bool computeCrossPoint)
         {
             //Length o = getDistanceToArcSegmentOLD(pointP3, arcP1, arcP2, out crossPoint, computeCrossPoint);
-            Length n = getDistanceToArcSegmentNEW(pointP3, arcP1, arcP2, out crossPoint, computeCrossPoint);
+            Length n = getDistanceToArcSegmentNEW(pointP3, arcP1, arcP2, out crossPoint, out distanceAlongSegment, computeCrossPoint);
             return n;
         }
 
@@ -367,8 +378,8 @@ namespace Geo
             }
         }
 
-        private static Length getDistanceToArcSegmentNEW(in GeoPoint pointP3, in GeoPoint arcP1, in GeoPoint arcP2,
-            out GeoPoint crossPoint, bool computeCrossPoint)
+        private static Length getDistanceToArcSegmentNEW(in GeoPoint pointP3, in GeoPoint arcP1Start, in GeoPoint arcP2End,
+            out GeoPoint crossPoint, out Length distanceAlongSegment, bool computeCrossPoint)
         {
             // http://stackoverflow.com/questions/32771458/distance-from-lat-lng-point-to-minor-arc-segment
             // https://stackoverflow.com/questions/849211/shortest-distance-between-a-point-and-a-line-segment/865080#865080
@@ -381,13 +392,13 @@ namespace Geo
             Length dis12;
             double bear12;
             {
-                dis12 = GeoCalculator.GetDistance(arcP1, arcP2, out double bear12y, out double bear12x);
+                dis12 = GeoCalculator.GetDistance(arcP1Start, arcP2End, out double bear12y, out double bear12x);
                 bear12 = Math.Atan2(bear12y, bear12x);
             }
             Length dis13;
             double bear13;
             {
-                dis13 = GeoCalculator.GetDistance(arcP1, pointP3, out double bear13y, out double bear13x);
+                dis13 = GeoCalculator.GetDistance(arcP1Start, pointP3, out double bear13y, out double bear13x);
                 bear13 = Math.Atan2(bear13y, bear13x);
             }
 
@@ -398,7 +409,8 @@ namespace Geo
 
             if (bearing_diff > (Math.PI / 2))
             {
-                crossPoint = arcP1;
+                crossPoint = arcP1Start;
+                distanceAlongSegment = Length.Zero;
                 return dis13;
             }
             else
@@ -406,16 +418,18 @@ namespace Geo
                 // Find the cross-track distance.
                 double dxt = Math.Asin(Math.Sin(dis13.Meters / R) * Math.Sin(bear13 - bear12)) * R;
                 // Is p4 beyond the arc?
-                double dis14 = Math.Acos(Math.Cos(dis13.Meters / R) / Math.Cos(dxt / R)) * R;
-                if (dis14 > dis12.Meters)
+                Length dis14 = Length.FromMeters(Math.Acos(Math.Cos(dis13.Meters / R) / Math.Cos(dxt / R)) * R);
+                if (dis14 > dis12)
                 {
-                    crossPoint = arcP2;
-                    return GeoCalculator.GetDistance(arcP2, pointP3);
+                    crossPoint = arcP2End;
+                    distanceAlongSegment = dis12;
+                    return GeoCalculator.GetDistance(arcP2End, pointP3);
                 }
                 else
                 {
+                    distanceAlongSegment = dis14;
                     crossPoint = computeCrossPoint
-                        ? GetDestinationPoint(arcP1, Angle.FromRadians(bear12), Length.FromMeters(dis14))
+                        ? GetDestinationPoint(arcP1Start, bearing: Angle.FromRadians(bear12), distance: dis14)
                         : default;
 
                     return Length.FromMeters(Math.Abs(dxt));
@@ -433,7 +447,7 @@ namespace Geo
 
         public static Length GetDistanceToArcSegment(this in GeoPoint point, in GeoPoint segmentStart, in GeoPoint segmentEnd)
         {
-            return getDistanceToArcSegment(point, segmentStart, segmentEnd, out _, computeCrossPoint: false);
+            return getDistanceToArcSegment(point, segmentStart, segmentEnd, out _, out _,computeCrossPoint: false);
         }
 
         public static Length GetDistanceToArc(this in GeoPoint point, in GeoPoint arcA, in GeoPoint arcB)

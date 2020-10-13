@@ -1,7 +1,12 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Geo;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
+using TrackRadar;
+using TrackRadar.Tests.Implementation;
 
 namespace TestRunner
 {
@@ -9,12 +14,73 @@ namespace TestRunner
     {
         static void Main(string[] args)
         {
-            var test = new TrackRadar.Tests.TurnTest();
-            test.WRONG_PickingMiddleTurnTest();
+            CheckLoading();
+            Measure();
+
+            //CheckLoadingOne();
+            //var test = new TrackRadar.Tests.TurnTest(); test.PickingMiddleTurnTest();
 
             //RunAllTests();
             Console.WriteLine("Hello World!");
             Console.ReadLine();
+        }
+
+        public static void Measure()
+        {
+            string plan_filename = @"C:\Projekty\TrackRadar\priv-data\warmup-n-merged.plan.gpx";
+            string tracked_filename = @"C:\Projekty\TrackRadar\priv-data\warmup-n-merged.tracked.gpx";
+
+            var times = Toolbox.Ride(new Preferences(), plan_filename, tracked_filename, null, out _, out _, out _);
+            // android-max 0.14-0.40
+            // without turns ~0.14
+            Console.WriteLine($"times {times}, on android {times.maxUpdate * 6}, {times.avgUpdate * 6}");
+        }
+
+        public static void CheckLoadingOne()
+        {
+            var prefs = new Preferences();
+            string plan_filename = System.IO.Directory.GetFiles(@"C:\Projekty\TrackRadar\priv-data\plan\", "*.gpx")[0];
+
+            Console.WriteLine(plan_filename);
+
+            GpxLoader.tryLoadGpx(plan_filename, out List<List<GeoPoint>> tracks, out List<GeoPoint> waypoints, null, CancellationToken.None);
+
+            tracks = tracks.Skip(0).Take(8).ToList();
+
+            tracks.RemoveAt(1);
+            tracks.RemoveAt(6);
+            tracks.RemoveAt(0);
+            tracks.RemoveAt(0);
+            tracks.RemoveAt(1);
+            tracks.RemoveAt(1);
+
+            tracks[0].RemoveRange(2, 6);
+
+            waypoints = waypoints.Take(0).ToList();
+
+//         Toolbox.SaveGpx("novelty.gpx", tracks, waypoints);
+            GpxLoader.ProcessTrackData(tracks, waypoints,
+                prefs.OffTrackAlarmDistance, segmentLengthLimit: GeoMapFactory.SegmentLengthLimit,
+                null, CancellationToken.None);
+
+        }
+
+        private static void Offset(ref List<List<GeoPoint>> tracks,
+            ref List<GeoPoint> waypoints,
+            double latOffset, double lonOffset)
+        {
+            tracks = tracks.Select(t => t.Select(x => GeoPoint.FromDegrees(x.Latitude.Degrees + latOffset, x.Longitude.Degrees + lonOffset)).ToList()).ToList();
+            waypoints = waypoints.Select(x => GeoPoint.FromDegrees(x.Latitude.Degrees + latOffset, x.Longitude.Degrees + lonOffset)).ToList();
+        }
+
+        public static void CheckLoading()
+        {
+            var prefs = new Preferences();
+            foreach (string plan_filename in System.IO.Directory.GetFiles(@"C:\Projekty\TrackRadar\priv-data\plan\", "*.gpx"))
+            {
+                Console.WriteLine(plan_filename);
+                GpxLoader.ReadGpx(plan_filename, prefs.OffTrackAlarmDistance, null, CancellationToken.None);
+            }
         }
 
         private static void RunAllTests()

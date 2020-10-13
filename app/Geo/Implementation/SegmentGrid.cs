@@ -11,7 +11,8 @@ namespace Geo.Implementation
     {
         public IEnumerable<Geo.ISegment> Segments => this.tiles.SelectMany(it => it.Segments).Distinct();
 
-        public SegmentGrid(IEnumerable<Geo.ISegment> segments) : base(segments, segs => segs.SelectMany(it => it.Points()),
+        public SegmentGrid(IEnumerable<Geo.ISegment> segments) : base(segments, 
+            segs => segs.SelectMany(it => it.Points()),
             segments.Any() ? segments.Max(it => it.GetLength()) : Length.Zero)
         {
         }
@@ -51,7 +52,8 @@ namespace Geo.Implementation
             return result;
         }
 
-        public bool FindClosest(in Geo.GeoPoint point, Length? limit, out ISegment nearby, out Length? distance, out GeoPoint crosspoint)
+        public bool FindClosest(in Geo.GeoPoint point, Length? limit, 
+            out ISegment nearby, out Length? distance, out GeoPoint crosspoint)
         {
             distance = null;
             nearby = default(ISegment);

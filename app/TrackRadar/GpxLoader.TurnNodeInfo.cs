@@ -1,9 +1,4 @@
 ﻿using Geo;
-using MathUnit;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using TrackRadar.Implementation;
 
 namespace TrackRadar
 {
@@ -11,7 +6,7 @@ namespace TrackRadar
     {
         private readonly struct TurnNodeInfo
         {
-            public TrackNode Node { get; }
+            public TrackNode Node { get; } // todo: do we need it?
             public GeoPoint TurnPoint { get; }
             // 0 for immediate connection between turn and node, 1 when node has to go through immediate node, etc.
             public int Hops { get; } 

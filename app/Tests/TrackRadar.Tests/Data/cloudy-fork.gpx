@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx
+version="1.0"
+creator="TrackRadar https://github.com/macias/TrackRadar"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xmlns="http://www.topografix.com/GPX/1/0"
+xsi:schemaLocation="http://www.topografix.com/GPX/1/0 http://www.topografix.com/GPX/1/0/gpx.xsd">
+<trk>
+<name>Line 0</name>
+<trkseg>
+<trkpt lat="32.0772037" lon="7.5912654"/>
+<trkpt lat="32.0739748" lon="7.6290524"/>
+</trkseg>
+</trk>
+<trk>
+<name>Line 1</name>
+<trkseg>
+<trkpt lat="32.071941" lon="7.589972"/>
+<trkpt lat="32.071909" lon="7.589989"/>
+<trkpt lat="32.073924" lon="7.629326"/>
+<trkpt lat="32.073956" lon="7.629076"/>
+</trkseg>
+</trk>
+<trk>
+<name>Line 2</name>
+<trkseg>
+<trkpt lat="32.073945" lon="7.629173"/>
+<trkpt lat="32.073924" lon="7.629326"/>
+<trkpt lat="32.073908" lon="7.630055"/>
+<trkpt lat="32.074077" lon="7.631869"/>
+<trkpt lat="32.070112" lon="7.849683"/>
+<trkpt lat="32.070027" lon="7.850293"/>
+<trkpt lat="32.069996" lon="7.850465"/>
+<trkpt lat="32.069969" lon="7.850599"/>
+</trkseg>
+</trk>
+<wpt lat="32.071909" lon="7.589989">
+<name>Point 0</name>
+</wpt>
+<wpt lat="32.064927" lon="7.612797">
+<name>Point 1</name>
+</wpt>
+<wpt lat="32.0766339" lon="7.5895703">
+<name>Point 2</name>
+</wpt>
+<wpt lat="32.0772037" lon="7.5912654">
+<name>Point 3</name>
+</wpt>
+<wpt lat="32.0760641" lon="7.6204667">
+<name>Point 4</name>
+</wpt>
+<wpt lat="32.074157" lon="7.633244">
+<name>Point 5</name>
+</wpt>
+</gpx>

@@ -18,7 +18,7 @@ namespace TrackRadar.Tests
         private const double precision = 0.00000001;
 
         [TestMethod]
-        public void WRONG_PickingMiddleTurnTest()
+        public void PickingMiddleTurnTest()
         {
             // we have very long segment, and 3 turnings points. The purpose of the test is to check if we get
             // notification for the "middle" turn point which is far from segment points (but it lies on the segment)
@@ -39,17 +39,18 @@ namespace TrackRadar.Tests
 
             Assert.AreEqual(7, alarms.Count());
 
-            Assert.AreEqual((Alarm.Crossroad, 3), alarms[0]);
-
-            Assert.AreEqual((Alarm.Crossroad, 2031), alarms[1]);
-            Assert.AreEqual((Alarm.GoAhead, 2033), alarms[2]);
-            Assert.AreEqual((Alarm.GoAhead, 2035), alarms[3]);
-
-            Assert.AreEqual((Alarm.Crossroad, 4079), alarms[4]);
-            Assert.AreEqual((Alarm.LeftSharp, 4081), alarms[5]);
-            Assert.AreEqual((Alarm.LeftSharp, 4083), alarms[6]);
-
+            int a = 0;
+            Assert.AreEqual((Alarm.Crossroad, 3), alarms[a++]);
             Assert.AreEqual((TurnLookout.LeavingTurningPoint, 5), messages[0]);
+            Assert.AreEqual((TurnLookout.LeavingTurningPoint, 6), messages[1]);
+
+            Assert.AreEqual((Alarm.Crossroad, 2031), alarms[a++]);
+            Assert.AreEqual((Alarm.GoAhead, 2033), alarms[a++]);
+            Assert.AreEqual((Alarm.GoAhead, 2035), alarms[a++]);
+
+            Assert.AreEqual((Alarm.Crossroad, 4080), alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 4082), alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 4084), alarms[a++]);
         }
 
         [TestMethod]
@@ -65,20 +66,72 @@ namespace TrackRadar.Tests
 
             Toolbox.PopulateTrackDensely(track_points);
 
-            //Toolbox.SaveSegments("seg.gpx", gpx_data.Segments);
-            //Toolbox.SaveGpx("aaa.gpx", track_points);
-
             Toolbox.Ride(prefs, gpx_data, track_points, out IReadOnlyDictionary<Alarm, int> alarmCounters,
                 out IReadOnlyList<(Alarm alarm, int index)> alarms,
                 out IReadOnlyList<(string message, int index)> messages);
 
             Assert.AreEqual(1, alarms.Count());
 
-            Assert.AreEqual((Alarm.Crossroad,1027), alarms[0]);
+            Assert.AreEqual((Alarm.Crossroad, 1027), alarms[0]);
 
             Assert.AreEqual((TurnLookout.LeavingTurningPoint, 1029), messages[0]);
         }
 
+
+        [TestMethod]
+        public void WRONG_AlternateTurnsTest()
+        {
+            // shape like this:
+            // ----+
+            //     +-----
+
+            var track_points = new[] {
+                GeoPoint.FromDegrees(50.918540800,2.921173700),
+                GeoPoint.FromDegrees(50.914250700,2.912756900),
+                GeoPoint.FromDegrees(50.914156000,2.913014400),
+                GeoPoint.FromDegrees(50.909114600,2.904568100),
+            }.ToList();
+
+            // ensuring "tail" segments won't be divided
+            TestHelper.IsGreaterThan(GeoMapFactory.SegmentLengthLimit, GeoCalculator.GetDistance(track_points[0], track_points[1]));
+            TestHelper.IsGreaterThan(GeoMapFactory.SegmentLengthLimit, GeoCalculator.GetDistance(track_points[2], track_points[3]));
+
+            var prefs = new Preferences();
+            GeoPoint[] waypoints = new[] { track_points[1], track_points[2] };
+            var plan_data = Toolbox.CreateTrackData(track_points, waypoints, prefs.OffTrackAlarmDistance);
+
+            Assert.AreEqual(4, plan_data.Segments.Count());
+
+#if DEBUG
+            IEnumerable<DEBUG_TrackToTurnHack> alts = plan_data.Graph.DEBUG_TrackToTurns.Where(it => it.Alternate.HasValue)
+                .ToArray();
+            var track_points_with_alt = alts.Select(it => it.TrackPoint).ToHashSet();
+            // checking if the alternate turn points are assigned only to the single section
+            Assert.AreEqual(1, plan_data.Segments
+                .Where(seg => track_points_with_alt.Contains(seg.A) || track_points_with_alt.Contains(seg.B))
+                .Select(it => it.SectionId)
+                .Distinct()
+                .Count());
+            // alternate turn points are not placed on turn points
+            Assert.IsFalse(track_points_with_alt.Any(it => waypoints.Contains(it)));
+            // we should have alternative turn point, basically one turn part should point to the other
+            Assert.AreEqual(1, alts.Select(it => it.Alternate.Value.TurnPoint).Distinct().Count());
+#endif
+            Toolbox.PopulateTrackDensely(track_points, Speed.FromKilometersPerHour(17));
+
+            Toolbox.Ride(new Preferences(), plan_data, track_points, out var alarm_counters, out var alarms, out var messages);
+
+            Assert.AreEqual(6, alarms.Count());
+
+            Assert.AreEqual((Alarm.Engaged, 3), alarms[0]);
+            Assert.AreEqual((Alarm.Crossroad, 239), alarms[1]);
+            Assert.AreEqual((Alarm.LeftCross, 241), alarms[2]);
+            Assert.AreEqual((Alarm.LeftCross, 243), alarms[3]);
+            Assert.AreEqual((Alarm.Crossroad, 260), alarms[4]);  // two changes: alam right cross and make it sooner
+            Assert.AreEqual((Alarm.RightCross, 262), alarms[5]);
+
+            Assert.AreEqual((TurnLookout.LeavingTurningPoint, 264), messages[0]);
+        }
 
         [TestMethod]
         public void ZTwoLeftTurnsTest()
@@ -118,44 +171,24 @@ namespace TrackRadar.Tests
         [TestMethod]
         public void DuplicateTurnPointTest()
         {
+            // basically L track with duplicate waypoint at the turn
             string plan_filename = @"Data/dup-turn-point.plan.gpx";
             string tracked_filename = @"Data/dup-turn-point.tracked.gpx";
 
             var prefs = new Preferences();
-            IPlanData gpx_data = GpxLoader.ReadGpx(plan_filename, prefs.OffTrackAlarmDistance, onProgress: null, CancellationToken.None);
 
-            var track_points = Toolbox.ReadTrackPoints(tracked_filename).ToArray();
+            Toolbox.LoadData(prefs, plan_filename, tracked_filename, out IPlanData plan_data, out List<GeoPoint> track_points);
 
-            var clock = new SecondStamper();
-            using (var raw_alarm_master = new AlarmMaster(clock))
-            {
-                raw_alarm_master.PopulateAlarms();
+            Assert.AreEqual(2, plan_data.Segments.Select(it => it.SectionId).Distinct().Count());
 
-                var counting_alarm_master = new CountingAlarmMaster(raw_alarm_master);
+            Toolbox.Ride(new Preferences(), plan_data, track_points, out var alarm_counters, out var alarms, out var messages);
 
-                var service = new TrackRadar.Tests.Implementation.RadarService(prefs, clock);
-                AlarmSequencer sequencer = new AlarmSequencer(service, counting_alarm_master);
-                var core = new TrackRadar.Implementation.RadarCore(service, sequencer, clock, gpx_data, Length.Zero, Length.Zero, TimeSpan.Zero, Speed.Zero);
-
-                int point_index = 0;
-                foreach (var pt in track_points)
-                {
-                    using (sequencer.OpenAlarmContext(gpsAcquired: false, hasGpsSignal: true))
-                    {
-                        counting_alarm_master.SetPointIndex(point_index);
-                        core.UpdateLocation(GpxHelper.FromGpx(pt), pt.Elevation == null ? (Length?)null : Length.FromMeters(pt.Elevation.Value), accuracy: null);
-                        clock.Advance();
-                        ++point_index;
-                    }
-                }
-
-                Assert.AreEqual(1, counting_alarm_master.AlarmCounters[Alarm.Engaged]);
-                Assert.AreEqual(Alarm.Engaged, counting_alarm_master.Alarms[0].alarm);
-                Assert.AreEqual(3, counting_alarm_master.Alarms[0].index);
-
-                Assert.AreEqual(3, counting_alarm_master.AlarmCounters[Alarm.Crossroad]);
-            }
-
+            Assert.AreEqual(4, alarms.Count);
+            int a = 0;
+            Assert.AreEqual((Alarm.Engaged, 3), alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 64), alarms[a++]);
+            Assert.AreEqual((Alarm.RightSharp, 66), alarms[a++]);
+            Assert.AreEqual((Alarm.RightSharp, 68), alarms[a++]);
         }
 
         [TestMethod]

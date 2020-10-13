@@ -29,6 +29,21 @@
     </LinearLayout>
 
     <TextView
+        android:text="Navigation disabled"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/NavigationDisabledTextView"
+        android:gravity="center_horizontal"
+        android:textColor="#000000"
+        android:background="#ffff00"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:paddingTop="2sp"
+        android:paddingBottom="2sp"
+        android:paddingLeft="4sp"
+        android:paddingRight="4sp" 
+	/>
+
+    <TextView
         android:text="off track dist"
         android:textAppearance="?android:attr/textAppearanceLarge"
         android:layout_width="match_parent"

@@ -1,13 +1,9 @@
 using Geo;
-using Gpx;
 using MathUnit;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading;
-using TrackRadar.Implementation;
 using TrackRadar.Tests.Implementation;
 
 namespace TrackRadar.Tests
@@ -18,8 +14,327 @@ namespace TrackRadar.Tests
         private const double precision = 0.00000001;
 
         [TestMethod]
+        public void EightFigureTest()
+        {
+            // "oo" like figure, checking if program will make intersection out of it
+            var prefs = Toolbox.LowThresholdSpeedPreferences();
+
+            var track1 = new[] {
+                GeoPoint.FromDegrees(0, 0),
+                GeoPoint.FromDegrees(0, 1),
+                GeoPoint.FromDegrees(1, 1),
+                GeoPoint.FromDegrees(1, 0),
+                GeoPoint.FromDegrees(0, 0),
+            };
+            var track2 = new[] {
+                GeoPoint.FromDegrees(0, 0),
+                GeoPoint.FromDegrees(0, -1),
+                GeoPoint.FromDegrees(-1, -1),
+                GeoPoint.FromDegrees(-1, 0),
+                GeoPoint.FromDegrees(0, 0),
+            };
+            IPlanData plan_data = Toolbox.CreateTrackData(
+                null, prefs.OffTrackAlarmDistance, track1, track2);
+
+#if DEBUG
+            Assert.AreEqual(0, plan_data.DEBUG_ExtensionCount);
+#endif
+            Assert.AreEqual(1, plan_data.Crossroads.Count);
+        }
+
+        [TestMethod]
+        public void CrossFigureTest()
+        {
+            // "+" like figure, checking if program will make intersection out of it
+            var prefs = Toolbox.LowThresholdSpeedPreferences();
+
+            var track1 = new[] {
+                GeoPoint.FromDegrees(0, 0),
+                GeoPoint.FromDegrees(0, 1),
+            };
+            var track2 = new[] {
+                GeoPoint.FromDegrees(0, 0),
+                GeoPoint.FromDegrees(0, -1),
+            };
+            var track3 = new[] {
+                GeoPoint.FromDegrees(0, 0),
+                GeoPoint.FromDegrees(1, 0),
+            };
+            var track4 = new[] {
+                GeoPoint.FromDegrees(0, 0),
+                GeoPoint.FromDegrees(-1, 0),
+            };
+            IPlanData plan_data = Toolbox.CreateTrackData(
+                null, prefs.OffTrackAlarmDistance, track1, track2, track3, track4);
+
+#if DEBUG
+            Assert.AreEqual(0, plan_data.DEBUG_ExtensionCount);
+#endif
+            Assert.AreEqual(1, plan_data.Crossroads.Count);
+        }
+
+        [TestMethod]
+        public void FlatExtendedLineTest()
+        {
+            var prefs = Toolbox.LowThresholdSpeedPreferences();
+
+            GeoPoint turn = GeoPoint.FromDegrees(40, 5);
+            var turning_points = new[] { turn };
+
+            // making gaps on purpose to check if info about primary turn point will propagate over them
+            GeoPoint[] track0 = new[] { GeoPoint.FromDegrees(40.0001, 5), GeoPoint.FromDegrees(40.9999, 5) };
+            GeoPoint[] track1 = new[] { GeoPoint.FromDegrees(38, 5), GeoPoint.FromDegrees(39, 5) };
+            GeoPoint[] track2 = new[] { GeoPoint.FromDegrees(39, 5), GeoPoint.FromDegrees(39.9999, 5) };
+            GeoPoint[] track3 = new[] { GeoPoint.FromDegrees(41.0001, 5), GeoPoint.FromDegrees(42, 5) };
+            IPlanData plan_data = Toolbox.CreateTrackData(
+                turning_points, prefs.OffTrackAlarmDistance,
+                // this flat line, but we already divided it artificially to check if there will be only two sections
+                // left and right
+                track0,
+                track1,
+                track2,
+                track3
+                );
+
+            TestHelper.IsGreaterEqual(prefs.OffTrackAlarmDistance / 2, GeoCalculator.GetDistance(track0[0], track2[1]));
+            TestHelper.IsGreaterEqual(prefs.OffTrackAlarmDistance / 2, GeoCalculator.GetDistance(track3[0], track0[1]));
+#if DEBUG
+            Assert.AreEqual(2, plan_data.DEBUG_ExtensionCount); // not 3, because we have waypoint in the middle
+            foreach (GeoPoint pt in plan_data.Segments.SelectMany(it => it.Points()))
+            {
+                Assert.IsTrue(plan_data.Graph.DEBUG_TryGetTurnInfo(pt, out var primary, out var alt));
+                Assert.AreEqual(turn, primary.TurnPoint);
+                Assert.IsNull(alt);
+            }
+#endif
+            Assert.AreEqual(2, plan_data.Segments.Select(it => it.SectionId).Distinct().Count());
+        }
+
+        [TestMethod]
+        public void AlternateTurnForFlatExtendedLineTest()
+        {
+            var prefs = Toolbox.LowThresholdSpeedPreferences();
+
+            GeoPoint turn1 = GeoPoint.FromDegrees(0, 5);
+            GeoPoint turn2 = GeoPoint.FromDegrees(0, 12);
+
+            // flat line but with such lengths that middle track nodes are closer to the first turn
+            // so the purpose of this test is to check whether program calculates the secondary turn
+            // for middle track nodes corretly (it should simply be the second turn)
+            GeoPoint middle1 = GeoPoint.FromDegrees(0, 6.0001);
+            GeoPoint middle2 = GeoPoint.FromDegrees(0, 6.9999);
+            IPlanData plan_data = GpxLoader.ProcessTrackData(new[] {
+                new[] { GeoPoint.FromDegrees(0, 5), GeoPoint.FromDegrees(0, 5.9999) },
+                new[] { middle1, middle2 },
+                new[] { GeoPoint.FromDegrees(0,7.0001), GeoPoint.FromDegrees(0, 12) }
+                },
+                waypoints: new[] { turn1, turn2 },
+                offTrackDistance: prefs.OffTrackAlarmDistance,
+                // do not split segments
+                segmentLengthLimit: Length.Zero,
+                null, CancellationToken.None);
+
+#if DEBUG
+            {
+                Assert.IsTrue(plan_data.Graph.DEBUG_TryGetTurnInfo(middle1, out var primary, out var alt));
+                Assert.AreEqual(turn1, primary.TurnPoint);
+                Assert.IsTrue(alt.HasValue);
+                Assert.AreEqual(turn2, alt.Value.TurnPoint);
+            }
+            {
+                Assert.IsTrue(plan_data.Graph.DEBUG_TryGetTurnInfo(middle2, out var primary, out var alt));
+                Assert.AreEqual(turn1, primary.TurnPoint);
+                Assert.IsTrue(alt.HasValue);
+                Assert.AreEqual(turn2, alt.Value.TurnPoint);
+            }
+#endif
+        }
+
+        [TestMethod]
+        public void AlternateTurnForSinglePointTest()
+        {
+            var prefs = Toolbox.LowThresholdSpeedPreferences();
+
+            GeoPoint turn1 = GeoPoint.FromDegrees(0, 5);
+            GeoPoint turn2 = GeoPoint.FromDegrees(0, 12);
+
+            GeoPoint middle = GeoPoint.FromDegrees(0, 5.1);
+            IPlanData plan_data = GpxLoader.ProcessTrackData(new[] {
+                // extreme case, when middle nodes (here only 1) have all one turning point as primary one
+                new[] { GeoPoint.FromDegrees(0, 5), middle, GeoPoint.FromDegrees(0, 12) }
+                },
+                waypoints: new[] { turn1, turn2 },
+                offTrackDistance: prefs.OffTrackAlarmDistance,
+                // do not split segments
+                segmentLengthLimit: Length.Zero,
+                null, CancellationToken.None);
+
+#if DEBUG
+            {
+                Assert.IsTrue(plan_data.Graph.DEBUG_TryGetTurnInfo(middle, out var primary, out var alt));
+                Assert.AreEqual(turn1, primary.TurnPoint);
+                Assert.IsTrue(alt.HasValue);
+                Assert.AreEqual(turn2, alt.Value.TurnPoint);
+            }
+#endif
+        }
+
+        [TestMethod]
+        public void AlternateDistantTurnPointTest()
+        {
+            var prefs = Toolbox.LowThresholdSpeedPreferences();
+
+            GeoPoint turn1 = GeoPoint.FromDegrees(0, 5);
+            GeoPoint turn2 = GeoPoint.FromDegrees(0, 6);
+            GeoPoint turn3 = GeoPoint.FromDegrees(0, 15);
+
+            GeoPoint middle = GeoPoint.FromDegrees(0, 7);
+
+            IPlanData plan_data = GpxLoader.ProcessTrackData(new[] {
+                new[] { turn1, turn2, middle, turn3 }
+                },
+                waypoints: new[] { turn1, turn2, turn3 },
+                offTrackDistance: prefs.OffTrackAlarmDistance,
+                // do not split segments
+                segmentLengthLimit: Length.Zero,
+                null, CancellationToken.None);
+
+            TestHelper.IsGreaterThan(GeoCalculator.GetDistance(middle, turn3), GeoCalculator.GetDistance(middle, turn1));
+
+
+            Assert.AreEqual(3, plan_data.Crossroads.Count);
+#if DEBUG
+            {
+                Assert.IsTrue(plan_data.Graph.DEBUG_TryGetTurnInfo(middle, out var primary, out var alt));
+                Assert.AreEqual(turn2, primary.TurnPoint);
+                Assert.IsTrue(alt.HasValue);
+                // despite turn1 is closer to track point, its alternate turn is turn3, which is correct
+                // because our track point lies between turn2 and turn3, so moving AWAY from closest turn (i.e turn2)
+                // will direct us towards turn3, not turn1
+                Assert.AreEqual(turn3, alt.Value.TurnPoint);
+            }
+#endif
+        }
+
+        [TestMethod]
+        public void SectionIdForFlatIncoming1LineTest()
+        {
+            var prefs = Toolbox.LowThresholdSpeedPreferences();
+
+            // testing robustness of the assigning section ids -- this time both tracks are facing their "head"s
+            IPlanData plan_data = Toolbox.CreateTrackData(
+                new[] { GeoPoint.FromDegrees(40.5, 5) }, prefs.OffTrackAlarmDistance,
+                // this is just flat line, but two tracks (program should merge them logically)
+                new[] { GeoPoint.FromDegrees(40.0001, 5), GeoPoint.FromDegrees(41, 5) },
+                new[] { GeoPoint.FromDegrees(39.9999, 5), GeoPoint.FromDegrees(39, 5) }
+                );
+
+#if DEBUG
+            Assert.AreEqual(1, plan_data.DEBUG_ExtensionCount);
+#endif
+            Assert.AreEqual(2, plan_data.Segments.Select(it => it.SectionId).Distinct().Count());
+        }
+
+
+        [TestMethod]
+        public void SectionIdForFlatIncoming2LineTest()
+        {
+            var prefs = Toolbox.LowThresholdSpeedPreferences();
+
+            // testing robustness of the assigning section ids -- this time both tracks are facing their "head"s
+            IPlanData plan_data = Toolbox.CreateTrackData(
+                // waypoints are put at the ends
+                new[] { GeoPoint.FromDegrees(41, 5), GeoPoint.FromDegrees(39, 5) },
+                prefs.OffTrackAlarmDistance,
+                // this is just flat line, but two tracks (program should merge them logically)
+                new[] { GeoPoint.FromDegrees(40, 5), GeoPoint.FromDegrees(41, 5) },
+                new[] { GeoPoint.FromDegrees(40, 5), GeoPoint.FromDegrees(39, 5) }
+                );
+
+#if DEBUG
+            Assert.AreEqual(1, plan_data.DEBUG_ExtensionCount);
+#endif
+            Assert.AreEqual(1, plan_data.Segments.Select(it => it.SectionId).Distinct().Count());
+        }
+
+        [TestMethod]
+        public void SectionIdForFlatOutgoingLineTest()
+        {
+            var prefs = Toolbox.LowThresholdSpeedPreferences();
+            Speed ride_speed = prefs.RidingSpeedThreshold + Speed.FromKilometersPerHour(10);
+
+            // testing robustness of the assigning section ids -- this time both tracks are facing their "tail"s
+            IPlanData plan_data = Toolbox.CreateTrackData(
+                new[] { GeoPoint.FromDegrees(40.5, 5) }, prefs.OffTrackAlarmDistance,
+                // this is just flat line, but two tracks (program should merge them logically)
+                new[] { GeoPoint.FromDegrees(41, 5), GeoPoint.FromDegrees(40, 5) },
+                new[] { GeoPoint.FromDegrees(39, 5), GeoPoint.FromDegrees(40, 5) }
+                );
+
+#if DEBUG
+            Assert.AreEqual(1, plan_data.DEBUG_ExtensionCount);
+#endif
+            Assert.AreEqual(2, plan_data.Segments.Select(it => it.SectionId).Distinct().Count());
+        }
+
+        [TestMethod]
+        public void FindingParallelIntersectionsTest()
+        {
+            Assert.IsFalse(GpxLoader.tryGetSegmentIntersection(GeoPoint.FromDegrees(39, 0), GeoPoint.FromDegrees(40, 0),
+                GeoPoint.FromDegrees(40, 0), GeoPoint.FromDegrees(41, 0),
+                out _, out _)); // wouldn't mind if this turned out of true (because point is shared)
+
+            Assert.IsTrue(GpxLoader.tryGetSegmentIntersection(GeoPoint.FromDegrees(40, 5), GeoPoint.FromDegrees(41, 5),
+                GeoPoint.FromDegrees(41, 5), GeoPoint.FromDegrees(42, 5),
+                out _, out _));
+
+            Assert.IsTrue(GpxLoader.tryGetSegmentIntersection(GeoPoint.FromDegrees(38, 5), GeoPoint.FromDegrees(39, 5),
+                GeoPoint.FromDegrees(39, 5), GeoPoint.FromDegrees(40, 5),
+                out _, out _));
+        }
+
+        [TestMethod]
+        public void SectionIdForForkedLineTest()
+        {
+            var prefs = Toolbox.LowThresholdSpeedPreferences();
+            Speed ride_speed = prefs.RidingSpeedThreshold + Speed.FromKilometersPerHour(10);
+
+            // shape is like this: >--< (only rotated)
+            IPlanData plan_data = Toolbox.CreateTrackData(
+                null, prefs.OffTrackAlarmDistance,
+                // lower, left
+                new[] { GeoPoint.FromDegrees(37, -2), GeoPoint.FromDegrees(38, -1) },
+                new[] { GeoPoint.FromDegrees(38, -1), GeoPoint.FromDegrees(39, 0) },
+
+                // lower, right
+                new[] { GeoPoint.FromDegrees(37, 2), GeoPoint.FromDegrees(38, 1) },
+                new[] { GeoPoint.FromDegrees(38, 1), GeoPoint.FromDegrees(39, 0) },
+
+                // middle, vertical segments
+                new[] { GeoPoint.FromDegrees(39, 0), GeoPoint.FromDegrees(40, 0) },
+                new[] { GeoPoint.FromDegrees(40, 0), GeoPoint.FromDegrees(41, 0) },
+
+                // upper, right
+                new[] { GeoPoint.FromDegrees(41, 0), GeoPoint.FromDegrees(42, 1) },
+                new[] { GeoPoint.FromDegrees(42, 1), GeoPoint.FromDegrees(43, 2) },
+
+                // upper, left
+                new[] { GeoPoint.FromDegrees(41, 0), GeoPoint.FromDegrees(42, -1) },
+                new[] { GeoPoint.FromDegrees(42, -1), GeoPoint.FromDegrees(43, -2) }
+            );
+
+
+#if DEBUG
+            Assert.AreEqual(5, plan_data.DEBUG_ExtensionCount);
+#endif
+            Assert.AreEqual(2, plan_data.Crossroads.Count);
+            Assert.AreEqual(5, plan_data.Segments.Select(it => it.SectionId).Distinct().Count());
+        }
+
+        [TestMethod]
         public void ExtensionTest()
         {
+            // two tracks
             const string filename = @"Data/extension.gpx";
 
             IPlanData gpx_data = GpxLoader.ReadGpx(filename, Length.FromMeters(100), onProgress: null, CancellationToken.None);
@@ -27,26 +342,102 @@ namespace TrackRadar.Tests
 
             Assert.IsTrue(containsPoints(gpx_data.Segments, tracks));
             Assert.AreEqual(0, gpx_data.Crossroads.Count);
+#if DEBUG
+            Assert.AreEqual(1, gpx_data.DEBUG_ExtensionCount);
+#endif       
+        }
+
+        [TestMethod]
+        public void TripleStarTest()
+        {
+            // shape like this (two tracks)
+            // >-
+            const string filename = @"Data/triple-star.gpx";
+
+            IPlanData gpx_data = GpxLoader.ReadGpx(filename, Length.FromMeters(100), onProgress: null, CancellationToken.None);
+            Assert.IsTrue(GpxLoader.tryLoadGpx(filename, out var tracks, out var waypoints, onProgress: null, CancellationToken.None));
+
+            Assert.IsTrue(containsPoints(gpx_data.Segments, tracks));
+            Assert.AreEqual(1, gpx_data.Crossroads.Count);
+#if DEBUG
+            Assert.AreEqual(0, gpx_data.DEBUG_ExtensionCount);
+#endif
+        }
+
+        [TestMethod]
+        public void CloudyForkTest()
+        {
+            // shape like this with some waypoints around
+            // >-
+            const string filename = @"Data/cloudy-fork.gpx";
+
+            IPlanData gpx_data = GpxLoader.ReadGpx(filename, Length.FromMeters(100), onProgress: null, CancellationToken.None);
+            Assert.IsTrue(GpxLoader.tryLoadGpx(filename, out var tracks, out var waypoints, onProgress: null, CancellationToken.None));
+
+            Assert.IsTrue(containsPoints(gpx_data.Segments, tracks));
+
+            // just testing it does not crash
+        }
+
+        [TestMethod]
+        public void TriangleIntersectingTest()
+        {
+            // shape like this
+            // |>
+            const string filename = @"Data/triangle-intersecting.gpx";
+            var prefs = new Preferences();
+
+            IPlanData gpx_data = GpxLoader.ReadGpx(filename, prefs.OffTrackAlarmDistance, onProgress: null, CancellationToken.None);
+            Assert.IsTrue(GpxLoader.tryLoadGpx(filename, out var tracks, out var waypoints, onProgress: null, CancellationToken.None));
+
+            Assert.IsTrue(containsPoints(gpx_data.Segments, tracks));
+
+            // just testing it does not crash
+            // originally it did, because intersections caused lengthening the tracks which is forbidden
+        }
+
+        [TestMethod]
+        public void TrapezoidTest()
+        {
+            // one of the side is a bit longer which triggers intersection, not extension
+            const string filename = @"Data/trapezoid.gpx";
+
+            IPlanData plan_data = GpxLoader.ReadGpx(filename, Length.FromMeters(100), onProgress: null, CancellationToken.None);
+            Assert.IsTrue(GpxLoader.tryLoadGpx(filename, out var tracks, out var waypoints, onProgress: null, CancellationToken.None));
+
+            Assert.IsTrue(containsPoints(plan_data.Segments, tracks));
+
+            Assert.AreEqual(1, plan_data.Crossroads.Count);
+#if DEBUG
+            Assert.AreEqual(3, plan_data.DEBUG_ExtensionCount);
+#endif
         }
 
         [TestMethod]
         public void DoubleIntersectionTest()
         {
+            // shape like:
+            // /
+            // |)
+            // \
+            // the left part is single track
             const string filename = @"Data/double-intersection.gpx";
 
-            IPlanData gpx_data = GpxLoader.ReadGpx(filename, Length.FromMeters(100), onProgress: null, CancellationToken.None);
+            IPlanData plan_data = GpxLoader.ReadGpx(filename, Length.FromMeters(100), onProgress: null, CancellationToken.None);
             Assert.IsTrue(GpxLoader.tryLoadGpx(filename, out var tracks, out var waypoints, onProgress: null, CancellationToken.None));
 
-            // saveGpx(gpx_data.Crossroads);
 
-            Assert.IsTrue(containsPoints(gpx_data.Segments, tracks));
-            Assert.AreEqual(2, gpx_data.Crossroads.Count);
+            //Toolbox.SaveGpx("segs.gpx", plan_data);
+            Assert.IsTrue(containsPoints(plan_data.Segments, tracks));
+            Assert.AreEqual(2, plan_data.Crossroads.Count);
 
-            Assert.AreEqual(38.8478391592013, gpx_data.Crossroads[0].Latitude.Degrees, precision);
-            Assert.AreEqual(-3.71607968045339, gpx_data.Crossroads[0].Longitude.Degrees, precision);
+            Assert.AreEqual(38.8478391592013, plan_data.Crossroads[0].Latitude.Degrees, precision);
+            Assert.AreEqual(-3.71607968045339, plan_data.Crossroads[0].Longitude.Degrees, precision);
 
-            Assert.AreEqual(38.8425854026487, gpx_data.Crossroads[1].Latitude.Degrees, precision);
-            Assert.AreEqual(-3.71669889530884, gpx_data.Crossroads[1].Longitude.Degrees, precision);
+            Assert.AreEqual(38.8425854026487, plan_data.Crossroads[1].Latitude.Degrees, precision);
+            Assert.AreEqual(-3.71669889530884, plan_data.Crossroads[1].Longitude.Degrees, precision);
+
+            Assert.AreEqual(4, plan_data.Segments.Select(it => it.SectionId).Distinct().Count());  
         }
 
         [TestMethod]
@@ -54,51 +445,50 @@ namespace TrackRadar.Tests
         {
             const string filename = @"Data/crossroads-total.gpx";
 
-            IPlanData gpx_data = GpxLoader.ReadGpx(filename, Length.FromMeters(100), onProgress: null, CancellationToken.None);
+            IPlanData plan_data = GpxLoader.ReadGpx(filename, Length.FromMeters(100), onProgress: null, CancellationToken.None);
             Assert.IsTrue(GpxLoader.tryLoadGpx(filename, out var tracks, out var waypoints, onProgress: null, CancellationToken.None));
 
+            Assert.IsTrue(containsPoints(plan_data.Segments, tracks));
+            Assert.AreEqual(13, plan_data.Crossroads.Count);
 
-            Assert.IsTrue(containsPoints(gpx_data.Segments, tracks));
-            Assert.AreEqual(13, gpx_data.Crossroads.Count);
+            Assert.AreEqual(16.8936197293979, plan_data.Crossroads[0].Latitude.Degrees, precision);
+            Assert.AreEqual(3.1787316182833, plan_data.Crossroads[0].Longitude.Degrees, precision);
 
-            Assert.AreEqual(16.8936197293979, gpx_data.Crossroads[0].Latitude.Degrees, precision);
-            Assert.AreEqual(3.1787316182833, gpx_data.Crossroads[0].Longitude.Degrees, precision);
+            Assert.AreEqual(16.8887736999992, plan_data.Crossroads[1].Latitude.Degrees, precision);
+            Assert.AreEqual(3.13779059999673, plan_data.Crossroads[1].Longitude.Degrees, precision);
 
-            Assert.AreEqual(16.8887736999992, gpx_data.Crossroads[1].Latitude.Degrees, precision);
-            Assert.AreEqual(3.13779059999673, gpx_data.Crossroads[1].Longitude.Degrees, precision);
+            Assert.AreEqual(16.8076035000023, plan_data.Crossroads[2].Latitude.Degrees, precision);
+            Assert.AreEqual(3.10079109998162, plan_data.Crossroads[2].Longitude.Degrees, precision);
 
-            Assert.AreEqual(16.8076035000023, gpx_data.Crossroads[2].Latitude.Degrees, precision);
-            Assert.AreEqual(3.10079109998162, gpx_data.Crossroads[2].Longitude.Degrees, precision);
+            Assert.AreEqual(16.8592042125708, plan_data.Crossroads[3].Latitude.Degrees, precision);
+            Assert.AreEqual(3.14995261250127, plan_data.Crossroads[3].Longitude.Degrees, precision);
 
-            Assert.AreEqual(16.8592095197273, gpx_data.Crossroads[3].Latitude.Degrees, precision);
-            Assert.AreEqual(3.14991028487666, gpx_data.Crossroads[3].Longitude.Degrees, precision);
+            Assert.AreEqual(16.8397027750001, plan_data.Crossroads[4].Latitude.Degrees, precision);
+            Assert.AreEqual(3.16074990000049, plan_data.Crossroads[4].Longitude.Degrees, precision);
 
-            Assert.AreEqual(16.8396966193188, gpx_data.Crossroads[4].Latitude.Degrees, precision);
-            Assert.AreEqual(3.16075355534243, gpx_data.Crossroads[4].Longitude.Degrees, precision);
+            Assert.AreEqual(16.8064137001461, plan_data.Crossroads[5].Latitude.Degrees, precision);
+            Assert.AreEqual(3.12735877501504, plan_data.Crossroads[5].Longitude.Degrees, precision);
 
-            Assert.AreEqual(16.8064280027882, gpx_data.Crossroads[5].Latitude.Degrees, precision);
-            Assert.AreEqual(3.12732316838546, gpx_data.Crossroads[5].Longitude.Degrees, precision);
+            Assert.AreEqual(16.8024285999989, plan_data.Crossroads[6].Latitude.Degrees, precision);
+            Assert.AreEqual(3.20027810000194, plan_data.Crossroads[6].Longitude.Degrees, precision);
 
-            Assert.AreEqual(16.8024285999989, gpx_data.Crossroads[6].Latitude.Degrees, precision);
-            Assert.AreEqual(3.20027810000194, gpx_data.Crossroads[6].Longitude.Degrees, precision);
+            Assert.AreEqual(16.8418774601993, plan_data.Crossroads[7].Latitude.Degrees, precision);
+            Assert.AreEqual(3.15659887886566, plan_data.Crossroads[7].Longitude.Degrees, precision);
 
-            Assert.AreEqual(16.8418774601993, gpx_data.Crossroads[7].Latitude.Degrees, precision);
-            Assert.AreEqual(3.15659887886566, gpx_data.Crossroads[7].Longitude.Degrees, precision);
+            Assert.AreEqual(16.8605504750011, plan_data.Crossroads[8].Latitude.Degrees, precision);
+            Assert.AreEqual(3.13799612500389, plan_data.Crossroads[8].Longitude.Degrees, precision);
 
-            Assert.AreEqual(16.8605446415007, gpx_data.Crossroads[8].Latitude.Degrees, precision);
-            Assert.AreEqual(3.13797407027238, gpx_data.Crossroads[8].Longitude.Degrees, precision);
+            Assert.AreEqual(16.858500900001, plan_data.Crossroads[9].Latitude.Degrees, precision);
+            Assert.AreEqual(3.16086709999214, plan_data.Crossroads[9].Longitude.Degrees, precision);
 
-            Assert.AreEqual(16.858500900001, gpx_data.Crossroads[9].Latitude.Degrees, precision);
-            Assert.AreEqual(3.16086709999214, gpx_data.Crossroads[9].Longitude.Degrees, precision);
+            Assert.AreEqual(16.8752200999987, plan_data.Crossroads[10].Latitude.Degrees, precision);
+            Assert.AreEqual(3.13840510000206, plan_data.Crossroads[10].Longitude.Degrees, precision);
 
-            Assert.AreEqual(16.8752200999987, gpx_data.Crossroads[10].Latitude.Degrees, precision);
-            Assert.AreEqual(3.13840510000206, gpx_data.Crossroads[10].Longitude.Degrees, precision);
+            Assert.AreEqual(16.843227172543, plan_data.Crossroads[11].Latitude.Degrees, precision);
+            Assert.AreEqual(3.16077687101759, plan_data.Crossroads[11].Longitude.Degrees, precision);
 
-            Assert.AreEqual(16.843227172543, gpx_data.Crossroads[11].Latitude.Degrees, precision);
-            Assert.AreEqual(3.16077687101759, gpx_data.Crossroads[11].Longitude.Degrees, precision);
-
-            Assert.AreEqual(16.8544919000013, gpx_data.Crossroads[12].Latitude.Degrees, precision);
-            Assert.AreEqual(3.18811959999266, gpx_data.Crossroads[12].Longitude.Degrees, precision);
+            Assert.AreEqual(16.8544919000013, plan_data.Crossroads[12].Latitude.Degrees, precision);
+            Assert.AreEqual(3.18811959999266, plan_data.Crossroads[12].Longitude.Degrees, precision);
         }
 
         [TestMethod]
@@ -122,15 +512,15 @@ namespace TrackRadar.Tests
         {
             const string filename = @"Data/intersection-apart.gpx";
 
-            IPlanData gpx_data = GpxLoader.ReadGpx(filename, Length.FromMeters(100), onProgress: null, CancellationToken.None);
+            IPlanData plan_data = GpxLoader.ReadGpx(filename, Length.FromMeters(100), onProgress: null, CancellationToken.None);
             Assert.IsTrue(GpxLoader.tryLoadGpx(filename, out var tracks, out var waypoints, onProgress: null, CancellationToken.None));
 
-            Assert.IsTrue(containsPoints(gpx_data.Segments, tracks));
-            Assert.AreEqual(1, gpx_data.Crossroads.Count);
+            Assert.IsTrue(containsPoints(plan_data.Segments, tracks));
+            Assert.AreEqual(1, plan_data.Crossroads.Count);
 
-            GeoPoint pt = gpx_data.Crossroads.Single();
-            Assert.AreEqual(38.7864379704086, pt.Latitude.Degrees, precision);
-            Assert.AreEqual(-3.8086570696210611, pt.Longitude.Degrees, precision);
+            GeoPoint pt = plan_data.Crossroads.Single();
+            Assert.AreEqual(38.7864047129328, pt.Latitude.Degrees, precision);
+            Assert.AreEqual(-3.80869112804318, pt.Longitude.Degrees, precision);
         }
 
         [TestMethod]

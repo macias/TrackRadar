@@ -22,6 +22,7 @@ namespace TrackRadar
         private TextView trackFileNameTextView;
         private TextView trackErrorTextView;
         private TextView gpsInfoTextView;
+        private TextView navigationDisabledTextView;
         private TextView alarmInfoTextView;
         private TextView ridingDistanceTextView;
         private TextView averageSpeedTextView;
@@ -99,7 +100,7 @@ namespace TrackRadar
                 this.enableButton = FindViewById<Button>(Resource.Id.EnableButton);
                 this.trackFileNameTextView = FindViewById<TextView>(Resource.Id.TrackFileNameTextView);
                 this.gpsInfoTextView = FindViewById<TextView>(Resource.Id.GpsInfoTextView);
-                //this.loadProgressTextView = FindViewById<TextView>(Resource.Id.LoadProgressTextView);
+                this.navigationDisabledTextView = FindViewById<TextView>(Resource.Id.NavigationDisabledTextView);
                 this.trackErrorTextView = FindViewById<TextView>(Resource.Id.TrackInfoTextView);
                 this.alarmInfoTextView = FindViewById<TextView>(Resource.Id.AlarmInfoTextView);
 
@@ -428,6 +429,8 @@ namespace TrackRadar
                 this.gpsInfoTextView.Visibility = gps_enabled ? ViewStates.Gone : ViewStates.Visible;
 
                 logDebug(LogLevel.Verbose, $"UI track: {(app.TrackData == null ? "null" : "loaded")} app tag {app.TrackTag} req tag {this.loadTrackRequestTag}");
+
+                this.navigationDisabledTextView.Visibility = isTrackLoaded && this.app.TrackData.Graph == null ? ViewStates.Visible : ViewStates.Gone;
 
                 if (isTrackLoaded)
                 {

@@ -30,13 +30,14 @@ namespace TrackRadar
 
         private HandlerThread handler;
         private RadarReceiver receiver;
-     //   private LogFile serviceLog;
+        //   private LogFile serviceLog;
         private GpxWriter offTrackWriter;
         private GpxWriter crossroadsWriter;
         private int gpsLastStatus;
         private DisposableGuard guard;
         private int subscriptions;
         private GpxWriter traceWriter;
+        private double longestUpdate;
 
         /*
 private SensorManager sensorManager;
@@ -80,7 +81,7 @@ private long mLastTime;
             {
                 this.guard = new DisposableGuard();
                 this.subscriptions = 1;
-              //  this.serviceLog = new LogFile(this, "service.log", DateTime.UtcNow.AddDays(-2));
+                //  this.serviceLog = new LogFile(this, "service.log", DateTime.UtcNow.AddDays(-2));
 
                 if (!(Java.Lang.Thread.DefaultUncaughtExceptionHandler is CustomExceptionHandler))
                     Java.Lang.Thread.DefaultUncaughtExceptionHandler
@@ -116,8 +117,8 @@ private long mLastTime;
 
                 if (this.prefs.ShowTurnAhead)
                 {
-                    this.TEST_timer = new WrapTimer(showTurnAhead);
-                    this.TEST_timer.Change(TimeSpan.FromSeconds(25), System.Threading.Timeout.InfiniteTimeSpan);
+                    //this.TEST_timer = new WrapTimer(showTurnAhead);
+                    //this.TEST_timer.Change(TimeSpan.FromSeconds(25), System.Threading.Timeout.InfiniteTimeSpan);
                 }
 
                 this.core = new RadarCore(this, alarmSequencer, timeStamper, app.TrackData,
@@ -151,6 +152,11 @@ private long mLastTime;
                     // https://android.googlesource.com/platform/frameworks/support.git/+/f9fd97499795cd47473f0344e00db9c9837eea36/v4/gingerbread/android/support/v4/app/NotificationCompatGingerbread.java
                     notification.SetLatestEventInfo(this, nameof(TrackRadar), "Monitoring position...", pendingIntent);
                     StartForeground(1337, notification);
+                }
+
+                if (this.prefs.ShowTurnAhead)
+                {
+                    LogDebug(LogLevel.Info, $"CPU eval {Mather.MakeCpuBusy()}s");
                 }
 
                 LogDebug(LogLevel.Info, "service started (+testing log)");
@@ -407,10 +413,17 @@ private long mLastTime;
                         using (this.alarmSequencer.OpenAlarmContext(gpsAcquired: this.gpsWatchdog.UpdateGpsIsOn(),
                             hasGpsSignal: this.gpsWatchdog.HasGpsSignal))
                         {
-                            // core.UpdateGpsPendingAlarm(this.gpsWatchdog.UpdateGpsIsOn(), this.gpsWatchdog.HasGpsSignal);
+                            long start = timeStamper.GetTimestamp();
                             dist = this.core.UpdateLocation(GeoPoint.FromDegrees(latitude: location.Latitude, longitude: location.Longitude),
                                 altitude: location.HasAltitude ? Length.FromMeters(location.Altitude) : (Length?)null,
                                 accuracy: location.HasAccuracy ? Length.FromMeters(location.Accuracy) : (Length?)null);
+                            double passed = timeStamper.GetSecondsSpan(start);
+                            if (this.longestUpdate < passed)
+                            {
+                                if (longestUpdate != 0)
+                                    LogDebug(LogLevel.Verbose, $"loc update at {location.Latitude},{location.Longitude} took {(passed.ToString("0.####"))}s");
+                                longestUpdate = passed;
+                            }
                         }
                     }
                     catch (Exception ex)
@@ -451,7 +464,7 @@ private long mLastTime;
 
                 Common.Log(level, message);
                 //if (level > LogLevel.Verbose)
-                  //  this.serviceLog?.WriteLine(level, message);
+                //  this.serviceLog?.WriteLine(level, message);
             }
             catch (Exception ex)
             {

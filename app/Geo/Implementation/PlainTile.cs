@@ -17,9 +17,10 @@ namespace Geo.Implementation
             this.segments = segments.ToArray();
         }
 
-        public bool FindCloseEnough(in Geo.GeoPoint point, Length limit, ref ISegment nearby, ref Length? distance, out GeoPoint crosspoint)
+        public bool FindCloseEnough(in Geo.GeoPoint point, Length limit, ref ISegment nearby, ref Length? distance, 
+            out ArcSegmentIntersection crosspointInfo)
         {
-            return find(point, limit, ref nearby, ref distance, out crosspoint, returnFirst: true);
+            return find(point, limit, ref nearby, ref distance, out crosspointInfo, returnFirst: true);
         }
 
         /*public bool FindClosest(in Geo.GeoPoint point, ref ISegment nearby, ref Length? distance, out GeoPoint crosspoint)
@@ -32,25 +33,25 @@ namespace Geo.Implementation
             distance = null;
             ISegment nearby = default;
 
-            return find(point, limit, ref nearby, ref distance, out GeoPoint _, returnFirst: true);
+            return find(point, limit, ref nearby, ref distance, out ArcSegmentIntersection _, returnFirst: true);
         }
 
-        private bool find(in Geo.GeoPoint point, Length limit, ref ISegment nearby, ref Length? bestDistance, out GeoPoint crosspoint,
-            bool returnFirst)
+        private bool find(in Geo.GeoPoint point, Length limit, ref ISegment nearby, ref Length? bestDistance,
+            out ArcSegmentIntersection crosspointInfo, bool returnFirst)
         {
             bool found = false;
-            crosspoint = default;
+            crosspointInfo = default;
 
             foreach (ISegment segment in this.segments)
             {
-                Length dist = point.GetDistanceToArcSegment(segment.A, segment.B, out GeoPoint cx);
+                Length dist = point.GetDistanceToArcSegment(segment.A, segment.B, out ArcSegmentIntersection cx);
 
-                if (bestDistance == null || dist < bestDistance 
+                if (bestDistance == null || dist < bestDistance
                     || (dist == bestDistance && segment.CompareImportance(nearby) == Ordering.Greater))
                 {
                     bestDistance = dist;
                     nearby = segment;
-                    crosspoint = cx;
+                    crosspointInfo = cx;
                     found = true;
                 }
 

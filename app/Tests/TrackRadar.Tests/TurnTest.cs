@@ -42,15 +42,15 @@ namespace TrackRadar.Tests
             int a = 0;
             Assert.AreEqual((Alarm.Crossroad, 3), alarms[a++]);
             Assert.AreEqual((TurnLookout.LeavingTurningPoint, 5), messages[0]);
-            Assert.AreEqual((TurnLookout.LeavingTurningPoint, 6), messages[1]);
+//            Assert.AreEqual((TurnLookout.LeavingTurningPoint, 6), messages[1]);
 
             Assert.AreEqual((Alarm.Crossroad, 2031), alarms[a++]);
             Assert.AreEqual((Alarm.GoAhead, 2033), alarms[a++]);
             Assert.AreEqual((Alarm.GoAhead, 2035), alarms[a++]);
 
-            Assert.AreEqual((Alarm.Crossroad, 4080), alarms[a++]);
-            Assert.AreEqual((Alarm.Crossroad, 4082), alarms[a++]);
-            Assert.AreEqual((Alarm.Crossroad, 4084), alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 4079), alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 4081), alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 4083), alarms[a++]);
         }
 
         [TestMethod]
@@ -79,7 +79,7 @@ namespace TrackRadar.Tests
 
 
         [TestMethod]
-        public void WRONG_AlternateTurnsTest()
+        public void AlternateTurnsTest()
         {
             // shape like this:
             // ----+
@@ -121,16 +121,16 @@ namespace TrackRadar.Tests
 
             Toolbox.Ride(new Preferences(), plan_data, track_points, out var alarm_counters, out var alarms, out var messages);
 
-            Assert.AreEqual(6, alarms.Count());
+            Assert.AreEqual(7, alarms.Count());
 
             Assert.AreEqual((Alarm.Engaged, 3), alarms[0]);
             Assert.AreEqual((Alarm.Crossroad, 239), alarms[1]);
             Assert.AreEqual((Alarm.LeftCross, 241), alarms[2]);
             Assert.AreEqual((Alarm.LeftCross, 243), alarms[3]);
-            Assert.AreEqual((Alarm.Crossroad, 260), alarms[4]);  // two changes: alam right cross and make it sooner
-            Assert.AreEqual((Alarm.RightCross, 262), alarms[5]);
+            Assert.AreEqual((Alarm.RightCross, 258), alarms[4]);  
+            Assert.AreEqual((Alarm.RightCross, 260), alarms[5]);
 
-            Assert.AreEqual((TurnLookout.LeavingTurningPoint, 264), messages[0]);
+            //Assert.AreEqual((TurnLookout.LeavingTurningPoint, 264), messages[0]);
         }
 
         [TestMethod]
@@ -186,9 +186,9 @@ namespace TrackRadar.Tests
             Assert.AreEqual(4, alarms.Count);
             int a = 0;
             Assert.AreEqual((Alarm.Engaged, 3), alarms[a++]);
-            Assert.AreEqual((Alarm.Crossroad, 64), alarms[a++]);
-            Assert.AreEqual((Alarm.RightSharp, 66), alarms[a++]);
-            Assert.AreEqual((Alarm.RightSharp, 68), alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 63), alarms[a++]);
+            Assert.AreEqual((Alarm.RightSharp, 65), alarms[a++]);
+            Assert.AreEqual((Alarm.RightSharp, 67), alarms[a++]);
         }
 
         [TestMethod]
@@ -370,8 +370,8 @@ namespace TrackRadar.Tests
                         clock.Advance();
                         counting_alarm_master.SetPointIndex(point_index);
                         PositionCalculator.IsOnTrack(pt, map, prefs.OffTrackAlarmDistance,
-                            out ISegment segment, out _, out GeoPoint crosspoint);
-                        lookout.AlarmTurnAhead(last_pt, pt, segment, crosspoint, ride_speed, clock.GetTimestamp(), out _);
+                            out ISegment segment, out _, out ArcSegmentIntersection cx_info);
+                        lookout.AlarmTurnAhead(last_pt, pt, segment, cx_info, ride_speed, clock.GetTimestamp(), out _);
                         ++point_index;
                         last_pt = pt;
                     }
@@ -424,9 +424,9 @@ namespace TrackRadar.Tests
                 IGeoMap map = RadarCore.CreateTrackMap(gpx_data.Segments);
                 var lookout = new TurnLookout(service, sequencer, clock, gpx_data, map);
                 PositionCalculator.IsOnTrack(turning_point, map, prefs.OffTrackAlarmDistance,
-                    out ISegment segment, out _, out GeoPoint crosspoint);
+                    out ISegment segment, out _, out ArcSegmentIntersection cx_info);
                 // simulate we are exactly at turning point (no bearing then) and look out for program crash
-                lookout.AlarmTurnAhead(turning_point, turning_point, segment, crosspoint, ride_speed, clock.GetTimestamp(), out _);
+                lookout.AlarmTurnAhead(turning_point, turning_point, segment, cx_info, ride_speed, clock.GetTimestamp(), out _);
 
                 Assert.AreEqual(1, counting_alarm_master.AlarmCounters[Alarm.Crossroad]);
             }

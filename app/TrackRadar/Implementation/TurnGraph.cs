@@ -41,39 +41,64 @@ namespace TrackRadar.Implementation
         }
 #endif
 
-        public bool TryGetClosestCrossroad(GeoPoint currentPoint,
-            ISegment segment, in GeoPoint projectedPoint,
-            Length turnAheadDistance, out GeoPoint crossroad, out Length distance)
+        public bool TryGetClosestCrossroad(ISegment segment, in ArcSegmentIntersection crosspointInfo,
+            out TurnPointInfo crossroadInfo, out TurnPointInfo? alternate)
         {
+            alternate = default;
+
+            // given segment does not have to have any info about turns, so we need to TRY get some info
             if (!trackToTurns.TryGetValue(segment.A, out var a_pinfo_pair))
             {
-                crossroad = default;
-                distance = default;
+                crossroadInfo = default;
                 return false;
             }
 
-            (TurnPointInfo a_info, TurnPointInfo? _) = a_pinfo_pair;
+            (TurnPointInfo a_primary, TurnPointInfo? a_alt) = a_pinfo_pair;
 
-            TurnPointInfo b_info = trackToTurns[segment.B].primary;
+            // when one end has turn info, then sure the other end has the info as well
+            (TurnPointInfo b_primary, TurnPointInfo? b_alt) = trackToTurns[segment.B];
 
-            Length a_dist = a_info.Distance > turnAheadDistance ? Length.MaxValue : (a_info.Distance + GeoCalculator.GetDistance(currentPoint, segment.A));
-            Length b_dist = b_info.Distance > turnAheadDistance ? Length.MaxValue : (b_info.Distance + GeoCalculator.GetDistance(currentPoint, segment.B));
+            Length a_part_dist = crosspointInfo.AlongSegmentDistance;
+            Length b_part_dist = crosspointInfo.SegmentLength - crosspointInfo.AlongSegmentDistance;
+            Length a_dist = a_primary.Distance + a_part_dist;
+            Length b_dist = b_primary.Distance + b_part_dist;
             if (a_dist < b_dist)
             {
-                crossroad = a_info.TurnPoint;
-                distance = a_dist;
+                crossroadInfo = new TurnPointInfo(a_primary.TurnPoint, a_dist);
+                //if (a_alt.HasValue)
+                // the alt turn point is the other way so we have to subtract, not add
+                //  alternate = new TurnPointInfo(a_alt.Value.TurnPoint, a_alt.Value.Distance - a_part_dist);
+                alternate = computeAlternate(a_primary.TurnPoint, a_alt, a_part_dist, b_primary, b_alt, b_part_dist);
             }
             else
             {
-                crossroad = b_info.TurnPoint;
-                distance = b_dist;
+                crossroadInfo = new TurnPointInfo(b_primary.TurnPoint, b_dist);
+                //if (b_alt.HasValue)
+                //  alternate = new TurnPointInfo(b_alt.Value.TurnPoint, b_alt.Value.Distance - b_part_dist);
+                alternate = computeAlternate(b_primary.TurnPoint, b_alt, b_part_dist, a_primary, a_alt, a_part_dist);
             }
 
-            bool result = distance <= turnAheadDistance;
-
-            return result;
+            return true;
         }
 
+        private static TurnPointInfo? computeAlternate(in GeoPoint currentPrimaryTurnPoint, in TurnPointInfo? currentAlt,
+            Length currentPart,
+            in TurnPointInfo otherPrimary, in TurnPointInfo? otherAlt, Length otherPart)
+        {
+
+            if (currentAlt.HasValue) // current (closest) node is NOT a turn node
+                // the alt turn point is the other way so we have to subtract, not add
+                return new TurnPointInfo(currentAlt.Value.TurnPoint, currentAlt.Value.Distance - currentPart);
+            // current node is a turn node, so we have to rely on the other one
+            // the other one can point in the same direction or not
+            else if (currentPrimaryTurnPoint != otherPrimary.TurnPoint)
+                return new TurnPointInfo(otherPrimary.TurnPoint, otherPrimary.Distance + otherPart);
+            else if (otherAlt.HasValue)
+                return new TurnPointInfo(otherAlt.Value.TurnPoint, otherAlt.Value.Distance + otherPart);
+            else
+                // unusual, but possible: track has simply one turn, so there is primary info, but no alternate
+                return null;
+        }
         public bool TryGetOutgoingArmSection(GeoPoint currentPoint, GeoPoint turnPoint, int sectionId,
             out ArmSectionPoints sectionPoints)
         {

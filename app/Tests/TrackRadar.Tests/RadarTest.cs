@@ -164,7 +164,8 @@ namespace TrackRadar.Tests
             int index = 0;
             foreach (var pt in trackPoints)
             {
-                bool exact_res = map.FindClosest(pt, prefs.OffTrackAlarmDistance, out ISegment _, out Length? exact_map_dist, out GeoPoint _);
+                bool exact_res = map.FindClosest(pt, prefs.OffTrackAlarmDistance, out ISegment _, out Length? exact_map_dist, 
+                    out  _);
                 bool approx_res = map.IsWithinLimit(pt, prefs.OffTrackAlarmDistance, out Length? approx_map_dist);
 
                 Assert.AreEqual(expected: approx_res, actual: exact_res);

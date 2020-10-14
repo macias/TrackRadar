@@ -4,6 +4,20 @@ using System.Runtime.CompilerServices;
 
 namespace Geo
 {
+    public readonly struct ArcSegmentIntersection
+    {
+        public Length SegmentLength { get; }
+        public GeoPoint Intersection { get; }
+        public Length AlongSegmentDistance { get; }
+
+        public ArcSegmentIntersection( Length segmentLength,GeoPoint intersection, Length alongSegmentDistance)
+        {
+            SegmentLength = segmentLength;
+            Intersection = intersection;
+            AlongSegmentDistance = alongSegmentDistance;
+        }
+    }
+
     // todo: read it
     // https://blog.mapbox.com/fast-geodesic-approximations-with-cheap-ruler-106f229ad016
 
@@ -313,21 +327,33 @@ namespace Geo
         public static Length GetDistanceToArcSegment(this in GeoPoint point, in GeoPoint segmentStart, in GeoPoint segmentEnd,
             out GeoPoint crossPoint)
         {
-            return getDistanceToArcSegment(point, segmentStart, segmentEnd, out crossPoint,out _, computeCrossPoint: true);
+            var result = getDistanceToArcSegment(point, segmentStart, segmentEnd, out var info, computeCrossPoint: true);
+            crossPoint = info.Intersection;
+            return result;
         }
 
         public static Length GetDistanceToArcSegment(this in GeoPoint point, in GeoPoint segmentStart, in GeoPoint segmentEnd,
             out GeoPoint crossPoint,out Length distanceAlongSegment)
         {
-            return getDistanceToArcSegment(point, segmentStart, segmentEnd, out crossPoint, out distanceAlongSegment,  
+            var result = getDistanceToArcSegment(point, segmentStart, segmentEnd, out var info,  
+                computeCrossPoint: true);
+            crossPoint = info.Intersection;
+            distanceAlongSegment = info.AlongSegmentDistance;
+            return result;
+        }
+
+        public static Length GetDistanceToArcSegment(this in GeoPoint point, in GeoPoint segmentStart, in GeoPoint segmentEnd,
+             out ArcSegmentIntersection arcSegmentIntersection)
+        {
+            return getDistanceToArcSegment(point, segmentStart, segmentEnd, out arcSegmentIntersection,
                 computeCrossPoint: true);
         }
 
         private static Length getDistanceToArcSegment(in GeoPoint pointP3, in GeoPoint arcP1, in GeoPoint arcP2,
-            out GeoPoint crossPoint, out Length distanceAlongSegment, bool computeCrossPoint)
+            out ArcSegmentIntersection arcSegmentIntersection, bool computeCrossPoint)
         {
             //Length o = getDistanceToArcSegmentOLD(pointP3, arcP1, arcP2, out crossPoint, computeCrossPoint);
-            Length n = getDistanceToArcSegmentNEW(pointP3, arcP1, arcP2, out crossPoint, out distanceAlongSegment, computeCrossPoint);
+            Length n = getDistanceToArcSegmentNEW(pointP3, arcP1, arcP2, out arcSegmentIntersection, computeCrossPoint);
             return n;
         }
 
@@ -379,7 +405,7 @@ namespace Geo
         }
 
         private static Length getDistanceToArcSegmentNEW(in GeoPoint pointP3, in GeoPoint arcP1Start, in GeoPoint arcP2End,
-            out GeoPoint crossPoint, out Length distanceAlongSegment, bool computeCrossPoint)
+            out ArcSegmentIntersection arcSegmentIntersection, bool computeCrossPoint)
         {
             // http://stackoverflow.com/questions/32771458/distance-from-lat-lng-point-to-minor-arc-segment
             // https://stackoverflow.com/questions/849211/shortest-distance-between-a-point-and-a-line-segment/865080#865080
@@ -409,8 +435,7 @@ namespace Geo
 
             if (bearing_diff > (Math.PI / 2))
             {
-                crossPoint = arcP1Start;
-                distanceAlongSegment = Length.Zero;
+                arcSegmentIntersection = new ArcSegmentIntersection(dis12, arcP1Start, Length.Zero);
                 return dis13;
             }
             else
@@ -421,16 +446,17 @@ namespace Geo
                 Length dis14 = Length.FromMeters(Math.Acos(Math.Cos(dis13.Meters / R) / Math.Cos(dxt / R)) * R);
                 if (dis14 > dis12)
                 {
-                    crossPoint = arcP2End;
-                    distanceAlongSegment = dis12;
+                    arcSegmentIntersection = new ArcSegmentIntersection(dis12, arcP2End, dis12);
                     return GeoCalculator.GetDistance(arcP2End, pointP3);
                 }
                 else
                 {
-                    distanceAlongSegment = dis14;
-                    crossPoint = computeCrossPoint
-                        ? GetDestinationPoint(arcP1Start, bearing: Angle.FromRadians(bear12), distance: dis14)
-                        : default;
+                    if (computeCrossPoint)
+                        arcSegmentIntersection = new ArcSegmentIntersection(dis12, 
+                            GetDestinationPoint(arcP1Start, bearing: Angle.FromRadians(bear12), distance: dis14), 
+                            dis14);
+                    else
+                        arcSegmentIntersection = default;
 
                     return Length.FromMeters(Math.Abs(dxt));
                 }
@@ -447,7 +473,7 @@ namespace Geo
 
         public static Length GetDistanceToArcSegment(this in GeoPoint point, in GeoPoint segmentStart, in GeoPoint segmentEnd)
         {
-            return getDistanceToArcSegment(point, segmentStart, segmentEnd, out _, out _,computeCrossPoint: false);
+            return getDistanceToArcSegment(point, segmentStart, segmentEnd, out _, computeCrossPoint: false);
         }
 
         public static Length GetDistanceToArc(this in GeoPoint point, in GeoPoint arcA, in GeoPoint arcB)

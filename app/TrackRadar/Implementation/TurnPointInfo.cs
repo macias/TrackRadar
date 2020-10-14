@@ -13,5 +13,18 @@ namespace TrackRadar.Implementation
             TurnPoint = turnPoint;
             Distance = distance;
         }
+
+        public void Deconstruct(out GeoPoint turnPoint,out Length distance)
+        {
+            turnPoint = this.TurnPoint;
+            distance = this.Distance;
+        }
+
+#if DEBUG
+        public override string ToString()
+        {
+            return $"{Distance} to {TurnPoint}";
+        }
+#endif
     }
 }

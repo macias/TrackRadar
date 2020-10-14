@@ -106,7 +106,8 @@ namespace TrackRadar.Implementation
             double dist;
             long now = timeStamper.GetTimestamp();
 
-            bool on_track = isOnTrack(currentPoint, accuracy, out ISegment segment, out dist, out GeoPoint crosspoint);
+            bool on_track = isOnTrack(currentPoint, accuracy, out ISegment segment, out dist, 
+                out ArcSegmentIntersection crosspointInfo);
 
             Speed prev_riding = this.ridingSpeed;
 
@@ -182,13 +183,13 @@ namespace TrackRadar.Implementation
 
             // todo: think about it -- while do we call it when we don't have an older point??? 
             handleAlarm(older_point.HasValue ? older_point.Value.lastPoint : currentPoint,
-                currentPoint, segment, crosspoint, on_track, prev_riding, now);
+                currentPoint, segment, crosspointInfo, on_track, prev_riding, now);
 
             return dist;
         }
 
         private void handleAlarm(in GeoPoint somePreviousPoint, in GeoPoint currentPoint,
-            ISegment segment, in GeoPoint crosspoint,
+            ISegment segment, in ArcSegmentIntersection crosspointInfo,
             bool isOnTrack, Speed prevRiding, long now)
         {
             // do not trigger alarm if we stopped moving
@@ -209,7 +210,7 @@ namespace TrackRadar.Implementation
             else if (isOnTrack)
             {
                 turn_lookout.AlarmTurnAhead(somePreviousPoint, currentPoint,
-                    segment, crosspoint,
+                    segment, crosspointInfo,
                     this.ridingSpeed, now, out string _);
 
                 if (prevRiding == Speed.Zero  // we started riding, engagement
@@ -261,12 +262,13 @@ namespace TrackRadar.Implementation
         }
 
         /// <param name="dist">negative value means on track</param>
-        private bool isOnTrack(in GeoPoint point, Length? accuracy, out ISegment segment, out double dist, out GeoPoint crosspoint)
+        private bool isOnTrack(in GeoPoint point, Length? accuracy, out ISegment segment, out double dist, 
+            out ArcSegmentIntersection crosspointInfo)
         {
             Length limit = service.OffTrackAlarmDistance;
             if (accuracy.HasValue)
                 limit += accuracy.Value;
-            return PositionCalculator.IsOnTrack(point, trackMap, limit, out segment, out dist, out crosspoint);
+            return PositionCalculator.IsOnTrack(point, trackMap, limit, out segment, out dist, out crosspointInfo);
         }
 
         /*       internal void UpdateGpsPendingAlarm(bool gpsAcquired, bool hasGpsSignal)

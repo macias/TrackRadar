@@ -34,17 +34,18 @@ namespace Geo.Implementation
             return buckets.Select(it => new PlainTile(it)).ToList();
         }
 
-        public bool FindCloseEnough(in Geo.GeoPoint point, Length limit, out ISegment nearby, out Length? distance, out GeoPoint crosspoint)
+        public bool FindCloseEnough(in Geo.GeoPoint point, Length limit, out ISegment nearby, out Length? distance, 
+            out ArcSegmentIntersection crosspointInfo)
         {
             distance = null;
             nearby = default(ISegment);
-            crosspoint = default;
+            crosspointInfo = default;
 
             bool result = false;
             foreach (ITile tile in getTilesCloserThan(point, limit))
-                if (tile.FindCloseEnough(point, limit, ref nearby, ref distance, out GeoPoint cx))
+                if (tile.FindCloseEnough(point, limit, ref nearby, ref distance, out ArcSegmentIntersection cx))
                 {
-                    crosspoint = cx;
+                    crosspointInfo = cx;
                     result = true;
                     break;
                 }
@@ -53,19 +54,19 @@ namespace Geo.Implementation
         }
 
         public bool FindClosest(in Geo.GeoPoint point, Length? limit, 
-            out ISegment nearby, out Length? distance, out GeoPoint crosspoint)
+            out ISegment nearby, out Length? distance, out ArcSegmentIntersection crosspointInfo)
         {
             distance = null;
             nearby = default(ISegment);
-            crosspoint = default;
+            crosspointInfo = default;
             bool result = false;
 
             foreach (ITile tile in getTilesCloserThan(point, upperLimit: limit?? Length.Zero))
             {
-                if (tile.FindClosest(point, ref nearby, ref distance, out GeoPoint cx))
+                if (tile.FindClosest(point, ref nearby, ref distance, out ArcSegmentIntersection cx))
                 {
                     result = true;
-                    crosspoint = cx;
+                    crosspointInfo = cx;
                     if (distance == Length.Zero)
                         break;
                 }

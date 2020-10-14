@@ -7,8 +7,8 @@ namespace Geo
     {
         IEnumerable<Geo.ISegment> Segments { get; }
 
-        bool FindClosest(in GeoPoint point, Length? limit, out Geo.ISegment nearby, out Length? distance,out GeoPoint crosspoint);
-        bool FindCloseEnough(in GeoPoint point, Length limit, out ISegment nearby, out Length? distance, out GeoPoint crosspoint);
+        bool FindClosest(in GeoPoint point, Length? limit, out Geo.ISegment nearby, out Length? distance,out ArcSegmentIntersection crosspointInfo);
+        bool FindCloseEnough(in GeoPoint point, Length limit, out ISegment nearby, out Length? distance, out ArcSegmentIntersection crosspointInfo);
         bool IsWithinLimit(in GeoPoint point, Length limit, out Length? distance);
         IEnumerable<IMeasuredPinnedSegment> FindAll( GeoPoint point, Length limit);
         IEnumerable<Geo.ISegment> GetFromRegion(Angle westmost, Angle eastmost, Angle northmost, Angle southmost);

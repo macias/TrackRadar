@@ -6,7 +6,7 @@ namespace TrackRadar.Implementation
 {
 #if DEBUG
     public readonly struct DEBUG_TrackToTurnHack // all of the sudden VS2017 claims it cannot resolve ValueTuple, brilliant
-     {
+    {
         public GeoPoint TrackPoint { get; }
         public TurnPointInfo Primary { get; }
         public TurnPointInfo? Alternate { get; }
@@ -29,10 +29,9 @@ namespace TrackRadar.Implementation
         bool DEBUG_TryGetTurnInfo(in GeoPoint trackPoint, out TurnPointInfo primary, out TurnPointInfo? alternate);
 #endif
 
-        bool TryGetClosestCrossroad(GeoPoint currentPoint,
-            ISegment segment, in GeoPoint projectedPoint,
-            Length turnAheadDistance, out GeoPoint crossroad, out Length distance);
-        bool TryGetOutgoingArmSection(GeoPoint currentPoint, GeoPoint turnPoint, int sectionId, 
+        bool TryGetClosestCrossroad(ISegment segment, in ArcSegmentIntersection crosspointInfo,
+            out TurnPointInfo crossroadInfo, out TurnPointInfo? alternate);
+        bool TryGetOutgoingArmSection(GeoPoint currentPoint, GeoPoint turnPoint, int sectionId,
             out ArmSectionPoints sectionPoints);
         Turn ComputeTurn(GeoPoint currentPoint, GeoPoint turnPoint, Length distance, in ArmSectionPoints sectionPoints);
     }

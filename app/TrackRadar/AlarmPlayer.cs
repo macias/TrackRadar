@@ -9,6 +9,9 @@ namespace TrackRadar
 
         public AlarmSound Sound { get; }
         public bool IsPlaying => player.IsPlaying;
+
+        public TimeSpan Duration { get; }
+
         public event EventHandler Completion;//{ add;remove; }
         /*{
             add
@@ -22,9 +25,10 @@ namespace TrackRadar
             }
         }*/
 
-        public AlarmPlayer(MediaPlayer player, AlarmSound alarm)
+        public AlarmPlayer(MediaPlayer player, TimeSpan duration, AlarmSound alarm)
         {
             this.player = player;
+            Duration = duration;
             this.player.Completion += playerCompletion;
             Sound = alarm;
         }

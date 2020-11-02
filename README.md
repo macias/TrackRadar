@@ -9,6 +9,7 @@ Single sonar ping sound is extracted from the file: http://www.zedge.net/rington
 KDE_Error audio file is converted from KDE3 sounds.
 Guitar ringtone file is amplified version from: https://www.youtube.com/watch?v=Gms9qEWnqrM
 Arpeggio sound is shortened version from: https://www.youtube.com/watch?v=QKfy48_WWls
+Bell sound extracted from: https://www.youtube.com/watch?v=NtgXxZcEA90
 
 ## Building
 

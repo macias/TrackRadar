@@ -15,6 +15,8 @@ namespace TrackRadar.Implementation
         private ulong failedMask;
         private Alarm? alarmPlayed;
 
+        public TimeSpan MaxTurnDuration => this.master.MaxTurnDuration;
+
         public AlarmSequencer(ILogger logger, IAlarmMaster master)
         {
             this.logger = logger;
@@ -24,7 +26,31 @@ namespace TrackRadar.Implementation
 
         public void NotifyAlarm(Alarm alarm)
         {
-            this.notificationMask |= (1UL << (int)alarm);
+            // notifying about alarm is a way to say that we are at state for given alarm, but cannot play it
+            // (because for example interval between alarms prevents it), so any other alarm should be played
+            // also this influences already pending alarms
+            this.notificationMask |= (1UL << alarmNotificationCategory(alarm));
+        }
+
+        private int alarmNotificationCategory(Alarm alarm)
+        {
+            // for notification mask we slash some alarms into one general, it already happened in test
+            // the primary turn point caused crossroad notification and this blocked alarm on secondary turn point
+            switch (alarm)
+            {
+                case Alarm.Crossroad: return (int)Alarm.Crossroad;
+                case Alarm.GoAhead: return (int)Alarm.Crossroad;
+                case Alarm.LeftCross: return (int)Alarm.Crossroad;
+                case Alarm.LeftEasy: return (int)Alarm.Crossroad;
+                case Alarm.LeftSharp: return (int)Alarm.Crossroad;
+                case Alarm.RightCross: return (int)Alarm.Crossroad;
+                case Alarm.RightEasy: return (int)Alarm.Crossroad;
+                case Alarm.RightSharp: return (int)Alarm.Crossroad;
+
+                case Alarm.DoubleTurn: return (int)Alarm.Crossroad;
+
+                default: return (int)alarm;
+            }
         }
 
         public bool TryAlarm(Alarm alarm, out string reason)
@@ -45,7 +71,7 @@ namespace TrackRadar.Implementation
             }
             else if (notificationMask != 0)
             {
-                if ((notificationMask & (1UL << (int)alarm)) == notificationMask) // notification only about this alarm
+                if ((notificationMask & (1UL << alarmNotificationCategory(alarm))) == notificationMask) // notification only about this alarm
                 {
                     this.notificationMask = 0;
                     return TryAlarm(alarm, out reason);
@@ -97,7 +123,7 @@ namespace TrackRadar.Implementation
 
         private void closeContext()
         {
-            if (!alarmPlayed.HasValue 
+            if (!alarmPlayed.HasValue
                 // we might have other failures but we have to save for futre only dis/engage
                 && (this.failedMask & (disengageMask | engagedMask)) != 0
                 // dis/engage override gps acquired (without gps we wouldn't trigger those alarms)

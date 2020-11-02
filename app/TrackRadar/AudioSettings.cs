@@ -46,7 +46,7 @@ namespace TrackRadar
         private void createPlayer(string filename)
         {
             // type of alarm does not matter here
-            this.player = Common.CreateMediaPlayer(this.activity, filename, this.audioResourceId);
+            this.player = Common.CreateMediaPlayer(this.activity, filename, this.audioResourceId, out _);
             UpdatePlaybackVolume();
             this.playButton.Enabled = this.player != null;
         }

@@ -15,6 +15,7 @@ namespace TrackRadar
         string RightEasyAudioFileName { get; }
         string RightCrossAudioFileName { get; }
         string RightSharpAudioFileName { get; }
+        string DoubleTurnAudioFileName { get; }
 
         string TurnAheadAudioFileName { get; }
         int TurnAheadAudioVolume { get; }
@@ -31,6 +32,7 @@ namespace TrackRadar
         TimeSpan NoGpsAlarmFirstTimeout { get; }
         Length OffTrackAlarmDistance { get; }
         TimeSpan TurnAheadAlarmDistance { get; }
+        TimeSpan DoubleTurnAlarmDistance { get; }
         TimeSpan TurnAheadAlarmInterval { get; }
         TimeSpan TurnAheadScreenTimeout { get; }
         TimeSpan OffTrackAlarmInterval { get; }

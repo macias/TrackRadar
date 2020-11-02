@@ -24,6 +24,7 @@ namespace TrackRadar
         EditText restSpeedThresholdEditText;
         EditText ridingSpeedThresholdEditText;
         private EditText turnAheadDistanceEditText;
+        private EditText doubleTurnDistanceEditText;
 
         AudioRichSettings offTrackDistanceSettings;
         AudioRichSettings gpsLostSettings;
@@ -31,6 +32,7 @@ namespace TrackRadar
         AudioRichSettings turnAheadSettings;
         AudioRichSettings disengageSettings;
 
+        AudioFileSettings doubleTurnSettings;
         AudioFileSettings goAheadSettings;
         AudioFileSettings leftEasySettings;
         AudioFileSettings leftCrossSettings;
@@ -55,6 +57,7 @@ namespace TrackRadar
         private const int SelectRightSharpAudioCode = 11;
 
         private const int SelectDisengageAudioCode = 12;
+        private const int SelectDoubleTurnAudioCode = 13;
 
         bool playbackInitialized;
 
@@ -111,6 +114,7 @@ namespace TrackRadar
             this.rightEasySettings = new AudioFileSettings(this, Preferences.RightEasyDefaultAudioId, SelectRightEasyAudioCode, () => this.playbackInitialized, Resource.Id.RightEasyAudioFileNameTextView, Resource.Id.RightEasyPlayButton, Resource.Id.RightEasyAudioFileNameButton, turnAheadSettings);
             this.rightCrossSettings = new AudioFileSettings(this, Preferences.RightCrossDefaultAudioId, SelectRightCrossAudioCode, () => this.playbackInitialized, Resource.Id.RightCrossAudioFileNameTextView, Resource.Id.RightCrossPlayButton, Resource.Id.RightCrossAudioFileNameButton, turnAheadSettings);
             this.rightSharpSettings = new AudioFileSettings(this, Preferences.RightSharpDefaultAudioId, SelectRightSharpAudioCode, () => this.playbackInitialized, Resource.Id.RightSharpAudioFileNameTextView, Resource.Id.RightSharpPlayButton, Resource.Id.RightSharpAudioFileNameButton, turnAheadSettings);
+            this.doubleTurnSettings = new AudioFileSettings(this, Preferences.DoubleTurnDefaultAudioId, SelectDoubleTurnAudioCode, () => this.playbackInitialized, Resource.Id.DoubleTurnAudioFileNameTextView, Resource.Id.DoubleTurnPlayButton, Resource.Id.DoubleTurnAudioFileNameButton, turnAheadSettings);
 
             this.gpsLostSettings = new AudioRichSettings(this, Preferences.GpsLostDefaultAudioId,
                 SelectGpsLostAudioCode,
@@ -134,6 +138,7 @@ namespace TrackRadar
             this.ridingSpeedThresholdEditText = FindViewById<EditText>(Resource.Id.RidingThresholdEditText);
 
             this.turnAheadDistanceEditText = FindViewById<EditText>(Resource.Id.TurnAheadDistanceEditText);
+            this.doubleTurnDistanceEditText = FindViewById<EditText>(Resource.Id.DoubleTurnDistanceEditText);
             this.turnAheadIntervalEditText = FindViewById<EditText>(Resource.Id.TurnAheadIntervalEditText);
             this.turnAheadScreenTimeoutEditText = FindViewById<EditText>(Resource.Id.TurnAheadScreenTimeoutEditText);
 
@@ -155,6 +160,7 @@ namespace TrackRadar
             this.offTrackIntervalEditText.Text = ((int)prefs.OffTrackAlarmInterval.TotalSeconds).ToString();
             this.noGpsIntervalEditText.Text = ((int)prefs.NoGpsAlarmAgainInterval.TotalMinutes).ToString();
             this.noGpsTimeoutEditText.Text = ((int)prefs.NoGpsAlarmFirstTimeout.TotalSeconds).ToString();
+
             this.offTrackDistanceSettings.Update(prefs.OffTrackAudioVolume, prefs.DistanceAudioFileName);
             this.gpsLostSettings.Update(prefs.GpsLostAudioVolume, prefs.GpsLostAudioFileName);
             this.gpsOnSettings.Update(prefs.AcknowledgementAudioVolume, prefs.GpsOnAudioFileName);
@@ -168,11 +174,13 @@ namespace TrackRadar
             this.rightEasySettings.Update(prefs.RightEasyAudioFileName);
             this.rightCrossSettings.Update(prefs.RightCrossAudioFileName);
             this.rightSharpSettings.Update(prefs.RightSharpAudioFileName);
+            this.doubleTurnSettings.Update(prefs.DoubleTurnAudioFileName);
 
             this.restSpeedThresholdEditText.Text = ((int)prefs.RestSpeedThreshold.KilometersPerHour).ToString();
             this.ridingSpeedThresholdEditText.Text = ((int)prefs.RidingSpeedThreshold.KilometersPerHour).ToString();
 
             this.turnAheadDistanceEditText.Text = ((int)prefs.TurnAheadAlarmDistance.TotalSeconds).ToString();
+            this.doubleTurnDistanceEditText.Text = ((int)prefs.DoubleTurnAlarmDistance.TotalSeconds).ToString();
             this.turnAheadIntervalEditText.Text = ((int)prefs.TurnAheadAlarmInterval.TotalSeconds).ToString();
             this.turnAheadScreenTimeoutEditText.Text = ((int)prefs.TurnAheadScreenTimeout.TotalSeconds).ToString();
 
@@ -196,6 +204,8 @@ namespace TrackRadar
                 this.disengageSettings.AudioFileSelected(intent.Data);
             else if (requestCode == SelectCrossroadsAudioCode)
                 this.turnAheadSettings.AudioFileSelected(intent.Data);
+            else if (requestCode == SelectDoubleTurnAudioCode)
+                this.doubleTurnSettings.AudioFileSelected(intent.Data);
             else if (requestCode == SelectGoAheadAudioCode)
                 this.goAheadSettings.AudioFileSelected(intent.Data);
             else if (requestCode == SelectLeftEasyAudioCode)
@@ -252,11 +262,13 @@ namespace TrackRadar
             p.RightEasyAudioFileName = this.rightEasySettings.AudioFileName;
             p.RightCrossAudioFileName = this.rightCrossSettings.AudioFileName;
             p.RightSharpAudioFileName = this.rightSharpSettings.AudioFileName;
+            p.DoubleTurnAudioFileName = this.doubleTurnSettings.AudioFileName;
 
             p.RestSpeedThreshold = Speed.FromKilometersPerHour(int.Parse(restSpeedThresholdEditText.Text));
             p.RidingSpeedThreshold = Speed.FromKilometersPerHour(int.Parse(ridingSpeedThresholdEditText.Text));
 
             p.TurnAheadAlarmDistance = TimeSpan.FromSeconds(int.Parse(turnAheadDistanceEditText.Text));
+            p.DoubleTurnAlarmDistance = TimeSpan.FromSeconds(int.Parse(doubleTurnDistanceEditText.Text));
             p.TurnAheadAlarmInterval = TimeSpan.FromSeconds(int.Parse(turnAheadIntervalEditText.Text));
             p.TurnAheadScreenTimeout = TimeSpan.FromSeconds(int.Parse(turnAheadScreenTimeoutEditText.Text));
 
@@ -274,6 +286,7 @@ namespace TrackRadar
             this.rightEasySettings.Destroy();
             this.rightCrossSettings.Destroy();
             this.rightSharpSettings.Destroy();
+            this.doubleTurnSettings.Destroy();
 
             RadarReceiver.SendUpdatePrefs(this);
 

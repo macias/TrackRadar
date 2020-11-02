@@ -7,10 +7,6 @@ namespace TrackRadar
 {
     public enum Alarm
     {
-        OffTrack = AlarmSound.OffTrack,
-        GpsLost = AlarmSound.GpsLost,
-        BackOnTrack = AlarmSound.BackOnTrack,
-        Crossroad = AlarmSound.Crossroad,
         GoAhead = AlarmSound.GoAhead,
         LeftEasy = AlarmSound.LeftEasy,
         LeftCross = AlarmSound.LeftCross,
@@ -18,6 +14,11 @@ namespace TrackRadar
         RightEasy = AlarmSound.RightEasy,
         RightCross = AlarmSound.RightCross,
         RightSharp = AlarmSound.RightSharp,
+        OffTrack = AlarmSound.OffTrack,
+        GpsLost = AlarmSound.GpsLost,
+        BackOnTrack = AlarmSound.BackOnTrack,
+        DoubleTurn = AlarmSound.DoubleTurn,
+        Crossroad = AlarmSound.Crossroad,
 
         Disengage = AlarmSound.Disengage, // WATCH OUT -- need to be the last of the AlarmSounds
 

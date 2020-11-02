@@ -10,7 +10,7 @@ namespace TrackRadar
         private sealed class PlanData : IPlanData
         {
             public IEnumerable<ISegment> Segments { get; }
-            public IReadOnlyList<GeoPoint> Crossroads { get; }
+            public IReadOnlyDictionary<GeoPoint,int> Crossroads { get; }
 #if DEBUG
             public int DEBUG_ExtensionCount { get; }
 #endif
@@ -21,7 +21,7 @@ namespace TrackRadar
                 ITurnGraph graph)
             {
                 Segments = segments.ToArray();
-                Crossroads = crossroads.ToArray();
+                Crossroads = crossroads.ZipIndex().ToDictionary(it => it.value, it=> it.index);
 #if DEBUG
                 DEBUG_ExtensionCount = debugExtensionCount;
 #endif

@@ -11,15 +11,19 @@ namespace TrackRadar.Implementation
         // track point -> closest turn point + distance to it
         // since at most each section is between two turning points we add info about the "other" end of it
         private readonly IReadOnlyDictionary<GeoPoint, (TurnPointInfo primary, TurnPointInfo? alternate)> trackToTurns;
+        private readonly HashSet<GeoPoint> approxTurnNodes;
         private readonly IReadOnlyDictionary<GeoPoint, (TurnArm a, TurnArm b)> turnsToArms;
+        private readonly IReadOnlyDictionary<GeoPoint, IEnumerable<TurnPointInfo>> turnPointsGraph;
 
 #if DEBUG
         public IEnumerable<DEBUG_TrackToTurnHack> DEBUG_TrackToTurns
             => this.trackToTurns.Select(it => new DEBUG_TrackToTurnHack(it.Key, it.Value.primary, it.Value.alternate));
 #endif
-        public TurnGraph(IReadOnlyDictionary<GeoPoint, TurnPointInfo> trackToTurns,
+        public TurnGraph(IEnumerable<GeoPoint> turnNodes,
+            IReadOnlyDictionary<GeoPoint, TurnPointInfo> trackToTurns,
             IReadOnlyDictionary<GeoPoint, TurnPointInfo> alternateTrackToTurns,
-            IReadOnlyDictionary<GeoPoint, (TurnArm a, TurnArm b)> turnsToArms)
+            IReadOnlyDictionary<GeoPoint, (TurnArm a, TurnArm b)> turnsToArms, 
+            IReadOnlyDictionary<GeoPoint, IEnumerable<TurnPointInfo>> turnPointsGraph)
         {
             var track_to_turns = new Dictionary<GeoPoint, (TurnPointInfo primary, TurnPointInfo? alternate)>();
             foreach (var entry in trackToTurns)
@@ -30,8 +34,9 @@ namespace TrackRadar.Implementation
                 track_to_turns.Add(entry.Key, (entry.Value, alternate));
             }
             this.trackToTurns = track_to_turns;
-
+            this.approxTurnNodes = new HashSet<GeoPoint>(turnNodes, SufficientlySameComparer.Default);
             this.turnsToArms = turnsToArms;
+            this.turnPointsGraph = turnPointsGraph;
         }
 
 #if DEBUG
@@ -41,6 +46,10 @@ namespace TrackRadar.Implementation
         }
 #endif
 
+        public bool IsApproxTurnNode(GeoPoint point)
+        {
+            return approxTurnNodes.Contains(point);
+        }
         public bool TryGetClosestCrossroad(ISegment segment, in ArcSegmentIntersection crosspointInfo,
             out TurnPointInfo crossroadInfo, out TurnPointInfo? alternate)
         {
@@ -99,8 +108,7 @@ namespace TrackRadar.Implementation
                 // unusual, but possible: track has simply one turn, so there is primary info, but no alternate
                 return null;
         }
-        public bool TryGetOutgoingArmSection(GeoPoint currentPoint, GeoPoint turnPoint, int sectionId,
-            out ArmSectionPoints sectionPoints)
+        public bool TryGetOutgoingArmSection(GeoPoint turnPoint, int sectionId, out ArmSectionPoints sectionPoints)
         {
             if (!this.turnsToArms.TryGetValue(turnPoint, out (TurnArm a, TurnArm b) arms))
             {
@@ -143,6 +151,12 @@ namespace TrackRadar.Implementation
 
             return result;
         }
+
+        public IEnumerable<TurnPointInfo> GetAdjacentTurns(GeoPoint turnPoint)
+        {
+            return this.turnPointsGraph[turnPoint];
+        }
+
 #if DEBUG
         public bool DEBUG_TryGetTurnInfo(in GeoPoint trackPoint, out TurnPointInfo primary, out TurnPointInfo? alternate)
         {
@@ -156,6 +170,7 @@ namespace TrackRadar.Implementation
             alternate = default;
             return false;
         }
+
 #endif
     }
 }

@@ -18,6 +18,8 @@ namespace TrackRadar.Tests.Implementation
         public IReadOnlyList<(Alarm alarm, int index)> Alarms => alarms;
         public IReadOnlyList<(string message, int index)> Messages => messages;
 
+        public TimeSpan MaxTurnDuration => master.MaxTurnDuration;
+
         public CountingAlarmMaster(IAlarmMaster master)
         {
             this.master = master;
@@ -58,6 +60,7 @@ namespace TrackRadar.Tests.Implementation
         public Speed RidingSpeedThreshold => prefs.RidingSpeedThreshold;
         public TimeSpan TurnAheadAlarmDistance => prefs.TurnAheadAlarmDistance;
         public TimeSpan TurnAheadAlarmInterval => prefs.TurnAheadAlarmInterval;
+        public TimeSpan DoubleTurnAlarmDistance => prefs.DoubleTurnAlarmDistance;
 
         private readonly IPreferences prefs;
         private readonly ITimeStamper timeStamper;

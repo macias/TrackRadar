@@ -6,7 +6,7 @@ namespace TrackRadar
 {
     public interface IPlanData
     {
-        IReadOnlyList<GeoPoint> Crossroads { get; }
+        IReadOnlyDictionary<GeoPoint, int> Crossroads { get; }
         IEnumerable<ISegment> Segments { get; }
         ITurnGraph Graph { get; }
 #if DEBUG

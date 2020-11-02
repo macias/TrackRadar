@@ -8,11 +8,13 @@ namespace TrackRadar
     {
         AlarmSound Sound { get; }
         bool IsPlaying { get; }
+        TimeSpan Duration { get; }
+
         event EventHandler Completion;
 
         void Stop();
         void Start();
     }
 
-   
+
 }

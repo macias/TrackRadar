@@ -1,9 +1,35 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace Geo
 {
+    public sealed class SufficientlySameComparer : IEqualityComparer<GeoPoint>
+    {
+        public static IEqualityComparer<GeoPoint> Default { get; } = new SufficientlySameComparer();
+
+        private const int decimals = 7; // Google Maps uses 7 places and it lives...
+        private const MidpointRounding mode = MidpointRounding.AwayFromZero;
+
+        private SufficientlySameComparer()
+        {
+
+        }
+
+        public bool Equals(GeoPoint a, GeoPoint b)
+        {
+            return Math.Round(a.Latitude.Degrees, decimals, mode) == Math.Round(b.Latitude.Degrees, decimals, mode)
+                && Math.Round(a.Longitude.Degrees, decimals, mode) == Math.Round(b.Longitude.Degrees, decimals, mode);
+        }
+
+        public int GetHashCode(GeoPoint obj)
+        {
+            return Math.Round(obj.Latitude.Degrees, decimals, mode).GetHashCode()
+                ^ Math.Round(obj.Longitude.Degrees, decimals, mode).GetHashCode();
+        }
+    }
+
     public static class Mather
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -15,11 +41,7 @@ namespace Geo
 
         public static bool SufficientlySame(in GeoPoint a, in GeoPoint b)
         {
-            const int decimals = 7; // Google Maps uses 7 places and it lives...
-            const MidpointRounding mode = MidpointRounding.AwayFromZero;
-
-            return Math.Round(a.Latitude.Degrees, decimals, mode) == Math.Round(b.Latitude.Degrees, decimals, mode)
-                && Math.Round(a.Longitude.Degrees, decimals, mode) == Math.Round(b.Longitude.Degrees, decimals, mode);
+            return SufficientlySameComparer.Default.Equals(a, b);
         }
 
         public static double MakeCpuBusy()

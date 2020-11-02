@@ -327,6 +327,32 @@
             android:orientation="horizontal"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
+            android:id="@+id/linearLayout221x1dt">
+            <Button
+                android:text="Double turn"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:id="@+id/DoubleTurnAudioFileNameButton" />
+            <TextView
+                android:text="Medium Text"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:id="@+id/DoubleTurnAudioFileNameTextView"
+                android:gravity="center_vertical"
+                android:layout_weight="1"
+                android:ellipsize="start"
+                android:singleLine="true" />
+            <Button
+                android:text="&gt;"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:id="@+id/DoubleTurnPlayButton" />
+        </LinearLayout>
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
             android:id="@+id/linearLayout221x1">
             <Button
                 android:text="Go ahead"
@@ -349,7 +375,8 @@
                 android:layout_height="match_parent"
                 android:id="@+id/GoAheadPlayButton" />
         </LinearLayout>
-        <LinearLayout
+       
+		<LinearLayout
             android:orientation="horizontal"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
@@ -800,8 +827,8 @@
             android:padding="4sp"
             android:textStyle="bold" />
         <View
-            style="@style/Divider" />
-        <LinearLayout
+            style="@style/Divider" />       
+		<LinearLayout
             android:orientation="horizontal"
             android:layout_width="fill_parent"
             android:paddingLeft="4sp"
@@ -841,6 +868,62 @@
             android:paddingLeft="4sp"
             android:paddingRight="4sp"
             android:paddingTop="2sp" />
+
+
+		<!-- begin double turn -->
+	<TextView
+            android:text="Double turn"
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/textView20200605121dt"
+            android:padding="4sp"
+            android:textStyle="bold" />
+        <View
+            style="@style/Divider" />       
+		<LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="fill_parent"
+            android:paddingLeft="4sp"
+            android:paddingRight="4sp"
+            android:layout_height="wrap_content"
+            android:id="@+id/linearLayout115dt">
+            <TextView
+                android:text="Advance"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:id="@+id/textView556dt"
+                android:gravity="center_vertical"
+                android:paddingBottom="2sp"
+                android:paddingTop="4sp"
+                android:layout_weight="1" />
+            <EditText
+                android:inputType="number"
+                android:layout_width="wrap_content"
+                android:layout_weight="0"
+                android:layout_height="wrap_content"
+                android:id="@+id/DoubleTurnDistanceEditText"
+                android:paddingLeft="10sp"
+                android:paddingRight="10sp"
+                android:singleLine="true"
+                android:minEms="4"
+                android:maxEms="4" />
+        </LinearLayout>
+        <TextView
+            android:text="Warn before coming to first of double turns [s]."
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/textView881dt"
+            android:textColor="#87CEEB"
+            android:paddingBottom="2sp"
+            android:paddingLeft="4sp"
+            android:paddingRight="4sp"
+            android:paddingTop="2sp" />
+		<!-- end double turn -->
+
+
         <LinearLayout
             android:orientation="horizontal"
             android:layout_width="fill_parent"

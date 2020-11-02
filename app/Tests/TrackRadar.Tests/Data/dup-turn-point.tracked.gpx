@@ -6,7 +6,6 @@
   xmlns="http://www.topografix.com/GPX/1/0"
   xsi:schemaLocation="http://www.topografix.com/GPX/1/0 http://www.topografix.com/GPX/1/0/gpx.xsd">
 <time>2020-09-07T19:35:58Z</time>
-<bounds minlat="37.166842000" minlon="44.691177000" maxlat="37.203867000" maxlon="44.708086000"/>
 <trk>
   <name>tracked</name>
 <trkseg>

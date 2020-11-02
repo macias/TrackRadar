@@ -48,11 +48,13 @@ namespace TrackRadar
             public const string RightEasyAudioFileName = "RightEasyAudioFileName";
             public const string RightCrossAudioFileName = "RightCrossAudioFileName";
             public const string RightSharpAudioFileName = "RightSharpAudioFileName";
+            public const string DoubleTurnAudioFileName = "DoubleTurnAudioFileName";
 
             public const string RestSpeedThreshold = "RestSpeedThreshold";
             public const string RidingSpeedThreshold = "RidingSpeedThreshold";
 
             public const string TurnAheadDistance = "TurnAheadDistance";
+            public const string DoubleTurnDistance = "DoubleTurnDistance";
             public const string TurnAheadAlarmInterval = "TurnAheadAlarmInterval";
             public const string TurnAheadScreenTimeout = "TurnAheadScreenTimeout";
         }
@@ -72,6 +74,7 @@ namespace TrackRadar
         public const int RightEasyDefaultAudioId = Resource.Raw.ttsMP3_com_right_easy;
         public const int RightCrossDefaultAudioId = Resource.Raw.ttsMP3_com_right_cross;
         public const int RightSharpDefaultAudioId = Resource.Raw.ttsMP3_com_right_sharp;
+        public const int DoubleTurnDefaultAudioId = Resource.Raw.Bell_sound_effects_NtgXxZcEA90;
 
         public static Length DefaultOffTrackAlarmDistance => Length.FromMeters(60);
 
@@ -101,6 +104,7 @@ namespace TrackRadar
         public string RightEasyAudioFileName { get; set; }
         public string RightCrossAudioFileName { get; set; }
         public string RightSharpAudioFileName { get; set; }
+        public string DoubleTurnAudioFileName { get; set; }
 
         // please note slight asymmetry here -- off-track is triggered by distance
         // and then alarm is repeated by given interval
@@ -117,6 +121,7 @@ namespace TrackRadar
         public TimeSpan TurnAheadAlarmDistance { get; set; }
         public TimeSpan TurnAheadAlarmInterval { get; set; }
         public TimeSpan TurnAheadScreenTimeout { get; set; }
+        public TimeSpan DoubleTurnAlarmDistance { get; set; }
         public Length TotalClimbs { get; set; }
         public Length RidingDistance { get; set; }
         public TimeSpan RidingTime { get; set; }
@@ -144,7 +149,8 @@ namespace TrackRadar
             this.NoGpsAlarmFirstTimeout = TimeSpan.FromSeconds(5);
             this.RestSpeedThreshold = Speed.FromKilometersPerHour(5); // average walking speed: https://en.wikipedia.org/wiki/Walking
             this.RidingSpeedThreshold = Speed.FromKilometersPerHour(10); // erderly person: https://en.wikipedia.org/wiki/Bicycle_performance
-            this.TurnAheadAlarmDistance = TimeSpan.FromSeconds(17);
+            this.TurnAheadAlarmDistance = TimeSpan.FromSeconds(16);
+            this.DoubleTurnAlarmDistance = TimeSpan.FromSeconds(2);
             this.TurnAheadAlarmInterval = TimeSpan.FromSeconds(2);
             this.TurnAheadScreenTimeout = TimeSpan.FromSeconds(5);
         }
@@ -192,11 +198,13 @@ namespace TrackRadar
                     editor.PutString(Keys.RightEasyAudioFileName, data.RightEasyAudioFileName);
                     editor.PutString(Keys.RightCrossAudioFileName, data.RightCrossAudioFileName);
                     editor.PutString(Keys.RightSharpAudioFileName, data.RightSharpAudioFileName);
+                    editor.PutString(Keys.DoubleTurnAudioFileName, data.DoubleTurnAudioFileName);
 
                     editor.PutInt(Keys.RestSpeedThreshold, (int)data.RestSpeedThreshold.KilometersPerHour);
                     editor.PutInt(Keys.RidingSpeedThreshold, (int)data.RidingSpeedThreshold.KilometersPerHour);
 
                     editor.PutInt(Keys.TurnAheadDistance, (int)data.TurnAheadAlarmDistance.TotalSeconds);
+                    editor.PutInt(Keys.DoubleTurnDistance, (int)data.DoubleTurnAlarmDistance.TotalSeconds);
                     editor.PutInt(Keys.TurnAheadAlarmInterval, (int)data.TurnAheadAlarmInterval.TotalSeconds);
                     editor.PutInt(Keys.TurnAheadScreenTimeout, (int)data.TurnAheadScreenTimeout.TotalSeconds);
 
@@ -243,11 +251,13 @@ namespace TrackRadar
                 data.RightEasyAudioFileName = prefs.GetString(Keys.RightEasyAudioFileName, data.RightEasyAudioFileName);
                 data.RightCrossAudioFileName = prefs.GetString(Keys.RightCrossAudioFileName, data.RightCrossAudioFileName);
                 data.RightSharpAudioFileName = prefs.GetString(Keys.RightSharpAudioFileName, data.RightSharpAudioFileName);
+                data.DoubleTurnAudioFileName = prefs.GetString(Keys.DoubleTurnAudioFileName, data.DoubleTurnAudioFileName);
 
                 data.RestSpeedThreshold = Speed.FromKilometersPerHour(prefs.GetInt(Keys.RestSpeedThreshold, (int)data.RestSpeedThreshold.KilometersPerHour));
                 data.RidingSpeedThreshold = Speed.FromKilometersPerHour(prefs.GetInt(Keys.RidingSpeedThreshold, (int)data.RidingSpeedThreshold.KilometersPerHour));
 
                 data.TurnAheadAlarmDistance = TimeSpan.FromSeconds(prefs.GetInt(Keys.TurnAheadDistance, (int)data.TurnAheadAlarmDistance.TotalSeconds));
+                data.DoubleTurnAlarmDistance = TimeSpan.FromSeconds(prefs.GetInt(Keys.DoubleTurnDistance, (int)data.DoubleTurnAlarmDistance.TotalSeconds));
                 data.TurnAheadAlarmInterval = TimeSpan.FromSeconds(prefs.GetInt(Keys.TurnAheadAlarmInterval, (int)data.TurnAheadAlarmInterval.TotalSeconds));
                 data.TurnAheadScreenTimeout = TimeSpan.FromSeconds(prefs.GetInt(Keys.TurnAheadScreenTimeout, (int)data.TurnAheadScreenTimeout.TotalSeconds));
 

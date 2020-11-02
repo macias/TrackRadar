@@ -31,8 +31,9 @@ namespace TrackRadar.Implementation
 
         bool TryGetClosestCrossroad(ISegment segment, in ArcSegmentIntersection crosspointInfo,
             out TurnPointInfo crossroadInfo, out TurnPointInfo? alternate);
-        bool TryGetOutgoingArmSection(GeoPoint currentPoint, GeoPoint turnPoint, int sectionId,
-            out ArmSectionPoints sectionPoints);
+        bool TryGetOutgoingArmSection(GeoPoint turnPoint, int sectionId, out ArmSectionPoints sectionPoints);
         Turn ComputeTurn(GeoPoint currentPoint, GeoPoint turnPoint, Length distance, in ArmSectionPoints sectionPoints);
+        bool IsApproxTurnNode(GeoPoint point);
+        IEnumerable<TurnPointInfo> GetAdjacentTurns(GeoPoint turnPoint);
     }
 }

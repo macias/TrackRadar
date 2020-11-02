@@ -1,23 +1,8 @@
 ﻿using MathUnit;
 using System;
-using System.Runtime.CompilerServices;
 
 namespace Geo
 {
-    public readonly struct ArcSegmentIntersection
-    {
-        public Length SegmentLength { get; }
-        public GeoPoint Intersection { get; }
-        public Length AlongSegmentDistance { get; }
-
-        public ArcSegmentIntersection( Length segmentLength,GeoPoint intersection, Length alongSegmentDistance)
-        {
-            SegmentLength = segmentLength;
-            Intersection = intersection;
-            AlongSegmentDistance = alongSegmentDistance;
-        }
-    }
-
     // todo: read it
     // https://blog.mapbox.com/fast-geodesic-approximations-with-cheap-ruler-106f229ad016
 
@@ -272,6 +257,13 @@ namespace Geo
             return GetDistance(start, end, out _, out _);
         }
 
+        public static Length GetDistance(in GeoPoint start, in GeoPoint end,out Angle bearing)
+        {
+            var result = GetDistance(start, end, out double bearingY, out double bearingX);
+            bearing = GetBearing(bearingY, bearingX);
+            return result;
+        }
+
         public static Length GetDistance(in GeoPoint start, in GeoPoint end, out double bearingY, out double bearingX)
         {
             // https://en.wikipedia.org/wiki/Great-circle_distance#Computational_formulas
@@ -308,21 +300,6 @@ namespace Geo
                 return sign_y;
         }
 
-        public static GeoPoint GetDestinationPoint(in GeoPoint point, Angle bearing, Length distance)
-        {
-            var lat = point.Latitude;
-            var lon = point.Longitude;
-            // https://www.movable-type.co.uk/scripts/latlong.html
-            double d_cos = Math.Cos(distance / EarthRadius);
-            double d_sin = Math.Sin(distance / EarthRadius);
-            double lat_sin = lat.Sin();
-            double lat_cos = lat.Cos();
-            double lat_cos_d_sin = lat_cos * d_sin;
-            var dst_lat = Angle.FromRadians(Math.Asin(lat_sin * d_cos + lat_cos_d_sin * bearing.Cos()));
-            var dst_lon = lon + Angle.FromRadians(Math.Atan2(bearing.Sin() * lat_cos_d_sin, d_cos - lat_sin * dst_lat.Sin()));
-
-            return new GeoPoint(latitude: dst_lat, longitude: dst_lon);
-        }
 
         public static Length GetDistanceToArcSegment(this in GeoPoint point, in GeoPoint segmentStart, in GeoPoint segmentEnd,
             out GeoPoint crossPoint)
@@ -333,9 +310,9 @@ namespace Geo
         }
 
         public static Length GetDistanceToArcSegment(this in GeoPoint point, in GeoPoint segmentStart, in GeoPoint segmentEnd,
-            out GeoPoint crossPoint,out Length distanceAlongSegment)
+            out GeoPoint crossPoint, out Length distanceAlongSegment)
         {
-            var result = getDistanceToArcSegment(point, segmentStart, segmentEnd, out var info,  
+            var result = getDistanceToArcSegment(point, segmentStart, segmentEnd, out var info,
                 computeCrossPoint: true);
             crossPoint = info.Intersection;
             distanceAlongSegment = info.AlongSegmentDistance;
@@ -396,7 +373,7 @@ namespace Geo
                 else
                 {
                     crossPoint = computeCrossPoint
-                        ? GetDestinationPoint(arcP1, Angle.FromRadians(bear12), Length.FromMeters(dis14))
+                        ? GetDestination(arcP1, Angle.FromRadians(bear12), Length.FromMeters(dis14))
                         : default;
 
                     return Length.FromMeters(Math.Abs(dxt));
@@ -435,7 +412,9 @@ namespace Geo
 
             if (bearing_diff > (Math.PI / 2))
             {
-                arcSegmentIntersection = new ArcSegmentIntersection(dis12, arcP1Start, Length.Zero);
+                arcSegmentIntersection = new ArcSegmentIntersection(dis12,
+                    //bear12, 
+                    arcP1Start, Length.Zero);
                 return dis13;
             }
             else
@@ -446,14 +425,17 @@ namespace Geo
                 Length dis14 = Length.FromMeters(Math.Acos(Math.Cos(dis13.Meters / R) / Math.Cos(dxt / R)) * R);
                 if (dis14 > dis12)
                 {
-                    arcSegmentIntersection = new ArcSegmentIntersection(dis12, arcP2End, dis12);
+                    arcSegmentIntersection = new ArcSegmentIntersection(dis12, 
+                        //bear12, 
+                        arcP2End, dis12);
                     return GeoCalculator.GetDistance(arcP2End, pointP3);
                 }
                 else
                 {
                     if (computeCrossPoint)
                         arcSegmentIntersection = new ArcSegmentIntersection(dis12, 
-                            GetDestinationPoint(arcP1Start, bearing: Angle.FromRadians(bear12), distance: dis14), 
+                            //bear12,
+                            GetDestination(arcP1Start, bearing: Angle.FromRadians( bear12), distance: dis14),
                             dis14);
                     else
                         arcSegmentIntersection = default;
@@ -501,21 +483,23 @@ namespace Geo
         {
             // https://www.movable-type.co.uk/scripts/latlong.html
 
-            var φ1 = start.Latitude;
-            var λ1 = start.Longitude;
+            var lat = start.Latitude;
+            var lon = start.Longitude;
 
             double angle_dist = distance / EarthRadius;
             double dist_cos = Math.Cos(angle_dist);
             double dist_sin = Math.Sin(angle_dist);
 
-            double φ1_sin = φ1.Sin();
-            double φ1_cos = φ1.Cos();
+            double lat_sin = lat.Sin();
+            double lat_cos = lat.Cos();
 
-            var φ2 = Math.Asin(φ1_sin * dist_cos + φ1_cos * dist_sin * bearing.Cos());
-            var λ2 = λ1.Radians + Math.Atan2(bearing.Sin() * dist_sin * φ1_cos,
-                                     dist_cos - φ1_sin * Math.Sin(φ2));
+            double lat_cos_d_sin = lat_cos * dist_sin;
 
-            return new GeoPoint(latitude: Angle.FromRadians(φ2), longitude: Angle.FromRadians(λ2));
+            var dst_lat = Math.Asin(lat_sin * dist_cos + lat_cos_d_sin * bearing.Cos());
+            var dst_lon = lon.Radians + Math.Atan2(bearing.Sin() * lat_cos_d_sin,
+                                     dist_cos - lat_sin * Math.Sin(dst_lat));
+
+            return new GeoPoint(latitude: Angle.FromRadians(dst_lat), longitude: Angle.FromRadians(dst_lon));
         }
 
     }

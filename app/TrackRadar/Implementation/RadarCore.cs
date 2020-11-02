@@ -29,7 +29,7 @@ namespace TrackRadar.Implementation
 
         public long StartedAt { get; }
 
-        private readonly TurnLookout turn_lookout;
+        public TurnLookout Lookout { get; }
         private readonly RoundQueue<(GeoPoint point, Length? altitude, long timestamp)> lastPoints;
         private readonly IGeoMap trackMap;
         private long lastOffTrackAlarmAt;
@@ -87,7 +87,7 @@ namespace TrackRadar.Implementation
 
             this.trackMap = CreateTrackMap(planData.Segments);
 
-            this.turn_lookout = new TurnLookout(service, alarmSequencer, timeStamper, planData, this.trackMap);
+            this.Lookout = new TurnLookout(service, alarmSequencer, timeStamper, planData, this.trackMap);
 
             service.LogDebug(LogLevel.Info, $"{trackMap.Segments.Count()} segments in {timeStamper.GetSecondsSpan(StartedAt)}s");
         }
@@ -106,7 +106,7 @@ namespace TrackRadar.Implementation
             double dist;
             long now = timeStamper.GetTimestamp();
 
-            bool on_track = isOnTrack(currentPoint, accuracy, out ISegment segment, out dist, 
+            bool on_track = isOnTrack(currentPoint, accuracy, out ISegment segment, out dist,
                 out ArcSegmentIntersection crosspointInfo);
 
             Speed prev_riding = this.ridingSpeed;
@@ -144,7 +144,7 @@ namespace TrackRadar.Implementation
 
                     double time_s_passed = timeStamper.GetSecondsSpan(now, last_ts);
 
-                    double moved_dist_m = GeoCalculator.GetDistance(currentPoint, last_point).Meters;
+                    double moved_dist_m = GeoCalculator.GetDistance(last_point, currentPoint).Meters;
                     if (last_alt.HasValue && altitude.HasValue)
                         moved_dist_m = Math.Sqrt(Math.Pow(moved_dist_m, 2) + Math.Pow(last_alt.Value.Meters - altitude.Value.Meters, 2));
 
@@ -181,17 +181,18 @@ namespace TrackRadar.Implementation
 
             this.lastPoints.Enqueue((currentPoint, altitude, now));
 
-            // todo: think about it -- while do we call it when we don't have an older point??? 
-            handleAlarm(older_point.HasValue ? older_point.Value.lastPoint : currentPoint,
-                currentPoint, segment, crosspointInfo, on_track, prev_riding, now);
+            handleAlarm(currentPoint, segment, crosspointInfo, on_track, prev_riding, now);
 
             return dist;
         }
 
-        private void handleAlarm(in GeoPoint somePreviousPoint, in GeoPoint currentPoint,
+        private void handleAlarm(in GeoPoint currentPoint,
             ISegment segment, in ArcSegmentIntersection crosspointInfo,
             bool isOnTrack, Speed prevRiding, long now)
         {
+            if (isOnTrack)
+                Lookout.AlarmTurnAhead(currentPoint, segment, crosspointInfo, this.ridingSpeed, now, out string _);
+
             // do not trigger alarm if we stopped moving
             if (this.ridingSpeed == Speed.Zero)
             {
@@ -209,9 +210,6 @@ namespace TrackRadar.Implementation
             }
             else if (isOnTrack)
             {
-                turn_lookout.AlarmTurnAhead(somePreviousPoint, currentPoint,
-                    segment, crosspointInfo,
-                    this.ridingSpeed, now, out string _);
 
                 if (prevRiding == Speed.Zero  // we started riding, engagement
                     || this.lastOnTrackAlarmAt < this.lastOffTrackAlarmAt) // we were previously off-track
@@ -262,7 +260,7 @@ namespace TrackRadar.Implementation
         }
 
         /// <param name="dist">negative value means on track</param>
-        private bool isOnTrack(in GeoPoint point, Length? accuracy, out ISegment segment, out double dist, 
+        private bool isOnTrack(in GeoPoint point, Length? accuracy, out ISegment segment, out double dist,
             out ArcSegmentIntersection crosspointInfo)
         {
             Length limit = service.OffTrackAlarmDistance;

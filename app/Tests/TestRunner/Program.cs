@@ -14,11 +14,11 @@ namespace TestRunner
     {
         static void Main(string[] args)
         {
-            CheckLoading();
-            Measure();
+            //convertTrackToPoints("Data/tight-turns.tracked.gpx", "tight-points.gpx");
+            CheckLoading();            Measure();
 
             //CheckLoadingOne();
-            //var test = new TrackRadar.Tests.TurnTest(); test.PickingMiddleTurnTest();
+            //var test = new TrackRadar.Tests.TurnTest(); test.DoubleTurnForkedTest();
 
             //RunAllTests();
             Console.WriteLine("Hello World!");
@@ -30,7 +30,7 @@ namespace TestRunner
             string plan_filename = @"C:\Projekty\TrackRadar\priv-data\warmup-n-merged.plan.gpx";
             string tracked_filename = @"C:\Projekty\TrackRadar\priv-data\warmup-n-merged.tracked.gpx";
 
-            var times = Toolbox.Ride(new Preferences(), plan_filename, tracked_filename, null, out _, out _, out _);
+            var times = Toolbox.Ride(Toolbox.CreatePreferences(), plan_filename, tracked_filename, null, out _, out _, out _);
             // android-max 0.14-0.40
             // without turns ~0.14
             Console.WriteLine($"times {times}, on android {times.maxUpdate * 6}, {times.avgUpdate * 6}");
@@ -38,7 +38,7 @@ namespace TestRunner
 
         public static void CheckLoadingOne()
         {
-            var prefs = new Preferences();
+            var prefs = Toolbox.CreatePreferences();
             string plan_filename = System.IO.Directory.GetFiles(@"C:\Projekty\TrackRadar\priv-data\plan\", "*.gpx")[0];
 
             Console.WriteLine(plan_filename);
@@ -75,11 +75,11 @@ namespace TestRunner
 
         public static void CheckLoading()
         {
-            var prefs = new Preferences();
+            var prefs = Toolbox.CreatePreferences();
             foreach (string plan_filename in System.IO.Directory.GetFiles(@"C:\Projekty\TrackRadar\priv-data\plan\", "*.gpx"))
             {
                 Console.WriteLine(plan_filename);
-                GpxLoader.ReadGpx(plan_filename, prefs.OffTrackAlarmDistance, null, CancellationToken.None);
+                GpxLoader.ReadGpx(plan_filename, prefs.OffTrackAlarmDistance, Toolbox.OnProgressValidator(), CancellationToken.None);
             }
         }
 
@@ -119,6 +119,13 @@ namespace TestRunner
                 else
                     minfo.Invoke(instance, new object[] { });
             }
+        }
+
+        private static void convertTrackToPoints(string trackPath,string pointsPath)
+        {
+            if (System.IO.File.Exists(pointsPath))
+                throw new ArgumentException($"File {pointsPath} already exists");
+            Toolbox.SaveGpxWaypoints(pointsPath, Toolbox.ReadTrackPoints(trackPath));
         }
     }
 }

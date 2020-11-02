@@ -16,28 +16,33 @@ namespace TrackRadar
     {
         private static readonly Length numericAccuracy = Length.FromMeters(1);
 
+        private static double recomputeProgress(Stage stage, double progress)
+        {
+            return ((int)stage + progress) / StageCount;
+        }
         public static IPlanData ReadGpx(string filename, Length offTrackDistance,
             Action<double> onProgress,
             CancellationToken token)
         {
             if (!tryLoadGpx(filename, out List<List<GeoPoint>> tracks, out List<GeoPoint> waypoints,
-                x => onProgress?.Invoke(x / 2), token))
+                x => onProgress?.Invoke(recomputeProgress(Stage.Loading, x)), token))
                 return null;
 
             if (token.IsCancellationRequested)
                 return null;
 
-            return ProcessTrackData(tracks, waypoints, offTrackDistance, segmentLengthLimit: GeoMapFactory.SegmentLengthLimit, onProgress, token);
+            return ProcessTrackData(tracks, waypoints, offTrackDistance, segmentLengthLimit: GeoMapFactory.SegmentLengthLimit,
+                (stage, progress) => onProgress?.Invoke(recomputeProgress(stage, progress)), token);
         }
 
         internal static IPlanData ProcessTrackData(IEnumerable<IEnumerable<GeoPoint>> tracks, IEnumerable<GeoPoint> waypoints,
-            Length offTrackDistance, Length segmentLengthLimit, Action<double> onProgress, CancellationToken token)
+            Length offTrackDistance, Length segmentLengthLimit, Action<Stage, double> onProgress, CancellationToken token)
         {
             var waypoints_list = (waypoints ?? Enumerable.Empty<GeoPoint>()).Distinct().ToList();
             var tracks_list = tracks.Select(it => new Track(it)).Where(it => it.Nodes.Count() > 1).ToList();
 
             // add only distant intersections to user already marked waypoints
-            if (!tryFindCrossroads(tracks_list, offTrackDistance, x => onProgress?.Invoke(x / 2 + 0.5),
+            if (!tryFindCrossroads(tracks_list, offTrackDistance, onProgress,
                 out IEnumerable<Crossroad> crossroads_found, token))
                 return null;
 
@@ -52,7 +57,7 @@ namespace TrackRadar
             {
 #endif
             turn_graph = createTurnGraph(tracks_list, waypoints_list, crossroads_found,
-                offTrackDistance, segmentLengthLimit: segmentLengthLimit);
+                offTrackDistance, segmentLengthLimit: segmentLengthLimit, onProgress);
 #if !DEBUG
             }
             catch (Exception ex)
@@ -131,7 +136,7 @@ namespace TrackRadar
         }
 
         private static bool tryFindCrossroads(List<Track> tracks,
-            Length offTrackDistance, Action<double> onProgress,
+            Length offTrackDistance, Action<Stage,double> onProgress,
             out IEnumerable<Crossroad> crossroadsFound,
             CancellationToken token)
         {
@@ -147,7 +152,7 @@ namespace TrackRadar
                         if (token.IsCancellationRequested)
                             return false;
 
-                        onProgress?.Invoke(step * 1.0 / total_steps);
+                        onProgress?.Invoke(Stage.ComputingCrossroads, step * 1.0 / total_steps);
 
                         // mark each intersection with source index, this will allow us better averaging the points
                         IEnumerable<Crossroad> intersections = getTrackIntersections(tracks[i_idx], tracks[k_idx],

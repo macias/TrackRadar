@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Threading;
 using Android.Content;
 using Android.Media;
@@ -65,21 +66,57 @@ namespace TrackRadar
         }
         public static IAlarmPlayer CreateMediaPlayer(Context context, AlarmSound alarm, string filename, int resourceId)
         {
-            MediaPlayer mp = CreateMediaPlayer(context, filename, resourceId);
+            MediaPlayer mp = CreateMediaPlayer(context, filename, resourceId, out TimeSpan duration);
             if (mp == null)
                 return null;
             else
-                return new AlarmPlayer(mp, alarm);
+                return new AlarmPlayer(mp, duration, alarm);
         }
-        public static MediaPlayer CreateMediaPlayer(Context context, string filename, int resourceId)
+
+        public static MediaPlayer CreateMediaPlayer(Context context, string filename, int resourceId, out TimeSpan duration)
         {
+            // approach with MMR extraction didn't work for me (I got nulls as duration), but MP seems to work so...
+            /*TimeSpan getDuration(MediaMetadataRetriever mmr)
+            {
+                string duration_str = mmr.ExtractMetadata(MetadataKey.Duration);
+                if (duration_str == null)
+                    return TimeSpan.FromSeconds(1.5); // hackery fallback
+                else
+                    return TimeSpan.FromMilliseconds(int.Parse(duration_str, CultureInfo.InvariantCulture));
+            }*/
+
             if (String.IsNullOrEmpty(filename))
-                return MediaPlayer.Create(context, resourceId);
+            {
+                /*using (MediaMetadataRetriever mmr = new MediaMetadataRetriever())
+                {
+                    mmr.SetDataSource(context.Resources.OpenRawResourceFd(resourceId).FileDescriptor);
+                    duration = getDuration(mmr);
+                }*/
+
+                var mp = MediaPlayer.Create(context, resourceId);
+                duration = TimeSpan.FromMilliseconds(mp.Duration);
+                return mp;
+            }
             else if (System.IO.File.Exists(filename))
-                return MediaPlayer.Create(context, Android.Net.Uri.FromFile(new Java.IO.File(filename)));
+            {
+                Java.IO.File file = new Java.IO.File(filename);
+                /*using (MediaMetadataRetriever mmr = new MediaMetadataRetriever())
+                {
+                    mmr.SetDataSource(file.AbsolutePath);
+                    duration = getDuration(mmr);
+                }*/
+
+                var mp = MediaPlayer.Create(context, Android.Net.Uri.FromFile(file));
+                duration = TimeSpan.FromMilliseconds(mp.Duration);
+                return mp;
+            }
             else
+            {
+                duration = TimeSpan.Zero;
                 return null;
+            }
         }
+
 
         public static IAlarmPlayer DestroyMediaPlayer(IAlarmPlayer player)
         {

@@ -44,6 +44,8 @@ namespace TrackRadar.Implementation
         private readonly ITimeStamper stamper;
         private readonly IReadOnlyList<AlarmSound> turnAheads;
 
+        public TimeSpan MaxTurnDuration { get; private set; }
+
         public AlarmMaster(ITimeStamper stamper)
         {
             this.stamper = stamper;
@@ -61,6 +63,7 @@ namespace TrackRadar.Implementation
                 AlarmSound.RightEasy,
                 AlarmSound.RightCross,
                 AlarmSound.RightSharp,
+                AlarmSound.DoubleTurn
            };
         }
 
@@ -96,7 +99,8 @@ namespace TrackRadar.Implementation
            IAlarmPlayer leftSharp,
            IAlarmPlayer rightEasy,
            IAlarmPlayer rightCross,
-           IAlarmPlayer rightSharp)
+           IAlarmPlayer rightSharp,
+           IAlarmPlayer doubleTurn)
         {
             lock (this.threadLock)
             {
@@ -108,6 +112,7 @@ namespace TrackRadar.Implementation
                 this.players[AlarmSound.BackOnTrack] = gpsOnPlayer;
                 this.players[AlarmSound.Disengage] = disengage;
                 this.players[AlarmSound.Crossroad] = crossroadsPlayer;
+                this.players[AlarmSound.DoubleTurn] = doubleTurn;
 
                 this.players[AlarmSound.GoAhead] = goAhead;
                 this.players[AlarmSound.LeftEasy] = leftEasy;
@@ -118,7 +123,15 @@ namespace TrackRadar.Implementation
                 this.players[AlarmSound.RightSharp] = rightSharp;
 
                 foreach (var i in this.players.Keys)
+                {
                     this.players[i].Completion += serviceAlarms_Completion;
+                }
+                this.MaxTurnDuration = TimeSpan.MinValue;
+                foreach (AlarmSound turn_alarm in this.turnAheads)
+                {
+                    if (MaxTurnDuration < players[turn_alarm].Duration)
+                        MaxTurnDuration = players[turn_alarm].Duration;
+                }
             }
         }
 

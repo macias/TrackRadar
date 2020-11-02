@@ -13,8 +13,31 @@ namespace Geo.Tests
 
         delegate Length GetDistanceDelegate(in GeoPoint start, in GeoPoint end);
 
+
         [TestMethod]
-        public void TestPointsDistance()
+        public void BearingDistanceMixTest()
+        {
+            const double m_precision = 0.00001;
+
+            Length dist = Length.FromMeters(100);
+            for (int lat = -90; lat <= 90; ++lat)
+                for (int lon = -180; lon < 180; ++lon)
+                {
+                    const int angles = 8;
+
+                    for (int a = 0; a < angles; ++a)
+                    {
+                        Angle bearing = Angle.PI * (2.0 * a / angles);
+                        GeoPoint start = GeoPoint.FromDegrees(lat, lon);
+                        GeoPoint end = GeoCalculator.GetDestination(start, bearing, dist);
+                        Length result = GeoCalculator.GetDistance(start, end);
+                        Assert.AreEqual(dist.Meters, result.Meters, m_precision);
+                    }
+                }
+        }
+
+        [TestMethod]
+        public void TestPointsDistanceTest()
         {
             // below positions and measurements are accurate to mouse click precision
             // first there was a distance set (Google Maps) and then end points were clicked (again)

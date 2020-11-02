@@ -74,6 +74,7 @@
     <Compile Include="AlarmVibrator.cs" />
     <Compile Include="Comparers\SelectComparer.cs" />
     <Compile Include="GpxHelper.cs" />
+    <Compile Include="GpxLoader.Stage.cs" />
     <Compile Include="GpxLoader.TurnNodeInfo.cs" />
     <Compile Include="GpxLoader.NodeQueue.cs" />
     <Compile Include="GpxLoader-TurnGrapher.cs" />
@@ -141,7 +142,6 @@
     <Compile Include="Implementation\RoundQueue.cs" />
     <Compile Include="TimeExtension.cs" />
     <Compile Include="Message.cs" />
-    <Compile Include="Settings2Activity.cs" />
     <Compile Include="IntEditTextPreference.cs" />
     <Compile Include="AudioSettings.cs" />
     <Compile Include="LogLevel.cs" />
@@ -169,6 +169,7 @@
     </AndroidResource>
     <AndroidResource Include="Resources\raw\KDE_Dialog_Appear.ogg" />
     <AndroidResource Include="Resources\raw\Message_Ringtone_Guitar_2_Markdarszs_Gms9qEWnqrM.ogg" />
+    <AndroidResource Include="Resources\raw\Bell_sound_effects_NtgXxZcEA90.ogg" />
   </ItemGroup>
   <ItemGroup>
     <AndroidResource Include="Resources\layout\Main.axml">

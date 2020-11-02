@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx
+  version="1.0"
+  creator="GPSBabel - http://www.gpsbabel.org"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://www.topografix.com/GPX/1/0"
+  xsi:schemaLocation="http://www.topografix.com/GPX/1/0 http://www.topografix.com/GPX/1/0/gpx.xsd">
+<time>2020-10-25T20:14:14Z</time>
+<wpt lat="52.155114427914" lon="24.6085875979113">
+  <ele>0.000000</ele>
+  <name>Start</name>
+</wpt>
+<wpt lat="52.155203000" lon="24.611628000">
+  <ele>0.000000</ele>
+  <name>Point 17</name>
+  <cmt>Point 17</cmt>
+  <desc>Point 17</desc>
+</wpt>
+<wpt lat="52.1531693263307" lon="24.6125998003227">
+  <ele>0.000000</ele>
+  <name>Point 18</name>
+  <cmt>Point 18</cmt>
+  <desc>Point 18</desc>
+</wpt>
+<trk>
+  <name>route</name>
+<trkseg>
+<trkpt lat="52.154470000" lon="24.586547000">
+  <ele>0.000000</ele>
+</trkpt>
+<trkpt lat="52.154821000" lon="24.600462000">
+  <ele>0.000000</ele>
+</trkpt>
+<trkpt lat="52.154939000" lon="24.605170000">
+  <ele>0.000000</ele>
+</trkpt>
+<trkpt lat="52.154939000" lon="24.605376000">
+  <ele>0.000000</ele>
+</trkpt>
+<trkpt lat="52.154949000" lon="24.607416000">
+  <ele>0.000000</ele>
+</trkpt>
+<trkpt lat="52.154928000" lon="24.609481000">
+  <ele>0.000000</ele>
+</trkpt>
+<trkpt lat="52.154928000" lon="24.609787000">
+  <ele>0.000000</ele>
+</trkpt>
+<trkpt lat="52.154939000" lon="24.610030000">
+  <ele>0.000000</ele>
+</trkpt>
+<trkpt lat="52.155063000" lon="24.610784000">
+  <ele>0.000000</ele>
+</trkpt>
+<trkpt lat="52.155203000" lon="24.611628000">
+  <ele>0.000000</ele>
+</trkpt>
+  <trkpt lat="52.1531693263307" lon="24.6125998003227">
+  <ele>0.000000</ele>
+</trkpt>
+</trkseg>
+</trk>
+</gpx>

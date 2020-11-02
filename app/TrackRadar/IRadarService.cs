@@ -8,6 +8,7 @@ namespace TrackRadar
         TimeSpan OffTrackAlarmInterval { get; }
         Length OffTrackAlarmDistance { get; }
         TimeSpan TurnAheadAlarmDistance { get; }
+        TimeSpan DoubleTurnAlarmDistance { get; }
         TimeSpan TurnAheadAlarmInterval { get; }
         Speed RestSpeedThreshold { get; }
         Speed RidingSpeedThreshold { get; }

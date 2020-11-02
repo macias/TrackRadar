@@ -17,9 +17,11 @@ namespace TrackRadar
         RightCross = TurnKind.RightCross,
         RightSharp = TurnKind.RightSharp,  // WATCH OUT -- need to be the last of TurnKinds
 
+
         OffTrack,
         GpsLost,
         BackOnTrack,
+        DoubleTurn,
         Crossroad,
 
         Disengage,

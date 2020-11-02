@@ -7,6 +7,7 @@ namespace TrackRadar.Tests.Implementation
         public AlarmSound Sound { get; }
         public bool IsPlaying => false;
         public event EventHandler Completion;
+        public TimeSpan Duration => TimeSpan.FromMilliseconds(1000);
 
         public TestAlarmPlayer(AlarmSound sound)
         {

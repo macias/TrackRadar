@@ -25,7 +25,7 @@ namespace TrackRadar
         private GpsWatchdog gpsWatchdog;
         private LocationManager locationManager;
         private TimeStamper timeStamper;
-        private WrapTimer TEST_timer;
+       // private WrapTimer TEST_timer;
         private RadarCore core;
 
         private HandlerThread handler;
@@ -287,7 +287,8 @@ private long mLastTime;
                 leftSharp: p.TurnAheadAudioVolume > 0 ? Common.CreateMediaPlayer(this, AlarmSound.LeftSharp, p.LeftSharpAudioFileName, Preferences.LeftSharpDefaultAudioId) : null,
                 rightEasy: p.TurnAheadAudioVolume > 0 ? Common.CreateMediaPlayer(this, AlarmSound.RightEasy, p.RightEasyAudioFileName, Preferences.RightEasyDefaultAudioId) : null,
                 rightCross: p.TurnAheadAudioVolume > 0 ? Common.CreateMediaPlayer(this, AlarmSound.RightCross, p.RightCrossAudioFileName, Preferences.RightCrossDefaultAudioId) : null,
-                rightSharp: p.TurnAheadAudioVolume > 0 ? Common.CreateMediaPlayer(this, AlarmSound.RightSharp, p.RightSharpAudioFileName, Preferences.RightSharpDefaultAudioId) : null
+                rightSharp: p.TurnAheadAudioVolume > 0 ? Common.CreateMediaPlayer(this, AlarmSound.RightSharp, p.RightSharpAudioFileName, Preferences.RightSharpDefaultAudioId) : null,
+                doubleTurn: p.TurnAheadAudioVolume > 0 ? Common.CreateMediaPlayer(this, AlarmSound.DoubleTurn, p.DoubleTurnAudioFileName, Preferences.DoubleTurnDefaultAudioId) : null
                 );
         }
         private void receiver_UpdatePrefs(object sender, EventArgs e)
@@ -352,7 +353,7 @@ private long mLastTime;
 
                 LogDebug(LogLevel.Info, "OnDestroy: disposing test timer");
 
-                this.TEST_timer?.Dispose();
+                //this.TEST_timer?.Dispose();
 
                 LogDebug(LogLevel.Verbose, $"service destroyed {statistics}");
 
@@ -566,6 +567,7 @@ private long mLastTime;
         TimeSpan IRadarService.TurnAheadAlarmInterval => this.prefs.TurnAheadAlarmInterval;
         Length IRadarService.OffTrackAlarmDistance => this.prefs.OffTrackAlarmDistance;
         TimeSpan IRadarService.TurnAheadAlarmDistance => this.prefs.TurnAheadAlarmDistance;
+        TimeSpan IRadarService.DoubleTurnAlarmDistance => this.prefs.DoubleTurnAlarmDistance;
         Speed IRadarService.RestSpeedThreshold => this.prefs.RestSpeedThreshold;
         Speed IRadarService.RidingSpeedThreshold => this.prefs.RidingSpeedThreshold;
         /*bool IRadarService.TryGetLatestTurnAheadAlarmAt(out long timeStamp)

@@ -11,7 +11,7 @@ namespace TrackRadar
     {
         internal static ITurnGraph createTurnGraph(IEnumerable<Track> tracks,
             IEnumerable<GeoPoint> waypoints, IEnumerable<Crossroad> crossroads,
-            Length offTrackDistance, Length segmentLengthLimit)
+            Length offTrackDistance, Length segmentLengthLimit, Action<Stage, double> onProgress)
         {
             splitTracksByCrossroad(crossroads);
             if (segmentLengthLimit > Length.Zero)
@@ -22,7 +22,7 @@ namespace TrackRadar
             {
                 // get track nodes closest to waypoints
 
-                splitTracksByWaypoints(tracks, waypoints, offTrackDistance, priority_queue);
+                splitTracksByWaypoints(tracks, waypoints, offTrackDistance, priority_queue, onProgress);
 
                 // as above -- this time get closest track nodes to crossroads (i.e. computed on the fly)
                 foreach (Crossroad cx in crossroads.Where(it => it.Kind != CrossroadKind.Extension))
@@ -47,12 +47,13 @@ namespace TrackRadar
                 }
             }
 
-            IReadOnlyDictionary<TrackNode, (TrackNode ext_node, Length distance)> rich_extensions = buildTrackExtensions(crossroads, turnNodes: null);
+            IReadOnlyDictionary<TrackNode, (TrackNode ext_node, Length distance)> rich_extensions
+                = buildTrackExtensions(crossroads, turnNodes: null);
 
             // at this point we have priority queue with all turn points and their closest track nodes
             // since we know the adjacent nodes to any given track node we can compute what is the closest turn
             // point to any given track point using Dijkstra approach
-            IReadOnlyDictionary<GeoPoint, List<(TrackNode conn_node, Length distance)>> track_point_connections
+            IReadOnlyDictionary<GeoPoint, IEnumerable<(TrackNode adjNode, Length distance)>> track_point_connections
                 = aggregateNodeConnections(tracks, rich_extensions);
             // track point -> closest turn point
             var track_to_turns = new Dictionary<GeoPoint, TurnPointInfo>();
@@ -61,8 +62,13 @@ namespace TrackRadar
 
             var turn_nodes = new HashSet<GeoPoint>();
 
+            double total_steps = tracks.Sum(it => it.Nodes.Count());
+            double current_step = -1;
+
             while (priority_queue.TryPop(out Length current_dist, out TrackNode track_node, out GeoPoint turn_point, out int hops))
             {
+                onProgress?.Invoke(Stage.AssigningTurns, ++current_step / total_steps);
+
                 if (hops == 0)
                 {
                     turn_nodes.Add(track_node.Point);
@@ -91,10 +97,14 @@ namespace TrackRadar
                 }
             }
 
-            assignSectionsIds(tracks, turn_nodes, buildTrackExtensions(crossroads, turn_nodes));
+            assignSectionsIds(tracks, turn_nodes, buildTrackExtensions(crossroads, turn_nodes), onProgress);
 
             IReadOnlyDictionary<GeoPoint, TurnPointInfo> alt_track_to_turns = calculateAlternateTurns(tracks,
-                track_to_turns, turn_nodes, rich_extensions);
+                track_to_turns, turn_nodes, rich_extensions, onProgress);
+
+            // turn POINTS (not nodes) to adjacent turn POINTS
+            IReadOnlyDictionary<GeoPoint, IEnumerable<TurnPointInfo>> turn_points_graph =
+                calculateTurnsGraph(tracks, track_point_connections, track_to_turns, alt_track_to_turns, turn_nodes, onProgress);
 
             var turns_to_arms = new Dictionary<GeoPoint, (TurnArm a, TurnArm b)>();
             foreach (KeyValuePair<GeoPoint, List<(TrackNode turn, TrackNode.Direction dir)>> entry in turns_to_tracks)
@@ -112,7 +122,65 @@ namespace TrackRadar
                 }
             }
 
-            return new TurnGraph(track_to_turns, alt_track_to_turns, turns_to_arms);
+            return new TurnGraph(turn_nodes, track_to_turns, alt_track_to_turns, turns_to_arms, turn_points_graph);
+        }
+
+        private static IReadOnlyDictionary<GeoPoint, IEnumerable<TurnPointInfo>>
+            calculateTurnsGraph(IEnumerable<Track> tracks,
+            IReadOnlyDictionary<GeoPoint, IEnumerable<(TrackNode adjNode, Length distance)>> trackPointConnections,
+            Dictionary<GeoPoint, TurnPointInfo> trackToTurns, IReadOnlyDictionary<GeoPoint, TurnPointInfo> altTrackToTurns,
+            HashSet<GeoPoint> turnNodes,
+            Action<Stage, double> onProgress)
+        {
+            var result = new Dictionary<GeoPoint, IEnumerable<TurnPointInfo>>();
+
+            //double total_steps = tracks.Count();
+            //double current_step = -1;
+
+            // such peculiar iteration/grouping is needed, because two different nodes can hit the same
+            // turning point and each of them can bring different data, consider
+            //  \     /
+            //   > * < 
+            //  /     \
+            // left track "corner" and right track "corner" hit the same turning point (*)
+            // and they have different adjacent nodes
+            foreach (IGrouping<GeoPoint, (TrackNode node, GeoPoint turnPoint)> node_group in tracks
+                .SelectMany(it => it.Nodes)
+                .Select(it =>
+                {
+                    if (turnNodes.Contains(it.Point))
+                        return ((node: it, turnPoint: trackToTurns[it.Point].TurnPoint));
+                    else
+                        return (null, default);
+                })
+                .Where(it => it.node != null) // bring only turning nodes
+                .GroupBy(it => it.turnPoint))
+            {
+                //onProgress?.Invoke(Stage.TurnsToTurnsGraph, ++current_step / total_steps);
+
+                var adj_turn_points = new Dictionary<GeoPoint, Length>();
+
+                foreach (TrackNode turn_node in node_group.Select(it => it.node))
+                {
+                    foreach ((TrackNode adj_node, Length dist) in trackPointConnections[turn_node.Point])
+                    {
+                        var primary_info = trackToTurns[adj_node.Point];
+                        if (primary_info.TurnPoint != node_group.Key)
+                            adj_turn_points.TryAdd(primary_info.TurnPoint, primary_info.Distance + dist);
+
+                        if (altTrackToTurns.TryGetValue(adj_node.Point, out TurnPointInfo secondary_info)
+                            && secondary_info.TurnPoint != node_group.Key)
+                            adj_turn_points.TryAdd(secondary_info.TurnPoint, secondary_info.Distance + dist);
+                    }
+
+                }
+
+                // we use dictionary to avoid duplicates
+                result.Add(node_group.Key, adj_turn_points.Select(it => new TurnPointInfo(it.Key, it.Value)).ToList());
+            }
+
+            return result;
+
         }
 
         private static TrackNode go(TrackNode node, IReadOnlyDictionary<TrackNode, (TrackNode ext_node, Length distance)> extensions, ref TrackNode.Direction dir)
@@ -129,7 +197,8 @@ namespace TrackRadar
 
         private static Dictionary<GeoPoint, TurnPointInfo> calculateAlternateTurns(IEnumerable<Track> tracks,
             Dictionary<GeoPoint, TurnPointInfo> trackToTurns,
-            HashSet<GeoPoint> turnNodes, IReadOnlyDictionary<TrackNode, (TrackNode ext_node, Length distance)> extensions)
+            HashSet<GeoPoint> turnNodes, IReadOnlyDictionary<TrackNode, (TrackNode ext_node, Length distance)> richExtensions,
+            Action<Stage, double> onProgress)
         {
             // (a)-b--(c)
             // from "b" the closest turn node is "a", the question is what is the second adjacent turn to "b"
@@ -150,7 +219,7 @@ namespace TrackRadar
                 for (TurnPointInfo turn_info; ; last_turn_info = turn_info)
                 {
                     TrackNode last_node = node;
-                    node = go(node, extensions, ref dir);
+                    node = go(node, richExtensions, ref dir);
 
                     if (node == null || turnNodes.Contains(node.Point))
                         break;
@@ -178,8 +247,13 @@ namespace TrackRadar
                 }
             }
 
+            double total_steps = tracks.Count();
+            double current_step = -1;
+
             foreach (Track trk in tracks)
             {
+                onProgress?.Invoke(Stage.AlternateTurns, ++current_step / total_steps);
+
                 foreach (TrackNode turn_node in trk.Nodes.Where(it => turnNodes.Contains(it.Point)))
                 {
                     set_alternate_turn(turn_node, TrackNode.Direction.Backward);
@@ -187,12 +261,12 @@ namespace TrackRadar
                 }
             }
 
-
             return alt_track_to_turns;
         }
 
         private static void assignSectionsIds(IEnumerable<Track> tracks,
-            HashSet<GeoPoint> turnNodes, IReadOnlyDictionary<TrackNode, (TrackNode ext_node, Length distance)> extensions)
+            HashSet<GeoPoint> turnNodes, IReadOnlyDictionary<TrackNode, (TrackNode ext_node, Length distance)> extensions,
+            Action<Stage, double> onProgress)
         {
             int flood_section_id(ref TrackNode node, ref TrackNode.Direction dir, int sectionId)
             {
@@ -225,6 +299,8 @@ namespace TrackRadar
                 return sectionId + (change ? 1 : 0);
             }
 
+            double total_steps = tracks.Count() * 2;
+            double current_step = -1;
 
             int section_id = -1;
 
@@ -235,6 +311,8 @@ namespace TrackRadar
             // when it is the last node in the track (then it must have it the same)
             foreach (Track trk in tracks)
             {
+                onProgress?.Invoke(Stage.SectionId, ++current_step / total_steps);
+
                 if (trk.Head.IsSectionSet)
                     continue;
 
@@ -266,6 +344,8 @@ namespace TrackRadar
             // assign section ids in the "free" tracks (i.e. without turning nodes)
             foreach (Track trk in tracks)
             {
+                onProgress?.Invoke(Stage.SectionId, ++current_step / total_steps);
+
                 if (trk.Head.IsSectionSet)
                     continue;
 
@@ -328,10 +408,14 @@ namespace TrackRadar
         }
 
         private static void splitTracksByWaypoints(IEnumerable<Track> tracks, IEnumerable<GeoPoint> waypoints,
-            Length offTrackDistance, NodeQueue priorityQueue)
+            Length offTrackDistance, NodeQueue priorityQueue, Action<Stage, double> onProgress)
         {
+            double total_steps = waypoints.Count();
+            double current_step = -1;
             foreach (GeoPoint wpt in waypoints)
             {
+                onProgress?.Invoke(Stage.SplitByWaypoints, ++current_step / total_steps);
+
                 foreach (Track trk in tracks)
                 {
                     Length min_distance = Length.MaxValue;
@@ -401,25 +485,26 @@ namespace TrackRadar
             splitSegment(next, half_dist, segmentLengthLimit);
         }
 
-        private static IReadOnlyDictionary<GeoPoint, List<(TrackNode sibling, Length distance)>>
+        private static IReadOnlyDictionary<GeoPoint, IEnumerable<(TrackNode sibling, Length distance)>>
             aggregateNodeConnections(IEnumerable<Track> tracks,
             IReadOnlyDictionary<TrackNode, (TrackNode ext_node, Length distance)> extensions)
         {
-            var dict = new Dictionary<GeoPoint, List<(TrackNode sibling, Length distance)>>();
+            var dict = new Dictionary<GeoPoint, IEnumerable<(TrackNode sibling, Length distance)>>();
 
-            foreach (Track trk in tracks)
-                foreach (TrackNode node in trk.Nodes)
+            foreach (IGrouping<GeoPoint, TrackNode> node_group in tracks
+                .SelectMany(it => it.Nodes)
+                .GroupBy(it => it.Point))
+            {
+                var list = new List<(TrackNode sibling, Length distance)>();
+                foreach (TrackNode node in node_group)
                 {
-                    if (!dict.TryGetValue(node.Point, out List<(TrackNode sibling, Length distance)> list))
-                    {
-                        list = new List<(TrackNode sibling, Length distance)>();
-                        dict.Add(node.Point, list);
-                    }
                     list.AddRange(node.MeasuredSiblings);
 
                     if (extensions.TryGetValue(node, out var other_end))
                         list.Add((other_end.ext_node, other_end.distance));
                 }
+                dict.Add(node_group.Key, list);
+            }
 
             return dict;
         }
@@ -470,9 +555,9 @@ namespace TrackRadar
 
                 foreach ((TrackNode proj_node, GeoPoint proj_point, Length node_proj_distance) in cx.Projections)
                 {
-                    if (!tracks_to_crossroads.TryGetValue(proj_node, out List<(Length, Crossroad,GeoPoint)> cx_list))
+                    if (!tracks_to_crossroads.TryGetValue(proj_node, out List<(Length, Crossroad, GeoPoint)> cx_list))
                     {
-                        cx_list = new List<(Length, Crossroad,GeoPoint)>();
+                        cx_list = new List<(Length, Crossroad, GeoPoint)>();
                         tracks_to_crossroads.Add(proj_node, cx_list);
                     }
                     cx_list.Add((node_proj_distance, cx, proj_point));
@@ -484,7 +569,7 @@ namespace TrackRadar
             {
                 TrackNode current_node = entry.Key;
 
-                foreach ((_,Crossroad cx,GeoPoint proj_point) in entry.Value.OrderBy(it => it.dist))
+                foreach ((_, Crossroad cx, GeoPoint proj_point) in entry.Value.OrderBy(it => it.dist))
                 {
 #if DEBUG
                     if (current_node.IsLast)
@@ -496,7 +581,7 @@ namespace TrackRadar
                         Angle mid_out_bearing = GeoCalculator.GetBearing(proj_point, current_node.Next.Point);
 
                         Length curr_distance = GeoCalculator.GetDistance(current_node.Point, current_node.Next.Point);
-                        Length future_distance = GeoCalculator.GetDistance(current_node.Point, proj_point) 
+                        Length future_distance = GeoCalculator.GetDistance(current_node.Point, proj_point)
                             + GeoCalculator.GetDistance(proj_point, current_node.Next.Point);
                         const int distance_decimals = 5;
                         const MidpointRounding mode = MidpointRounding.AwayFromZero;

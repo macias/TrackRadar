@@ -20,7 +20,8 @@ namespace TrackRadar.Tests
         [TestMethod]
         public void PreferencesTrackNameTest()
         {
-            var prefs = new Preferences() { TurnAheadAlarmDistance = TimeSpan.FromSeconds(13) };
+            var prefs = Toolbox.CreatePreferences();
+            prefs.TurnAheadAlarmDistance = TimeSpan.FromSeconds(13) ;
             PropertyInfo property = prefs.GetType().GetProperty(nameof(Preferences.TrackName));
             property.SetValue(prefs, "foobar");
             Assert.AreEqual("foobar", prefs.TrackName);
@@ -127,10 +128,10 @@ namespace TrackRadar.Tests
         [TestMethod]
         public void TurnGraphVerificationTest()
         {
-            string plan_filename = @"Data/z-two-left-turns.plan.gpx";
+            string plan_filename = @"Data/z-two-turns.plan.gpx";
 
-            var prefs = new Preferences();
-            IPlanData gpx_data = GpxLoader.ReadGpx(plan_filename, prefs.OffTrackAlarmDistance, onProgress: null, CancellationToken.None);
+            var prefs = Toolbox.CreatePreferences();
+            IPlanData gpx_data = Toolbox.LoadPlan(prefs, plan_filename);
 
             int index = 0;
             foreach (ISegment seg in gpx_data.Segments)
@@ -148,11 +149,11 @@ namespace TrackRadar.Tests
             string plan_filename = @"Data/dup-turn-point.plan.gpx";
             string tracked_filename = @"Data/dup-turn-point.tracked.gpx";
 
-            var prefs = new Preferences();
+            var prefs = Toolbox.CreatePreferences();
 
-            IPlanData gpx_data = GpxLoader.ReadGpx(plan_filename, prefs.OffTrackAlarmDistance, onProgress: null, CancellationToken.None);
+            IPlanData gpx_data = Toolbox.LoadPlan(prefs, plan_filename);
 
-            var track_points = Toolbox.ReadTrackPoints(tracked_filename).Select(it => GpxHelper.FromGpx(it)).ToArray();
+            var track_points = Toolbox.ReadTrackGpxPoints(tracked_filename).Select(it => GpxHelper.FromGpx(it)).ToArray();
 
             compareOffTrackMethods(prefs, gpx_data, track_points);
         }
@@ -178,7 +179,7 @@ namespace TrackRadar.Tests
         [TestMethod]
         public void OffTrackComparison_LeavingTurningPoint_Test()
         {
-            var prefs = new Preferences();
+            var prefs = Toolbox.CreatePreferences();
 
             // L-shape, but here it is irrelevant
             const double leaving_latitude = 38;
@@ -213,8 +214,9 @@ namespace TrackRadar.Tests
         [DataRow(@"Data/single-point.gpx")]
         public void TestLoading(string planFilename)
         {
-            var prefs = new Preferences() { TurnAheadAlarmDistance = TimeSpan.FromSeconds(13) };
-            IPlanData gpx_data = GpxLoader.ReadGpx(planFilename, prefs.OffTrackAlarmDistance, onProgress: null, CancellationToken.None);
+            var prefs = Toolbox.CreatePreferences();
+            prefs.TurnAheadAlarmDistance = TimeSpan.FromSeconds(13);
+            IPlanData gpx_data = Toolbox.LoadPlan(prefs, planFilename);
 
             //ClockStamper clock = new ClockStamper(DateTimeOffset.UtcNow);
             var clock = new SecondStamper();
@@ -223,7 +225,7 @@ namespace TrackRadar.Tests
                 raw_alarm_master.PopulateAlarms();
 
                 var service = new TrackRadar.Tests.Implementation.RadarService(prefs, clock);
-                var core = new TrackRadar.Implementation.RadarCore(service, new AlarmSequencer(service, raw_alarm_master), clock, gpx_data, Length.Zero, Length.Zero, TimeSpan.Zero, Speed.Zero);
+                var core = new RadarCore(service, new AlarmSequencer(service, raw_alarm_master), clock, gpx_data, Length.Zero, Length.Zero, TimeSpan.Zero, Speed.Zero);
 
                 //clock.SetTime(DateTimeOffset.UtcNow);
                 //service.SetPointIndex(0);
@@ -235,7 +237,7 @@ namespace TrackRadar.Tests
         [TestMethod]
         public void OrderTest()
         {
-            string gpx_path = "Data/z-two-left-turns.plan.gpx";
+            string gpx_path = "Data/z-two-turns.plan.gpx";
 
             GpxLoader.tryLoadGpx(gpx_path, out var tracks, out var waypoints, null, CancellationToken.None);
 

@@ -13,7 +13,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Geo.Tests", "Tests\Geo.Test
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TrackRadar.Tests", "Tests\TrackRadar.Tests\TrackRadar.Tests.csproj", "{E6B7BD13-91A2-4858-8325-C93CA2A5C825}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestRunner", "Tests\TestRunner\TestRunner.csproj", "{E331FDF0-4232-4592-B8BE-37C05E33C0E2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestRunner", "Tests\TestRunner\TestRunner.csproj", "{E331FDF0-4232-4592-B8BE-37C05E33C0E2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

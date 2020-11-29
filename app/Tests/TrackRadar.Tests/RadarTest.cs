@@ -18,6 +18,43 @@ namespace TrackRadar.Tests
         private const double precision = 0.00000001;
 
         [TestMethod]
+        public void LimitingOffTrackAlarmsTest()
+        {
+            // we have very long segment, and 3 turnings points. The purpose of the test is to check if we get
+            // notification for the "middle" turn point which is far from segment points (but it lies on the segment)
+
+            var prefs = Toolbox.LowThresholdSpeedPreferences();
+            Speed ride_speed = prefs.RidingSpeedThreshold + Speed.FromKilometersPerHour(10);
+
+            // flat line
+            var plan_points = new[] { GeoPoint.FromDegrees(40, 5), GeoPoint.FromDegrees(40.1, 5) };
+
+            IPlanData gpx_data = Toolbox.CreateBasicTrackData(track: plan_points, waypoints: null, prefs.OffTrackAlarmDistance);
+
+            // we simulate riding off track and getting back to it
+            var track_points = new[] { GeoPoint.FromDegrees(40.05,5), GeoPoint.FromDegrees(40.05,5.01) }.ToList();
+            Toolbox.PopulateTrackDensely(track_points);
+            track_points.AddRange(track_points.AsEnumerable().Reverse());
+
+            Toolbox.Ride(prefs, gpx_data, track_points, out var alarm_counters, out var alarms, out var messages);
+
+            Assert.AreEqual(6, alarms.Count());
+
+            int a = 0;
+            Assert.AreEqual((Alarm.Engaged, 3), alarms[a++]);
+
+            Assert.AreEqual((Alarm.OffTrack, 37), alarms[a++]);
+            Assert.AreEqual((Alarm.OffTrack, 47), alarms[a++]);
+            Assert.AreEqual((Alarm.OffTrack, 57), alarms[a++]);
+            Assert.AreEqual((Alarm.Disengage, 67), alarms[a++]);
+
+            // we don't have second disengage in the middle of riding (when turning back) because now TrackRadar checks
+            // the state not the speed, and since multiple off-track causes disengage, the single alarm suffices
+
+            Assert.AreEqual((Alarm.BackOnTrack, 989), alarms[a++]);
+        }
+
+        [TestMethod]
         public void PreferencesTrackNameTest()
         {
             var prefs = Toolbox.CreatePreferences();
@@ -200,9 +237,7 @@ namespace TrackRadar.Tests
                      .ToArray();
             }
 
-            var gpx_data = Toolbox.CreateTrackData(span_points,
-                //new TrackData(Enumerable.Range(0, span_points.Count() - 1)
-                //.Select(i => new Segment(span_points[i], span_points[i + 1])),
+            var gpx_data = Toolbox.CreateBasicTrackData(span_points,
                 // set each in-track point as turning one
                 span_points.Skip(1).SkipLast(1), prefs.OffTrackAlarmDistance);
 
@@ -239,7 +274,7 @@ namespace TrackRadar.Tests
         {
             string gpx_path = "Data/z-two-turns.plan.gpx";
 
-            GpxLoader.tryLoadGpx(gpx_path, out var tracks, out var waypoints, null, CancellationToken.None);
+            Toolbox.TryLoadGpx(gpx_path, out var tracks, out var waypoints, null, CancellationToken.None);
 
             var track = tracks.Single();
             // just ensuring the order of the points is the same as in the file

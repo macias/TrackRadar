@@ -77,7 +77,7 @@ namespace TrackRadar
 
             internal Crossroad Connected(TrackNode other, Length? distance)
             {
-                if (this.Kind== CrossroadKind.Extension && this.neighbours.Count==2)
+                if (this.Kind == CrossroadKind.Extension && this.neighbours.Count == 2)
                 {
 #if DEBUG
                     throw new ArgumentException($"You can only add two neighbours to an extension #{this.DebugId} at {this.Point}");
@@ -149,7 +149,7 @@ namespace TrackRadar
 
 #endif
 
-                if (this.Kind== CrossroadKind.Extension                    )
+                if (this.Kind == CrossroadKind.Extension)
                 {
 #if DEBUG
                     throw new ArgumentException($"Extension cannot have projections #{this.DebugId} at {this.Point}");
@@ -215,6 +215,7 @@ namespace TrackRadar
             {
                 this.projections.Clear();
             }
+
         }
     }
 }

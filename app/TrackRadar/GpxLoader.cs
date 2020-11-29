@@ -24,39 +24,77 @@ namespace TrackRadar
             Action<double> onProgress,
             CancellationToken token)
         {
-            if (!tryLoadGpx(filename, out List<List<GeoPoint>> tracks, out List<GeoPoint> waypoints,
+            if (!tryLoadGpx(filename, out List<List<GeoPoint>> tracks, out List<(GeoPoint point, WayPointKind kind)> waypoints,
                 x => onProgress?.Invoke(recomputeProgress(Stage.Loading, x)), token))
                 return null;
 
             if (token.IsCancellationRequested)
                 return null;
 
-            return ProcessTrackData(tracks, waypoints, offTrackDistance, segmentLengthLimit: GeoMapFactory.SegmentLengthLimit,
+            return processTrackData(tracks, waypoints, offTrackDistance, segmentLengthLimit: GeoMapFactory.SegmentLengthLimit,
                 (stage, progress) => onProgress?.Invoke(recomputeProgress(stage, progress)), token);
         }
 
-        internal static IPlanData ProcessTrackData(IEnumerable<IEnumerable<GeoPoint>> tracks, IEnumerable<GeoPoint> waypoints,
+#if DEBUG
+        // another sick hack for ValueTuple and problems with resolving them in test projects
+        internal static IPlanData ProcessTrackData(IEnumerable<IEnumerable<GeoPoint>> tracks,
+    IEnumerable<GeoPoint> waypoints, IEnumerable<GeoPoint> endpoints,
+    Length offTrackDistance, Length segmentLengthLimit, Action<Stage, double> onProgress, CancellationToken token)
+        {
+            return processTrackData(tracks,
+                waypoints.Select(it => (it, WayPointKind.Regular)).Concat(endpoints.Select(it => (it, WayPointKind.Endpoint))),
+                offTrackDistance, segmentLengthLimit, onProgress, token);
+        }
+
+        internal static IPlanData ProcessTrackData(IEnumerable<IEnumerable<GeoPoint>> tracks,
+    IEnumerable<GeoPoint> waypoints,
+    Length offTrackDistance, Length segmentLengthLimit, Action<Stage, double> onProgress, CancellationToken token)
+        {
+            return ProcessTrackData(tracks,
+                waypoints, Enumerable.Empty<GeoPoint>(),
+                offTrackDistance, segmentLengthLimit, onProgress, token);
+        }
+
+        internal static bool TryLoadGpx(string filename, out List<List<GeoPoint>> tracks,
+         out List<GeoPoint> waypoints,
+         Action<double> onProgress,
+         CancellationToken token)
+        {
+            bool result = tryLoadGpx(filename, out tracks, out List<(GeoPoint point, WayPointKind kind)> waypoints_out,
+                onProgress, token);
+            waypoints = waypoints_out.Where(it => it.kind == WayPointKind.Regular).Select(it => it.point).ToList();
+            return result;
+        }
+#endif
+        internal static IPlanData processTrackData(IEnumerable<IEnumerable<GeoPoint>> tracks,
+            IEnumerable<(GeoPoint point, WayPointKind kind)> waypoints,
             Length offTrackDistance, Length segmentLengthLimit, Action<Stage, double> onProgress, CancellationToken token)
         {
-            var waypoints_list = (waypoints ?? Enumerable.Empty<GeoPoint>()).Distinct().ToList();
+            var waypoints_dict = (waypoints ?? Enumerable.Empty<(GeoPoint point, WayPointKind kind)>())
+                .GroupBy(it => it.point)
+                .ToDictionary(it => it.Key, it => it.First().kind);
+
             var tracks_list = tracks.Select(it => new Track(it)).Where(it => it.Nodes.Count() > 1).ToList();
 
             // add only distant intersections to user already marked waypoints
             if (!tryFindCrossroads(tracks_list, offTrackDistance, onProgress,
-                out IEnumerable<Crossroad> crossroads_found, token))
+                out List<Crossroad> crossroads_found, token))
                 return null;
 
             if (token.IsCancellationRequested)
                 return null;
 
-            crossroads_found = getDistant(waypoints_list, crossroads_found, offTrackDistance).ToArray();
+            crossroads_found = getDistant(waypoints_dict.Keys, crossroads_found, offTrackDistance).ToList();
+
+            if (!addEndpoints(tracks_list, waypoints_dict.Keys, crossroads_found, offTrackDistance * 2, onProgress, token))
+                return null;
 
             ITurnGraph turn_graph;
 #if !DEBUG
             try
             {
 #endif
-            turn_graph = createTurnGraph(tracks_list, waypoints_list, crossroads_found,
+            turn_graph = createTurnGraph(tracks_list, waypoints_dict, crossroads_found,
                 offTrackDistance, segmentLengthLimit: segmentLengthLimit, onProgress);
 #if !DEBUG
             }
@@ -66,17 +104,18 @@ namespace TrackRadar
             }
 #endif
 
-            waypoints_list.AddRange(crossroads_found
+            GeoPoint[] plan_cxx = waypoints_dict.Keys.Concat(crossroads_found
             // do not export extensions of the tracks, only true intersections or passing by "> * <"
             // which we treat as almost-intersection
                 .Where(it => it.Kind != CrossroadKind.Extension)
-                .Select(it => it.Point));
+                .Select(it => it.Point))
+                .ToArray();
 
             IEnumerable<ISegment> segments = tracks_list.SelectMany(trk => trk.Nodes.Where(it => !it.IsLast)).ToArray();
 
             return new PlanData(
                 segments,
-                waypoints_list,
+                plan_cxx,
                 crossroads_found.Count(it => it.Kind == CrossroadKind.Extension),
                 // do not pass crossroads as track points because when someone created track manually, 
                 // crossroad can be off the track slightly
@@ -84,13 +123,70 @@ namespace TrackRadar
                 );
         }
 
-        internal static bool tryLoadGpx(string filename, out List<List<GeoPoint>> tracks,
-            out List<GeoPoint> waypoints,
+        private static bool addEndpoints(IEnumerable<Track> tracks, IEnumerable<GeoPoint> waypoints,
+              List<Crossroad> crossroads, Length proximityDistance, Action<Stage, double> onProgress, CancellationToken token)
+        {
+            int total_steps = tracks.Count();
+            double step = 0;
+
+            IEnumerable<GeoPoint> initial_crossroads = crossroads.Select(it => it.Point).Concat(waypoints).ToArray();
+            var extensions = new List<Crossroad>();
+
+            foreach (Track track in tracks)
+            {
+                if (token.IsCancellationRequested)
+                    return false;
+
+                onProgress?.Invoke(Stage.AddingEndpoints, step / total_steps);
+                ++step;
+
+                if (!isPointInProximity(track.Head.Point, initial_crossroads, proximityDistance))
+                {
+                    extensions.Add(new Crossroad(track.Head.Point, CrossroadKind.Endpoint)
+                        .Connected(track.Head, Length.Zero));
+                }
+                TrackNode last_node = track.Nodes.Last();
+                if (!isPointInProximity(last_node.Point, initial_crossroads, proximityDistance))
+                {
+                    extensions.Add(new Crossroad(last_node.Point, CrossroadKind.Endpoint)
+                        .Connected(last_node, Length.Zero));
+                }
+            }
+
+            var trashed = new HashSet<Crossroad>();
+            for (int i = 0; i < extensions.Count; ++i)
+                for (int k = i + 1; k < extensions.Count; ++k)
+                {
+                    if (GeoCalculator.GetDistance(extensions[i].Point, extensions[k].Point) <= proximityDistance)
+                    {
+                        trashed.Add(extensions[i]);
+                        trashed.Add(extensions[k]);
+                    }
+                }
+
+            extensions.RemoveRange(trashed);
+
+            crossroads.AddRange(extensions);
+
+            return true;
+        }
+
+        private static bool isPointInProximity(GeoPoint point, IEnumerable<GeoPoint> crossroads, Length distance)
+        {
+            foreach (GeoPoint cx in crossroads)
+                if (GeoCalculator.GetDistance(cx, point) <= distance)
+                    return true;
+
+            return false;
+        }
+
+        private static bool tryLoadGpx(string filename, out List<List<GeoPoint>> tracks,
+            out List<(GeoPoint point, WayPointKind kind)> waypoints,
             Action<double> onProgress,
             CancellationToken token)
         {
             tracks = new List<List<GeoPoint>>();
-            waypoints = new List<GeoPoint>();
+            waypoints = new List<(GeoPoint point, WayPointKind kind)>();
             using (GpxIOFactory.CreateReader(filename, out IGpxReader reader, out IStreamProgress stream_progress))
             {
                 while (reader.Read(out GpxObjectType type))
@@ -105,15 +201,19 @@ namespace TrackRadar
                         case GpxObjectType.Metadata:
                             break;
                         case GpxObjectType.WayPoint:
-                            if (reader.WayPoint.Name?.StartsWith("-") ?? false)
                             {
-                                ; // hack, treat such point only as display/visual hint, do not use it for navigation
+                                string name = reader.WayPoint.Name ?? "";
+                                if (name.StartsWith("-"))
+                                {
+                                    ; // hack, treat such point only as display/visual hint, do not use it for navigation
+                                }
+                                else
+                                {
+                                    GeoPoint pt = GpxHelper.FromGpx(reader.WayPoint);
+                                    waypoints.Add((pt, (name ?? "").StartsWith("end") ? WayPointKind.Endpoint : WayPointKind.Regular));
+                                }
+                                break;
                             }
-                            else
-                            {
-                                waypoints.Add(GpxHelper.FromGpx(reader.WayPoint));
-                            }
-                            break;
                         case GpxObjectType.Route:
                             break;
                         case GpxObjectType.Track:
@@ -136,12 +236,11 @@ namespace TrackRadar
         }
 
         private static bool tryFindCrossroads(List<Track> tracks,
-            Length offTrackDistance, Action<Stage,double> onProgress,
-            out IEnumerable<Crossroad> crossroadsFound,
+            Length offTrackDistance, Action<Stage, double> onProgress,
+            out List<Crossroad> crossroads,
             CancellationToken token)
         {
-            var crossroads = new List<GpxLoader.Crossroad>();
-            crossroadsFound = crossroads;
+            crossroads = new List<GpxLoader.Crossroad>();
 
             {
                 int total_steps = (tracks.Count - 1) * tracks.Count / 2;
@@ -155,17 +254,19 @@ namespace TrackRadar
                         onProgress?.Invoke(Stage.ComputingCrossroads, step * 1.0 / total_steps);
 
                         // mark each intersection with source index, this will allow us better averaging the points
-                        IEnumerable<Crossroad> intersections = getTrackIntersections(tracks[i_idx], tracks[k_idx],
-                            offTrackDistance)
-                            //.Where(it => it.Kind != CrossroadKind.Extension)
-                            ;
-                        // at this point each track can be enriched with connection into to this or that crossroad
-                        crossroads.AddRange(intersections.Select(it => { it.SetSourceIndex(i_idx, k_idx); return it; }));
-
-                        IEnumerable<Crossroad> extensions = getTrackExtensions(tracks[i_idx], tracks[k_idx],
+                        List<Crossroad> intersections = getTrackIntersections(tracks[i_idx], tracks[k_idx],
                             offTrackDistance);
+                        intersections.ForEach(it => { it.SetSourceIndex(i_idx, k_idx); });
+
                         // at this point each track can be enriched with connection into to this or that crossroad
-                        crossroads.AddRange(extensions.Select(it => { it.SetSourceIndex(i_idx, k_idx); return it; }));
+                        crossroads.AddRange(intersections);
+
+                        {
+                            IEnumerable<Crossroad> extensions = getTrackExtensions(tracks[i_idx], tracks[k_idx],
+                                offTrackDistance);
+                            // at this point each track can be enriched with connection into to this or that crossroad
+                            crossroads.AddRange(extensions.Select(it => { it.SetSourceIndex(i_idx, k_idx); return it; }));
+                        }
                     }
             }
 
@@ -191,6 +292,11 @@ namespace TrackRadar
             }
 
             return true;
+        }
+
+        private static void tryAddEndpoint(TrackNode head, List<Crossroad> crossroads, Length length)
+        {
+            throw new NotImplementedException();
         }
 
         public static void WriteGpxPoints(string path, IEnumerable<GeoPoint> points)
@@ -385,8 +491,8 @@ namespace TrackRadar
             return true;
         }
 
-        private static bool tryGetTrackExtensions(TrackNode track1Node, TrackNode track2Node, Length limit,
-            out GpxLoader.Crossroad crossroad)
+        private static bool tryGetTrackExtensions(TrackNode track1Node, TrackNode track2Node,
+            Length limit, out GpxLoader.Crossroad crossroad)
         {
             // todo: combine mid point and distance in one call
             Length distance = GeoCalculator.GetDistance(track1Node.Point, track2Node.Point);
@@ -396,11 +502,16 @@ namespace TrackRadar
                 return false;
             }
 
-            crossroad = new Crossroad(GeoCalculator.GetMidPoint(track1Node.Point, track2Node.Point), CrossroadKind.Extension)
-                .Connected(track1Node, distance / 2)
-                .Connected(track2Node, distance / 2);
+            distance /= 2;
+            GeoPoint ext_point = GeoCalculator.GetMidPoint(track1Node.Point, track2Node.Point);
+
+            crossroad = new Crossroad(ext_point, CrossroadKind.Extension)
+                .Connected(track1Node, distance)
+                .Connected(track2Node, distance);
+
             return true;
         }
+
 
         private static IEnumerable<GpxLoader.Crossroad> getTrackExtensions(Track track1, Track track2, Length limit)
         {
@@ -420,9 +531,11 @@ namespace TrackRadar
                 yield return cx;
         }
 
-        private static IEnumerable<GpxLoader.Crossroad> getTrackIntersections(Track track1,
+        private static List<GpxLoader.Crossroad> getTrackIntersections(Track track1,
             Track track2, Length limit)
         {
+            var result = new List<Crossroad>();
+
             int __idx1 = 0;
             foreach (TrackNode node1_0 in track1.Nodes.Where(it => !it.IsLast))
             {
@@ -476,7 +589,7 @@ namespace TrackRadar
                                     .Connected(node1_0, track_track_dist / 2)
                                     .Projected(node2_0, cx, dist_along_segment);
 
-                                yield return crossroad;
+                                result.Add(crossroad);
                             }
                             else
                             {
@@ -489,7 +602,7 @@ namespace TrackRadar
                                         .Connected(node1_1, track_track_dist / 2)
                                         .Projected(node2_0, cx, dist_along_segment);
 
-                                    yield return crossroad;
+                                    result.Add(crossroad);
                                 }
                                 else
                                 {
@@ -502,7 +615,7 @@ namespace TrackRadar
                                             .Connected(node2_0, track_track_dist / 2)
                                             .Projected(node1_0, cx, dist_along_segment);
 
-                                        yield return crossroad;
+                                        result.Add(crossroad);
                                     }
                                     else
                                     {
@@ -515,7 +628,7 @@ namespace TrackRadar
                                                 .Connected(node2_1, track_track_dist / 2)
                                                 .Projected(node1_0, cx, dist_along_segment);
 
-                                            yield return crossroad;
+                                            result.Add(crossroad);
                                         }
                                     }
                                 }
@@ -589,7 +702,7 @@ namespace TrackRadar
                                 crossroad.Connected(pick1_1 ? node1_1 : node1_0, pick1_1 ? cx_len1_1 : cx_len1_0);
                                 crossroad.Connected(pick2_1 ? node2_1 : node2_0, pick2_1 ? cx_len2_1 : cx_len2_0);
 
-                                yield return crossroad;
+                                result.Add(crossroad);
                             }
                             else
                             {
@@ -605,7 +718,7 @@ namespace TrackRadar
                                 else
                                     crossroad.Projected(node2_0, cx, cx_len2_0);
 
-                                yield return crossroad;
+                                result.Add(crossroad);
                             }
                         }
                         // normally extension would look like: ---- x ----
@@ -638,11 +751,13 @@ namespace TrackRadar
                             else
                                 crossroad.Projected(node2_0, cx, cx_len2_0);
 
-                            yield return crossroad;
+                            result.Add(crossroad);
                         }
                     }
                 }
             }
+
+            return result;
         }
     }
 }

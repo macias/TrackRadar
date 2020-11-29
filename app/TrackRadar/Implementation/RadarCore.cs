@@ -9,11 +9,13 @@ namespace TrackRadar.Implementation
     internal sealed class RadarCore
     {
         internal const string GeoPointFormat = "0.00000000000000";
+        private const int offTrackAlarmsCountLimit = 3;
 
         private readonly long speedTicksWindow; // measure speed only when we have time window of X ticks or more
 
         // when we walk, we don't alter the speed (sic!)
         private Speed ridingSpeed;
+        private bool engagedState;
         private readonly IRadarService service;
         private readonly IAlarmSequencer alarmSequencer;
         private readonly ITimeStamper timeStamper;
@@ -32,10 +34,11 @@ namespace TrackRadar.Implementation
         public TurnLookout Lookout { get; }
         private readonly RoundQueue<(GeoPoint point, Length? altitude, long timestamp)> lastPoints;
         private readonly IGeoMap trackMap;
-        private long lastOffTrackAlarmAt;
         private long lastOnTrackAlarmAt;
         private long ridingStartedAt;
         private Length? lastAltitude;
+        private int offTrackAlarmsCount;
+        private long lastOffTrackAlarmAt;
 
         // todo: this is lame solution, I don't want to recompute the distance each time
         // so I accumulated overlapping segments, so now I have to divide by average number
@@ -191,48 +194,57 @@ namespace TrackRadar.Implementation
             bool isOnTrack, Speed prevRiding, long now)
         {
             if (isOnTrack)
-                Lookout.AlarmTurnAhead(currentPoint, segment, crosspointInfo, this.ridingSpeed, now, out string _);
+            {
+                this.offTrackAlarmsCount = 0;
+                if (Lookout.AlarmTurnAhead(currentPoint, segment, crosspointInfo, this.ridingSpeed, now, out string _))
+                    engagedState = true;
+            }
 
             // do not trigger alarm if we stopped moving
             if (this.ridingSpeed == Speed.Zero)
             {
                 // here we check the interval to prevent too often playing ACK
                 // possible case: user got back on track and then stopped, without checking interval she/he would got two ACKs
-                if (prevRiding != Speed.Zero
+                if (engagedState
+                   //prevRiding != Speed.Zero
                    // reusing off-track interval, no point making separate settings
                    //               && timeStamper.GetSecondsSpan(now, this.lastOnTrackAlarmAt) >= service.OffTrackAlarmInterval.TotalSeconds
                    )
                 {
                     //alarm = Alarm.Disengage;
-                    bool played = alarmSequencer.TryAlarm(Alarm.Disengage, out string reason);// ? AlarmState.Played : AlarmState.Failed;
+                    bool played = alarmSequencer.TryAlarm(Alarm.Disengage, out string reason);
                     service.LogDebug(LogLevel.Verbose, $"Disengage played {played}, reason {reason}, stopped, previously riding {prevRiding}m/s");
+
+                    if (played)
+                        engagedState = false;
                 }
             }
             else if (isOnTrack)
             {
-
-                if (prevRiding == Speed.Zero  // we started riding, engagement
+                if (!engagedState
+                    //prevRiding == Speed.Zero  // we started riding, engagement
                     || this.lastOnTrackAlarmAt < this.lastOffTrackAlarmAt) // we were previously off-track
                 {
-                    var alarm = prevRiding == Speed.Zero ? Alarm.Engaged : Alarm.BackOnTrack;
+                    //var alarm = prevRiding == Speed.Zero ? Alarm.Engaged : Alarm.BackOnTrack;
+                    var alarm = this.lastOnTrackAlarmAt < this.lastOffTrackAlarmAt ? Alarm.BackOnTrack : Alarm.Engaged;
                     var played = alarmSequencer.TryAlarm(alarm, out string reason);//? AlarmState.Played : AlarmState.Failed;
                     service.LogDebug(LogLevel.Verbose, $"ACK played {played}, reason: {reason}, back on track");
 
                     if (played)
+                    {
                         this.lastOnTrackAlarmAt = now;
+                        engagedState = true;
+                    }
                 }
-
-                // else if (turn_reason != null)
-                //   service.LogDebug(LogLevel.Verbose, turn_reason);
 
             }
             else
             {
                 // alarm = Alarm.OffTrack;
 
-                if (timeStamper.GetSecondsSpan(now, this.lastOffTrackAlarmAt) < service.OffTrackAlarmInterval.TotalSeconds)
+                if (offTrackAlarmsCount > offTrackAlarmsCountLimit ||
+                    timeStamper.GetSecondsSpan(now, this.lastOffTrackAlarmAt) < service.OffTrackAlarmInterval.TotalSeconds)
                 {
-                    //  played = AlarmState.Postponed;
                     this.alarmSequencer.NotifyAlarm(Alarm.OffTrack);
                 }
                 else
@@ -242,10 +254,14 @@ namespace TrackRadar.Implementation
                     // we are OFF THE TRACK and alarm the user about it -- user has info about environment, she/he sees if it possible
                     // to take a shortcut, we don't see a thing
 
-                    var played = alarmSequencer.TryAlarm(Alarm.OffTrack, out string reason);// ? AlarmState.Played : AlarmState.Failed;
-                    if (played)// == AlarmState.Played)
+                    Alarm alarm = offTrackAlarmsCount == offTrackAlarmsCountLimit ? Alarm.Disengage : Alarm.OffTrack;
+                    var played = alarmSequencer.TryAlarm(alarm, out string reason);
+                    if (played)
                     {
                         this.lastOffTrackAlarmAt = now;
+                        ++this.offTrackAlarmsCount;
+                        if (alarm == Alarm.Disengage)
+                            engagedState = false;
                     }
                     else
                         service.LogDebug(LogLevel.Warning, $"Off-track alarm, couldn't play, reason {reason}");
@@ -255,8 +271,6 @@ namespace TrackRadar.Implementation
                         $"speed {this.ridingSpeed}, rest {service.RestSpeedThreshold}, ride {service.RidingSpeedThreshold}");
                 }
             }
-
-            //  return alarm;
         }
 
         /// <param name="dist">negative value means on track</param>

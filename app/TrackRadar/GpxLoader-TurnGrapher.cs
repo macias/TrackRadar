@@ -10,9 +10,14 @@ namespace TrackRadar
     public sealed partial class GpxLoader
     {
         internal static ITurnGraph createTurnGraph(IEnumerable<Track> tracks,
-            IEnumerable<GeoPoint> waypoints, IEnumerable<Crossroad> crossroads,
+            IReadOnlyDictionary<GeoPoint, WayPointKind> waypoints, IEnumerable<Crossroad> crossroads,
             Length offTrackDistance, Length segmentLengthLimit, Action<Stage, double> onProgress)
         {
+            // if there are no turns at all, simply disable navigation (one factor which is important as well here is
+            // the user will be notified the plan does not have indicated or computed turns at all)
+            if (crossroads.Count(it => it.Kind != CrossroadKind.Extension) == 0 && waypoints.Count() == 0)
+                return null;
+
             splitTracksByCrossroad(crossroads);
             if (segmentLengthLimit > Length.Zero)
                 splitTracksByLength(tracks, segmentLengthLimit);
@@ -22,7 +27,7 @@ namespace TrackRadar
             {
                 // get track nodes closest to waypoints
 
-                splitTracksByWaypoints(tracks, waypoints, offTrackDistance, priority_queue, onProgress);
+                splitTracksByWaypoints(tracks, waypoints.Keys, offTrackDistance, priority_queue, onProgress);
 
                 // as above -- this time get closest track nodes to crossroads (i.e. computed on the fly)
                 foreach (Crossroad cx in crossroads.Where(it => it.Kind != CrossroadKind.Extension))
@@ -65,34 +70,44 @@ namespace TrackRadar
             double total_steps = tracks.Sum(it => it.Nodes.Count());
             double current_step = -1;
 
-            while (priority_queue.TryPop(out Length current_dist, out TrackNode track_node, out GeoPoint turn_point, out int hops))
             {
-                onProgress?.Invoke(Stage.AssigningTurns, ++current_step / total_steps);
+                var endpoints = waypoints.Where(it => it.Value == WayPointKind.Endpoint).Select(it => it.Key)
+                    .Concat(crossroads.Where(it => it.Kind == CrossroadKind.Endpoint).Select(it => it.Point))
+                    .ToHashSet();
 
-                if (hops == 0)
+                while (priority_queue.TryPop(out Length current_dist, out TrackNode track_node, out GeoPoint turn_point, out int hops))
                 {
-                    turn_nodes.Add(track_node.Point);
+                    onProgress?.Invoke(Stage.AssigningTurns, ++current_step / total_steps);
 
-                    if (!turns_to_tracks.TryGetValue(turn_point, out List<(TrackNode turn, TrackNode.Direction dir)> turn_node_arms))
+                    if (hops == 0)
                     {
-                        turn_node_arms = new List<(TrackNode turn, TrackNode.Direction dir)>();
-                        turns_to_tracks.Add(turn_point, turn_node_arms);
+                        turn_nodes.Add(track_node.Point);
+
+                        // for endpoints we don't provide turn navigation info (go right/left), so there is no sense in computing it
+                        if (!endpoints.Contains(turn_point))
+                        {
+                            if (!turns_to_tracks.TryGetValue(turn_point, out List<(TrackNode turn, TrackNode.Direction dir)> turn_node_arms))
+                            {
+                                turn_node_arms = new List<(TrackNode turn, TrackNode.Direction dir)>();
+                                turns_to_tracks.Add(turn_point, turn_node_arms);
+                            }
+                            if (track_node.Next != null)
+                                turn_node_arms.Add((track_node, TrackNode.Direction.Forward));
+                            if (!track_node.IsFirst)
+                                turn_node_arms.Add((track_node, TrackNode.Direction.Backward));
+                        }
                     }
-                    if (track_node.Next != null)
-                        turn_node_arms.Add((track_node, TrackNode.Direction.Forward));
-                    if (!track_node.IsFirst)
-                        turn_node_arms.Add((track_node, TrackNode.Direction.Backward));
-                }
 
-                // this particular point might be already addded, but thanks to aggregated siblings
-                // we don't need to process it in such case
-                if (track_to_turns.TryAdd(track_node.Point, new TurnPointInfo(turn_point, current_dist)))
-                {
-                    foreach ((TrackNode sibling, Length sib_distance) in track_point_connections[track_node.Point])
+                    // this particular point might be already addded, but thanks to aggregated siblings
+                    // we don't need to process it in such case
+                    if (track_to_turns.TryAdd(track_node.Point, new TurnPointInfo(turn_point, current_dist)))
                     {
-                        Length total = current_dist + sib_distance;
+                        foreach ((TrackNode sibling, Length sib_distance) in track_point_connections[track_node.Point])
+                        {
+                            Length total = current_dist + sib_distance;
 
-                        priority_queue.Update(sibling, turnPoint: turn_point, hops + 1, total);
+                            priority_queue.Update(sibling, turnPoint: turn_point, hops + 1, total);
+                        }
                     }
                 }
             }

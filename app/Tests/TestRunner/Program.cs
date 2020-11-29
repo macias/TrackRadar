@@ -18,7 +18,7 @@ namespace TestRunner
             CheckLoading();            Measure();
 
             //CheckLoadingOne();
-            //var test = new TrackRadar.Tests.TurnTest(); test.DoubleTurnForkedTest();
+            //var test = new TrackRadar.Tests.CrossroadsTest(); test.TrapezoidTest();
 
             //RunAllTests();
             Console.WriteLine("Hello World!");
@@ -43,7 +43,7 @@ namespace TestRunner
 
             Console.WriteLine(plan_filename);
 
-            GpxLoader.tryLoadGpx(plan_filename, out List<List<GeoPoint>> tracks, out List<GeoPoint> waypoints, null, CancellationToken.None);
+            Toolbox.TryLoadGpx(plan_filename, out List<List<GeoPoint>> tracks, out List<GeoPoint> waypoints, null, CancellationToken.None);
 
             tracks = tracks.Skip(0).Take(8).ToList();
 
@@ -59,8 +59,8 @@ namespace TestRunner
             waypoints = waypoints.Take(0).ToList();
 
 //         Toolbox.SaveGpx("novelty.gpx", tracks, waypoints);
-            GpxLoader.ProcessTrackData(tracks, waypoints,
-                prefs.OffTrackAlarmDistance, segmentLengthLimit: GeoMapFactory.SegmentLengthLimit,
+            Toolbox.ProcessTrackData(tracks: tracks, waypoints: waypoints,
+                offTrackDistance: prefs.OffTrackAlarmDistance, segmentLengthLimit: GeoMapFactory.SegmentLengthLimit,
                 null, CancellationToken.None);
 
         }

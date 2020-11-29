@@ -9,10 +9,11 @@ namespace TrackRadar
     {
         private static readonly int StageCount = Enum.GetValues(typeof(Stage)).Length;
 
-        internal enum Stage
+        public enum Stage
         {
             Loading,
             ComputingCrossroads,
+            AddingEndpoints,
             SplitByWaypoints,
             AssigningTurns,
             SectionId,

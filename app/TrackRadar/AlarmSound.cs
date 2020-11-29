@@ -2,6 +2,7 @@
 using TrackRadar.Implementation;
 
 [assembly: InternalsVisibleTo("TrackRadar.Tests")]
+[assembly: InternalsVisibleTo("TrackRadar.Tests2")]
 
 namespace TrackRadar
 {

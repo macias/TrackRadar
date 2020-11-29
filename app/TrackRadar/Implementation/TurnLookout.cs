@@ -115,7 +115,9 @@ namespace TrackRadar.Implementation
                 out TurnPointInfo primary_cx, out TurnPointInfo? alternate_cx))
                 cx_index = crossroadIndexOf(primary_cx.TurnPoint);
             else
+            {
                 cx_index = -1;
+            }
 
             (GeoPoint closest_cx, Length cx_dist) = primary_cx;
 
@@ -178,7 +180,14 @@ namespace TrackRadar.Implementation
             {
                 (closest_cx, cx_dist) = alternate_cx.Value;
 
-                cx_index = cx_dist <= turn_ahead_distance ? crossroadIndexOf(closest_cx) : -1;
+                if (cx_dist <= turn_ahead_distance)
+                {
+                    cx_index = crossroadIndexOf(closest_cx);
+                }
+                else
+                {
+                    cx_index = -1;
+                }
             }
             else if (!primary_keep_running)
             {

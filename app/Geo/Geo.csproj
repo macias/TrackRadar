@@ -6,9 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Reference Include="MathUnit">
-      <HintPath>..\Dll\MathUnit.dll</HintPath>
-    </Reference>
+    <PackageReference Include="MathUnit" Version="1.0.0" />
   </ItemGroup>
 
 </Project>

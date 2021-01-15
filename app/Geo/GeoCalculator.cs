@@ -10,22 +10,22 @@ namespace Geo
     {
         public static Length EarthRadius { get; } = Length.FromKilometers(6371);
         public static Length EarthCircumference { get; } = EarthRadius * 2 * Math.PI;
-        private const double Radian = Math.PI / 180;
+        private const double radian = Math.PI / 180;
 
         private static double radiansToDegrees(double radians)
         {
-            return radians / Radian;
+            return radians / radian;
         }
 
         private static double degreesToRadians(double degrees)
         {
-            return degrees * Radian;
+            return degrees * radian;
         }
 
         public static Angle AbsoluteBearingDifference(in Angle bearingA, in Angle bearingB)
         {
             double a_diff = bearingB.Degrees - bearingA.Degrees;
-            a_diff = Math.Min(Mather.Mod(a_diff, 360), Mather.Mod(-a_diff, 360));
+            a_diff = Math.Min(MathUnit.Mather.Mod(a_diff, 360), MathUnit.Mather.Mod(-a_diff, 360));
             return Angle.FromDegrees(a_diff);
         }
 
@@ -54,7 +54,7 @@ namespace Geo
         /// gives nulls if there is no solution
         /// </summary>
         /// <param name="cx2">if not null, p1 is also not null</param>
-        public static void GetArcSegmentIntersection(in GeoPoint startA, in GeoPoint endA, in GeoPoint startB, in GeoPoint endB,
+        public  static void GetArcSegmentIntersection(in GeoPoint startA, in GeoPoint endA, in GeoPoint startB, in GeoPoint endB,
             out GeoPoint? cx1, out GeoPoint? cx2)
         {
             // https://www.movable-type.co.uk/scripts/latlong.html
@@ -141,13 +141,13 @@ namespace Geo
         {
             // http://blog.mbedded.ninja/mathematics/geometry/spherical-geometry/finding-the-intersection-of-two-arcs-that-lie-on-a-sphere
 
-            Vector a_cross_product = CrossProduct(startA, endA);
-            return TryGetArcIntersection(a_cross_product, startB, endB, out p1);
+            Vector a_cross_product = crossProduct(startA, endA);
+            return tryGetArcIntersection(a_cross_product, startB, endB, out p1);
         }
 
-        public static bool TryGetArcIntersection(Vector aCrossProduct, in GeoPoint startB, in GeoPoint endB, out GeoPoint p1)
+        private static bool tryGetArcIntersection(in Vector aCrossProduct, in GeoPoint startB, in GeoPoint endB, out GeoPoint p1)
         {
-            Vector b_cp = CrossProduct(startB, endB);
+            Vector b_cp = crossProduct(startB, endB);
 
             Vector d = aCrossProduct.CrossProduct(b_cp);
 
@@ -180,7 +180,7 @@ namespace Geo
             return new GeoPoint(latitude: -p.Latitude, longitude: longitude);
         }
 
-        public static Vector CrossProduct(in GeoPoint a, in GeoPoint b)
+        private static Vector crossProduct(in GeoPoint a, in GeoPoint b)
         {
             // http://www.edwilliams.org/intersect.htm
 

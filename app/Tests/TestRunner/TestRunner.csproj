@@ -7,14 +7,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Geo.Tests\Geo.Tests.csproj" />
-    <ProjectReference Include="..\TrackRadar.Tests\TrackRadar.Tests.csproj" />
+    <PackageReference Include="MathUnit" Version="1.0.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="MathUnit">
-      <HintPath>..\..\Dll\MathUnit.dll</HintPath>
-    </Reference>
+    <ProjectReference Include="..\Geo.Tests\Geo.Tests.csproj" />
+    <ProjectReference Include="..\TrackRadar.Tests\TrackRadar.Tests.csproj" />
   </ItemGroup>
 
 </Project>

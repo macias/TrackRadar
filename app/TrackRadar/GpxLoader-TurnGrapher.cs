@@ -456,9 +456,9 @@ namespace TrackRadar
                     if (min_distance < offTrackDistance / 2)
                     {
                         // if reality we are closer to the end of the segment, update what track node we have in mind
-                        if (Mather.SufficientlySame(crosspoint, closest_track_node.Next.Point))
+                        if (Geo.Mather.SufficientlySame(crosspoint, closest_track_node.Next.Point))
                             closest_track_node = closest_track_node.Next;
-                        else if (!Mather.SufficientlySame(crosspoint, closest_track_node.Point))
+                        else if (!Geo.Mather.SufficientlySame(crosspoint, closest_track_node.Point))
                         {
                             closest_track_node = closest_track_node.Add(crosspoint);
                         }

@@ -481,7 +481,7 @@ namespace TrackRadar.Implementation
             // preserve bearing notion, 0 degrees then means we go ahead and counting clockwise
             // 90 degrees we turn to the right, and so on
             double degrees = (bearingTo - bearingFrom).Degrees;
-            degrees = Mather.Mod(degrees, 360);
+            degrees = MathUnit.Mather.Mod(degrees, 360);
 
             // since we have turn-zones of 45 degrees, split them in the middle
             const double margin = 45.0 / 2;

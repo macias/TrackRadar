@@ -5,7 +5,7 @@ namespace Geo
 {
     public static partial class GeoCalculator
     {
-        public struct Vector
+        private readonly struct Vector
         {
             public static readonly Vector Zero = new Vector();
 

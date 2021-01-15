@@ -186,7 +186,7 @@ namespace TrackRadar
 
                     // todo: check how we add projections and maybe add this check when adding avoiding computation
                     // todo: add some precision slack here maybe
-                    if (Mather.SufficientlySame(proj.Value.projection.Value, proj.Key.Point))
+                    if (Geo.Mather.SufficientlySame(proj.Value.projection.Value, proj.Key.Point))
                     {
                         if (!this.neighbours.ContainsKey(proj.Key))
                             this.Connected(proj.Key, null);
@@ -194,7 +194,7 @@ namespace TrackRadar
                         continue;
                     }
 
-                    if (Mather.SufficientlySame(proj.Value.projection.Value, proj.Key.Next.Point))
+                    if (Geo.Mather.SufficientlySame(proj.Value.projection.Value, proj.Key.Next.Point))
                     {
                         if (!this.neighbours.ContainsKey(proj.Key.Next))
                             this.Connected(proj.Key.Next, null);

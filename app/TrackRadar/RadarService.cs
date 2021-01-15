@@ -156,7 +156,7 @@ private long mLastTime;
 
                 if (this.prefs.ShowTurnAhead)
                 {
-                    LogDebug(LogLevel.Info, $"CPU eval {Mather.MakeCpuBusy()}s");
+                    LogDebug(LogLevel.Info, $"CPU eval {Geo.Mather.MakeCpuBusy()}s");
                 }
 
                 LogDebug(LogLevel.Info, "service started (+testing log)");

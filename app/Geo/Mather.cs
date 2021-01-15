@@ -32,13 +32,6 @@ namespace Geo
 
     public static class Mather
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static double Mod(double x, double y)
-        {
-            x %= y;
-            return x < 0 ? x + y : x;
-        }
-
         public static bool SufficientlySame(in GeoPoint a, in GeoPoint b)
         {
             return SufficientlySameComparer.Default.Equals(a, b);

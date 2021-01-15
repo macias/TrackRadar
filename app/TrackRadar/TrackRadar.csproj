@@ -56,11 +56,11 @@
     <AndroidSupportedAbis />
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Gpx">
-      <HintPath>..\Dll\Gpx.dll</HintPath>
+    <Reference Include="Gpx, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Gpx.1.0.0\lib\netstandard2.0\Gpx.dll</HintPath>
     </Reference>
-    <Reference Include="MathUnit">
-      <HintPath>..\Dll\MathUnit.dll</HintPath>
+    <Reference Include="MathUnit, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\MathUnit.1.0.0\lib\netstandard2.0\MathUnit.dll</HintPath>
     </Reference>
     <Reference Include="Mono.Android" />
     <Reference Include="mscorlib" />
@@ -163,6 +163,7 @@
     <Compile Include="SettingsActivity.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="packages.config" />
     <None Include="Resources\AboutResources.txt" />
     <None Include="Assets\AboutAssets.txt" />
     <AndroidResource Include="Resources\layout\Settings.axml">

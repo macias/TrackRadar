@@ -97,7 +97,6 @@
     <Compile Include="Implementation\MatrixInverter.cs" />
     <Compile Include="Implementation\Matrix.cs" />
     <Compile Include="Implementation\MeasuredGraph.cs" />
-    <Compile Include="Implementation\PairingHeap.cs" />
     <Compile Include="Implementation\ArmSectionPoints.cs" />
     <Compile Include="Implementation\ITurnGraph.cs" />
     <Compile Include="Implementation\GpxToolbox.cs" />
@@ -210,6 +209,10 @@
     <ProjectReference Include="..\Geo\Geo.csproj">
       <Project>{3acbd9b2-3289-49de-a41f-c3d9edc4f990}</Project>
       <Name>Geo</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\TrackRadar.Collections\TrackRadar.Collections.csproj">
+      <Project>{b43c909c-4f04-485b-a6c0-6648f54b4140}</Project>
+      <Name>TrackRadar.Collections</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

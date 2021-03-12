@@ -1,11 +1,30 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using TrackRadar.Implementation;
+using TrackRadar.Collections;
 
 namespace TrackRadar.Tests
 {
     [TestClass]
     public class PriorityQueueTest
     {
+        [TestMethod]
+        public void MapWithSameWeightTest()
+        {
+            var map = new MappedPairingHeap<double, string>();
+            map.AddOrUpdate(0, "hello");
+            map.AddOrUpdate(0, "world");
+            map.AddOrUpdate(0, "!");
+
+            string s;
+            Assert.IsTrue(map.TryPop(out _, out s));
+            Assert.AreEqual("hello", s);
+            Assert.IsTrue(map.TryPop(out _, out s));
+            Assert.AreEqual("world", s);
+            Assert.IsTrue(map.TryPop(out _, out s));
+            Assert.AreEqual("!", s);
+
+            Assert.IsFalse(map.TryPop(out _, out s));
+        }
+
         [TestMethod]
         public void AddingTest()
         {

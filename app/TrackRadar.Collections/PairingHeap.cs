@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Geo;
-using MathUnit;
 
-namespace TrackRadar.Implementation
+namespace TrackRadar.Collections
 {
-    internal static class PairingHeap
+    public static class PairingHeap
     {
         public static PairingHeapNode<TWeight, TTag> CreateRoot<TWeight, TTag>(TWeight weight, TTag tag)
             where TWeight : IComparable<TWeight>
@@ -14,7 +12,7 @@ namespace TrackRadar.Implementation
             return new PairingHeapNode<TWeight, TTag>(weight, tag, Comparer<TWeight>.Default);
         }
 
-        internal static PairingHeapNode<TWeight, TTag> Add<TWeight, TTag>(ref PairingHeapNode<TWeight, TTag> root, TWeight weight, TTag tag)
+        public static PairingHeapNode<TWeight, TTag> Add<TWeight, TTag>(ref PairingHeapNode<TWeight, TTag> root, TWeight weight, TTag tag)
             where TWeight : IComparable<TWeight>
         {
             if (root == null)
@@ -27,7 +25,7 @@ namespace TrackRadar.Implementation
         }
     }
 
-    internal sealed class PairingHeapNode<TWeight, TTag>
+    public sealed class PairingHeapNode<TWeight, TTag>
     {
         // https://www.cs.cmu.edu/~sleator/papers/pairing-heaps.pdf
         // https://en.wikipedia.org/wiki/Pairing_heap#Structure
@@ -46,7 +44,7 @@ namespace TrackRadar.Implementation
         public TWeight Weight { get; private set; }
         public TTag Tag { get; private set; }
 
-        internal PairingHeapNode(TWeight value, TTag tag, IComparer<TWeight> comparer)
+        public PairingHeapNode(TWeight value, TTag tag, IComparer<TWeight> comparer)
         {
             this.Weight = value;
             this.Tag = tag;
@@ -63,6 +61,10 @@ namespace TrackRadar.Implementation
             return node;
         }
 
+        /// <summary>
+        /// `this` has to be the same as `root`
+        /// </summary>
+        /// <param name="root"></param>
         public void Pop(ref PairingHeapNode<TWeight, TTag> root)
         {
             if (this != root)
@@ -100,6 +102,13 @@ namespace TrackRadar.Implementation
             }
         }
 
+        /// <summary>
+        /// `this` has to be the same as `root`
+        /// </summary>
+        /// <param name="root">root of the heap</param>
+        /// <param name="node">node to update the weight</param>
+        /// <param name="weight"></param>
+        /// <param name="tag"></param>
         public void DecreaseWeight(ref PairingHeapNode<TWeight, TTag> root, PairingHeapNode<TWeight, TTag> node, TWeight weight, TTag tag)
         {
             if (this != root)
@@ -124,7 +133,7 @@ namespace TrackRadar.Implementation
 
         private static PairingHeapNode<TWeight, TTag> merge(PairingHeapNode<TWeight, TTag> rootA, PairingHeapNode<TWeight, TTag> rootB)
         {
-            if (rootA.comparer.Compare(rootA.Weight, rootB.Weight) < 0)
+            if (rootA.comparer.Compare(rootA.Weight, rootB.Weight) <= 0)
             {
                 rootA.attach(rootB);
                 return rootA;
@@ -136,16 +145,16 @@ namespace TrackRadar.Implementation
             }
         }
 
-        private void attach(PairingHeapNode<TWeight, TTag> otherRoot)
+        private void attach(PairingHeapNode<TWeight, TTag> other)
         {
             if (this.leftChild != null)
             {
-                otherRoot.rightSibling = this.leftChild;
-                this.leftChild.previous = otherRoot;
+                other.rightSibling = this.leftChild;
+                this.leftChild.previous = other;
             }
 
-            otherRoot.previous = this;
-            this.leftChild = otherRoot;
+            other.previous = this;
+            this.leftChild = other;
         }
 
         // keep it static because node can be null

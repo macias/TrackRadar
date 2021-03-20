@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace TrackRadar.Collections
 {
@@ -12,11 +11,10 @@ namespace TrackRadar.Collections
     public sealed class MappedPairingHeap<TWeight, TTag>
         where TWeight : IComparable<TWeight>
     {
-        // current (after updates) tag values are stored at heap, not in dict
+        // current (after updates) tag values are stored at heap, not in dict (dict keeps only equal -- by comparer -- tag value)
         private readonly Dictionary<TTag, PairingHeapNode<TWeight, TTag>> dict;
         private PairingHeapNode<TWeight, TTag> root;
 
-        //public (TTag tag, TWeight weight) Top => (root.Tag, root.Weight);
         public int Count => this.dict.Count;
 
         public MappedPairingHeap(IEqualityComparer<TTag> comparer = null)

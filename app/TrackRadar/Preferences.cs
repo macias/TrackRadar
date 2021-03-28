@@ -142,14 +142,18 @@ namespace TrackRadar
                 = this.TurnAheadAudioVolume
                 = this.AcknowledgementAudioVolume = 100;
 
-            this.OffTrackAlarmInterval = TimeSpan.FromSeconds(10);
             this.OffTrackAlarmDistance = DefaultOffTrackAlarmDistance;
-            this.NoGpsAlarmAgainInterval = TimeSpan.FromMinutes(3);
-            // please note that we won't make better than one update per second
-            this.NoGpsAlarmFirstTimeout = TimeSpan.FromSeconds(5);
+            this.OffTrackAlarmInterval = TimeSpan.FromSeconds(10);
+
             this.RestSpeedThreshold = Speed.FromKilometersPerHour(5); // average walking speed: https://en.wikipedia.org/wiki/Walking
             this.RidingSpeedThreshold = Speed.FromKilometersPerHour(10); // erderly person: https://en.wikipedia.org/wiki/Bicycle_performance
+
+            // please note that we won't make better than one update per second
+            this.NoGpsAlarmFirstTimeout = TimeSpan.FromSeconds(5);
+            this.NoGpsAlarmAgainInterval = TimeSpan.FromMinutes(3);
+
             this.TurnAheadAlarmDistance = TimeSpan.FromSeconds(16);
+
             this.DoubleTurnAlarmDistance = TimeSpan.FromSeconds(2);
             this.TurnAheadAlarmInterval = TimeSpan.FromSeconds(2);
             this.TurnAheadScreenTimeout = TimeSpan.FromSeconds(5);

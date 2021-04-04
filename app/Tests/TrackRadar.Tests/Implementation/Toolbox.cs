@@ -41,6 +41,16 @@ namespace TrackRadar.Tests.Implementation
 
         }
 
+        internal static void PrintAlarms(IReadOnlyList<(Alarm alarm, int index)> alarms)
+        {
+            foreach (var alarm in alarms)
+            {
+                string line = $"Assert.AreEqual(({alarm.alarm.GetType().Name}.{alarm.alarm}, {alarm.index}), alarms[a++]);";
+                Console.WriteLine(line);
+                Debug.WriteLine(line);
+            }
+        }
+
         public static void LoadData(Preferences prefs, string planFilename, string trackedFilename,
             out IPlanData planData, out List<GeoPoint> trackPoints)
         {
@@ -70,16 +80,27 @@ namespace TrackRadar.Tests.Implementation
         {
             return GpxLoader.ReadGpx(planFilename, prefs.OffTrackAlarmDistance, onProgress: OnProgressValidator(), CancellationToken.None);
         }
+
         public static (double maxUpdate, double avgUpdate) Ride(Preferences prefs, IPlanData planData,
             IReadOnlyList<GeoPoint> trackPoints,
             out IReadOnlyDictionary<Alarm, int> alarmCounters,
             out IReadOnlyList<(Alarm alarm, int index)> alarms,
             out IReadOnlyList<(string message, int index)> messages)
         {
-            return Ride(prefs, planData, trackPoints, out alarmCounters, out alarms, out messages, out _);
+            return Ride(prefs, playDuration:null, planData, trackPoints, out alarmCounters, out alarms, out messages, out _);
         }
 
-        internal static (double maxUpdate, double avgUpdate) Ride(Preferences prefs, IPlanData planData,
+        public static (double maxUpdate, double avgUpdate) Ride(Preferences prefs, TimeSpan? playDuration, IPlanData planData,
+            IReadOnlyList<GeoPoint> trackPoints,
+            out IReadOnlyDictionary<Alarm, int> alarmCounters,
+            out IReadOnlyList<(Alarm alarm, int index)> alarms,
+            out IReadOnlyList<(string message, int index)> messages)
+        {
+            return Ride(prefs, playDuration, planData, trackPoints, out alarmCounters, out alarms, out messages, out _);
+        }
+
+        internal static (double maxUpdate, double avgUpdate) Ride(Preferences prefs, TimeSpan? playDuration,
+            IPlanData planData,
             IReadOnlyList<GeoPoint> trackPoints,
             out IReadOnlyDictionary<Alarm, int> alarmCounters,
             out IReadOnlyList<(Alarm alarm, int index)> alarms,
@@ -90,7 +111,7 @@ namespace TrackRadar.Tests.Implementation
             var clock = new SecondStamper();
             using (var raw_alarm_master = new AlarmMaster(clock))
             {
-                raw_alarm_master.PopulateAlarms();
+                raw_alarm_master.PopulateAlarms(playDuration);
 
                 var counting_alarm_master = new CountingAlarmMaster(raw_alarm_master);
 
@@ -106,7 +127,7 @@ namespace TrackRadar.Tests.Implementation
                 {
                     using (sequencer.OpenAlarmContext(gpsAcquired: false, hasGpsSignal: true))
                     {
-                        if (point_index == 3)
+                        if (point_index == 495)
                         {
                             ;
                         }
@@ -205,22 +226,22 @@ namespace TrackRadar.Tests.Implementation
 #endif
         }
 
-        internal static void PopulateAlarms(this AlarmMaster alarmMaster)
+        internal static void PopulateAlarms(this AlarmMaster alarmMaster,TimeSpan? duration = null)
         {
             alarmMaster.Reset(new TestAlarmVibrator(),
-                offTrackPlayer: new TestAlarmPlayer(AlarmSound.OffTrack),
-                gpsLostPlayer: new TestAlarmPlayer(AlarmSound.GpsLost),
-                gpsOnPlayer: new TestAlarmPlayer(AlarmSound.BackOnTrack),
-                disengage: new TestAlarmPlayer(AlarmSound.Disengage),
-                crossroadsPlayer: new TestAlarmPlayer(AlarmSound.Crossroad),
-                goAhead: new TestAlarmPlayer(AlarmSound.GoAhead),
-                leftEasy: new TestAlarmPlayer(AlarmSound.LeftEasy),
-                leftCross: new TestAlarmPlayer(AlarmSound.LeftCross),
-                leftSharp: new TestAlarmPlayer(AlarmSound.LeftSharp),
-                rightEasy: new TestAlarmPlayer(AlarmSound.RightEasy),
-                rightCross: new TestAlarmPlayer(AlarmSound.RightCross),
-                rightSharp: new TestAlarmPlayer(AlarmSound.RightSharp),
-                doubleTurn: new TestAlarmPlayer(AlarmSound.DoubleTurn));
+                offTrackPlayer: new TestAlarmPlayer(AlarmSound.OffTrack,duration),
+                gpsLostPlayer: new TestAlarmPlayer(AlarmSound.GpsLost,duration),
+                gpsOnPlayer: new TestAlarmPlayer(AlarmSound.BackOnTrack,duration),
+                disengage: new TestAlarmPlayer(AlarmSound.Disengage,duration),
+                crossroadsPlayer: new TestAlarmPlayer(AlarmSound.Crossroad,duration),
+                goAhead: new TestAlarmPlayer(AlarmSound.GoAhead,duration),
+                leftEasy: new TestAlarmPlayer(AlarmSound.LeftEasy,duration),
+                leftCross: new TestAlarmPlayer(AlarmSound.LeftCross,duration),
+                leftSharp: new TestAlarmPlayer(AlarmSound.LeftSharp,duration),
+                rightEasy: new TestAlarmPlayer(AlarmSound.RightEasy,duration),
+                rightCross: new TestAlarmPlayer(AlarmSound.RightCross,duration),
+                rightSharp: new TestAlarmPlayer(AlarmSound.RightSharp,duration),
+                doubleTurn: new TestAlarmPlayer(AlarmSound.DoubleTurn,duration));
         }
 
         public static void PopulateTrackDensely(List<GeoPoint> trackPoints)

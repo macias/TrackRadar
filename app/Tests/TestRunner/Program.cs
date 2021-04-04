@@ -15,10 +15,10 @@ namespace TestRunner
         static void Main(string[] args)
         {
             //convertTrackToPoints("Data/tight-turns.tracked.gpx", "tight-points.gpx");
-            CheckLoading();            Measure();
+            //CheckLoading();            Measure();
 
             //CheckLoadingOne();
-            //var test = new TrackRadar.Tests.CrossroadsTest(); test.TrapezoidTest();
+            var test = new TrackRadar.Tests.TurnTest(); test.TwoRegularTurnsWithLongAlarmsTest();
 
             //RunAllTests();
             Console.WriteLine("Hello World!");

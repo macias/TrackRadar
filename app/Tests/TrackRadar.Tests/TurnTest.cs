@@ -18,6 +18,146 @@ namespace TrackRadar.Tests
         private const double precision = 0.00000001;
 
         [TestMethod]
+        public void TwoRegularTurnsTest()
+        {
+            //            |
+            //            |
+            ///           |
+            //      *-----*
+            //      |
+            //      |
+            ///     |
+            // nothing fancy, sanity test
+
+            var prefs = Toolbox.CreatePreferences();
+            Speed ride_speed = prefs.RidingSpeedThreshold + Speed.FromKilometersPerHour(10);
+
+            // flat line
+            var plan_points = new[] { GeoPoint.FromDegrees(52.985, 25.025), GeoPoint.FromDegrees(53, 25.025), GeoPoint.FromDegrees(53, 25.050), GeoPoint.FromDegrees(53.015, 25.050) };
+            var turning_points = plan_points.Skip(1).SkipLast(1).ToList();
+
+            IPlanData gpx_data = Toolbox.CreateBasicTrackData(track: plan_points, waypoints: turning_points, prefs.OffTrackAlarmDistance);
+
+            var track_points = plan_points.ToList();
+            Toolbox.PopulateTrackDensely(track_points, ride_speed);
+
+            Toolbox.Ride(prefs, gpx_data, track_points, out var alarm_counters, out var alarms, out var messages);
+
+            Assert.AreEqual(10, alarms.Count);
+
+            int a = 0;
+
+            Assert.AreEqual((Alarm.Engaged, 3), alarms[a++]);
+
+            Assert.AreEqual((Alarm.Crossroad, 496), alarms[a++]);
+            Assert.AreEqual((Alarm.RightCross, 498), alarms[a++]);
+            Assert.AreEqual((Alarm.RightCross, 500), alarms[a++]);
+
+            Assert.AreEqual((Alarm.Crossroad, 1007), alarms[a++]);
+            Assert.AreEqual((Alarm.LeftCross, 1009), alarms[a++]);
+            Assert.AreEqual((Alarm.LeftCross, 1011), alarms[a++]);
+
+            Assert.AreEqual((Alarm.Crossroad, 1520), alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 1522), alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 1524), alarms[a++]);
+        }
+
+        [TestMethod]
+        public void TwoRegularTurnsWithLongAlarmsTest()
+        {
+            //            |
+            //            |
+            ///           |
+            //      *-----*
+            //      |
+            //      |
+            ///     |
+            // nothing fancy, sanity test
+
+            var prefs = Toolbox.CreatePreferences();
+            Speed ride_speed = prefs.RidingSpeedThreshold + Speed.FromKilometersPerHour(10);
+
+            // flat line
+            var plan_points = new[] { GeoPoint.FromDegrees(52.985, 25.025), GeoPoint.FromDegrees(53, 25.025), GeoPoint.FromDegrees(53, 25.050), GeoPoint.FromDegrees(53.015, 25.050) };
+            var turning_points = plan_points.Skip(1).SkipLast(1).ToList();
+
+            IPlanData gpx_data = Toolbox.CreateBasicTrackData(track: plan_points, waypoints: turning_points, prefs.OffTrackAlarmDistance);
+
+            var track_points = plan_points.ToList();
+            Toolbox.PopulateTrackDensely(track_points, ride_speed);
+
+            Toolbox.Ride(prefs, TimeSpan.FromSeconds(2.229), gpx_data, track_points, out var alarm_counters, out var alarms, out var messages);
+
+            Assert.AreEqual(10, alarms.Count);
+
+            int a = 0;
+
+            Assert.AreEqual((Alarm.Engaged, 3), alarms[a++]);
+
+            Assert.AreEqual((Alarm.Crossroad, 495), alarms[a++]);
+            Assert.AreEqual((Alarm.RightCross, 497), alarms[a++]);
+            Assert.AreEqual((Alarm.RightCross, 499), alarms[a++]);
+
+            Assert.AreEqual((Alarm.Crossroad, 1007), alarms[a++]);
+            Assert.AreEqual((Alarm.LeftCross, 1009), alarms[a++]);
+            Assert.AreEqual((Alarm.LeftCross, 1011), alarms[a++]);
+
+            Assert.AreEqual((Alarm.Crossroad, 1519), alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 1521), alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 1523), alarms[a++]);
+        }
+
+        [TestMethod]
+        public void TwoRegularTurnsWithStopTest()
+        {
+            //            |
+            //            |
+            ///           |
+            //      *-O---*
+            //      |
+            //      |
+            ///     |
+            // same as regular test, only here O we simulate stop
+
+            var prefs = Toolbox.CreatePreferences();
+            Speed ride_speed = prefs.RidingSpeedThreshold + Speed.FromKilometersPerHour(10);
+
+            // flat line
+            var plan_points = new[] { GeoPoint.FromDegrees(52.985, 25.025), GeoPoint.FromDegrees(53, 25.025), GeoPoint.FromDegrees(53, 25.050), GeoPoint.FromDegrees(53.015, 25.050) };
+            var turning_points = plan_points.Skip(1).SkipLast(1).ToList();
+
+            IPlanData gpx_data = Toolbox.CreateBasicTrackData(track: plan_points, waypoints: turning_points, prefs.OffTrackAlarmDistance);
+
+            var track_points = plan_points.ToList();
+            Toolbox.PopulateTrackDensely(track_points, ride_speed);
+
+            track_points.InsertRange(600, Enumerable.Range(0, 100).Select(_ => track_points[600]));
+
+            Toolbox.Ride(prefs, gpx_data, track_points, out var alarm_counters, out var alarms, out var messages);
+
+            Assert.AreEqual(12, alarms.Count);
+
+            int a = 0;
+
+            Assert.AreEqual((Alarm.Engaged, 3), alarms[a++]);
+
+            Assert.AreEqual((Alarm.Crossroad, 496), alarms[a++]);
+            Assert.AreEqual((Alarm.RightCross, 498), alarms[a++]);
+            Assert.AreEqual((Alarm.RightCross, 500), alarms[a++]);
+
+            Assert.AreEqual((Alarm.Disengage, 602), alarms[a++]);
+            Assert.AreEqual((Alarm.Engaged, 703), alarms[a++]);
+
+            Assert.AreEqual((Alarm.Crossroad, 1107), alarms[a++]);
+            Assert.AreEqual((Alarm.LeftCross, 1109), alarms[a++]);
+            Assert.AreEqual((Alarm.LeftCross, 1111), alarms[a++]);
+
+            Assert.AreEqual((Alarm.Crossroad, 1620), alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 1622), alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 1624), alarms[a++]);
+        }
+
+        [TestMethod]
         public void LeavingEndpointTest()
         {
             var prefs = Toolbox.LowThresholdSpeedPreferences();
@@ -388,7 +528,7 @@ namespace TrackRadar.Tests
             var track_points_with_alt = alts.Select(it => it.TrackPoint).ToHashSet();
             // checking if the alternate turn points are assigned only to the single section + two alternates
             // because of the implicit endpoints
-            Assert.AreEqual(1+2, plan_data.Segments
+            Assert.AreEqual(1 + 2, plan_data.Segments
                 .Where(seg => track_points_with_alt.Contains(seg.A) || track_points_with_alt.Contains(seg.B))
                 .Select(it => it.SectionId)
                 .Distinct()
@@ -397,7 +537,7 @@ namespace TrackRadar.Tests
             Assert.IsFalse(track_points_with_alt.Any(it => waypoints.Contains(it)));
             // we should have alternative turn point, basically one turn part should point to the other
             // (1 regular + 2 because of the implicit endpoints)
-            Assert.AreEqual(1+2, alts.Select(it => it.Alternate.Value.TurnPoint).Distinct().Count());
+            Assert.AreEqual(1 + 2, alts.Select(it => it.Alternate.Value.TurnPoint).Distinct().Count());
 #endif
             Toolbox.PopulateTrackDensely(track_points, Speed.FromKilometersPerHour(17));
 
@@ -505,7 +645,7 @@ namespace TrackRadar.Tests
 
             Toolbox.PopulateTrackDensely(track_points, riding_speed);
 
-            Toolbox.Ride(prefs, plan_data, track_points,
+            Toolbox.Ride(prefs, playDuration: null, plan_data, track_points,
                 out var alarm_counters, out var alarms, out var messages,
                 out TurnLookout lookout);
 
@@ -710,7 +850,7 @@ namespace TrackRadar.Tests
             RideWithTurns(track_points, out IReadOnlyList<(Alarm alarm, int index)> alarms);
 
             // those 3 extras come from implicit endpoint
-            Assert.AreEqual(turn_points.Count+3, alarms.Count());
+            Assert.AreEqual(turn_points.Count + 3, alarms.Count());
             int i = 0;
             for (; i < turn_points.Count; ++i)
             {
@@ -722,7 +862,7 @@ namespace TrackRadar.Tests
             // endpoint (end of ride) alarms
             Assert.AreEqual((Alarm.Crossroad, 19500), alarms[i++]);
             Assert.AreEqual((Alarm.Crossroad, 19502), alarms[i++]);
-            Assert.AreEqual((Alarm.Crossroad, 19504), alarms[i++]);            
+            Assert.AreEqual((Alarm.Crossroad, 19504), alarms[i++]);
         }
 
         internal double RideWithTurns(List<GeoPoint> trackPoints, out IReadOnlyList<(Alarm alarm, int index)> alarms)
@@ -857,7 +997,7 @@ namespace TrackRadar.Tests
 
             Assert.AreEqual(1, alarms.Count());
             int a = 0;
-            
+
             // we don't get crossroad alarm for leaving, because program detects implicit endpoint ahead of us (alternative turn-point)
             // but since it is too far it cannot alarm about it as well
             // thus we got general engaged alarm

@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using MathUnit;
 
 namespace TrackRadar.Tests.Implementation
@@ -37,5 +38,9 @@ namespace TrackRadar.Tests.Implementation
             ; // do nothing
         }
 
+        /*void IRadarService.WriteDebug(double latitudeDegrees, double longitudeDegrees, string name, string comment)
+        {
+            Debug.WriteLine($"{latitudeDegrees}, {longitudeDegrees} {name} {comment}");
+        }*/
     }
 }

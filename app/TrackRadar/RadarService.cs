@@ -33,7 +33,7 @@ namespace TrackRadar
         //   private LogFile serviceLog;
         private GpxWriter offTrackWriter;
         private GpxWriter crossroadsWriter;
-        //private GpxWriter debugPositionsWriter;
+        private GpxWriter debugPositionsWriter;
         private int gpsLastStatus;
         private DisposableGuard guard;
         private int subscriptions;
@@ -102,7 +102,7 @@ private long mLastTime;
                 */
 
                 this.offTrackWriter = new GpxWriter(this, "off-track.gpx", DateTime.UtcNow.AddDays(-2));
-                //this.debugPositionsWriter = new GpxWriter(this, "debug-pos.gpx", DateTime.UtcNow.AddDays(-2));
+                this.debugPositionsWriter = new GpxWriter(this, "debug-pos.gpx", DateTime.UtcNow.AddDays(-2));
                 this.crossroadsWriter = new GpxWriter(this, "crossroads.gpx", DateTime.UtcNow.AddDays(-2));
 
                 this.handler = new HandlerThread("GPSHandler");
@@ -161,7 +161,7 @@ private long mLastTime;
                     LogDebug(LogLevel.Info, $"CPU eval {Geo.Mather.MakeCpuBusy()}s");
                 }
 
-                LogDebug(LogLevel.Info, $"MaxDuration {alarmSequencer.MaxTurnDuration.TotalSeconds}s");
+                //LogDebug(LogLevel.Info, $"MaxDuration {alarmSequencer.MaxTurnDuration.TotalSeconds}s");
                 LogDebug(LogLevel.Info, "service started (+testing log)");
 
             }
@@ -362,7 +362,7 @@ private long mLastTime;
 
                 this.offTrackWriter.Dispose();
                 this.crossroadsWriter.Dispose();
-                //this.debugPositionsWriter.Dispose();
+                this.debugPositionsWriter.Dispose();
                 this.traceWriter?.Dispose();
 
                 LogDebug(LogLevel.Info, "OnDestroy: saving stats");
@@ -523,11 +523,11 @@ private long mLastTime;
             crossroadsWriter.WriteLocation(latitudeDegrees: latitudeDegrees, longitudeDegrees: longitudeDegrees);
         }
 
-       /* void IRadarService.WriteDebug(double latitudeDegrees, double longitudeDegrees,string name,string comment)
+        void IRadarService.WriteDebug(double latitudeDegrees, double longitudeDegrees,string name,string comment)
         {
             debugPositionsWriter.WriteLocation(latitudeDegrees: latitudeDegrees, longitudeDegrees: longitudeDegrees,name: name,comment: comment);
         }
-        */
+        
         void IRadarService.WriteOffTrack(double latitudeDegrees, double longitudeDegrees, string name)
         {
             offTrackWriter.WriteLocation(latitudeDegrees: latitudeDegrees, longitudeDegrees: longitudeDegrees, name: name);

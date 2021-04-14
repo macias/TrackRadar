@@ -48,7 +48,6 @@ namespace TrackRadar
             public int DebugId { get; } = debugId++;
 #endif
 
-            // private readonly TrackNode node;
             private readonly Dictionary<TrackNode, Length?> neighbours;
             // segment node on which point is projected -> actual projection, distance between node and point
             private readonly Dictionary<TrackNode, (GeoPoint? projection, Length? nodeProjDistance)> projections;

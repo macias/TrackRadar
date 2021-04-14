@@ -38,9 +38,9 @@ namespace TrackRadar.Tests.Implementation
             ; // do nothing
         }
 
-        /*void IRadarService.WriteDebug(double latitudeDegrees, double longitudeDegrees, string name, string comment)
+        void IRadarService.WriteDebug(double latitudeDegrees, double longitudeDegrees, string name, string comment)
         {
             Debug.WriteLine($"{latitudeDegrees}, {longitudeDegrees} {name} {comment}");
-        }*/
+        }
     }
 }

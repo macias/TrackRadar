@@ -86,7 +86,7 @@ namespace TrackRadar.Tests
             var track_points = plan_points.ToList();
             Toolbox.PopulateTrackDensely(track_points, ride_speed);
 
-            Toolbox.Ride(prefs, TimeSpan.FromSeconds(2.229), gpx_data, track_points, out var alarm_counters, out var alarms, out var messages);
+            Toolbox.Ride(prefs, playDuration: TimeSpan.FromSeconds(2.229), gpx_data, track_points, out var alarm_counters, out var alarms, out var messages);
 
             Assert.AreEqual(10, alarms.Count);
 
@@ -262,17 +262,21 @@ namespace TrackRadar.Tests
             Toolbox.Ride(prefs, plan_filename, tracked_filename, null,
                 out var alarmCounters, out var alarms, out var messages);
 
-            Assert.AreEqual(9, alarms.Count);
+            Assert.AreEqual(8, alarms.Count);
+            int a = 0;
 
-            Assert.AreEqual((Alarm.Engaged, 3), alarms[0]);
-            Assert.AreEqual((Alarm.Crossroad, 9), alarms[1]);
-            Assert.AreEqual((Alarm.RightCross, 11), alarms[2]);
-            Assert.AreEqual((Alarm.RightCross, 13), alarms[3]);
-            Assert.AreEqual((Alarm.DoubleTurn, 24), alarms[4]);
-            Assert.AreEqual((Alarm.LeftCross, 27), alarms[5]);
-            Assert.AreEqual((Alarm.LeftCross, 29), alarms[6]);
-            Assert.AreEqual((Alarm.OffTrack, 46), alarms[7]);
-            Assert.AreEqual((Alarm.Disengage, 48), alarms[8]);
+            Assert.AreEqual((Alarm.Engaged, 3), alarms[a++]);
+
+            Assert.AreEqual((Alarm.DoubleTurn, 9), alarms[a++]);
+            Assert.AreEqual((Alarm.RightCross, 11), alarms[a++]);
+            Assert.AreEqual((Alarm.RightCross, 13), alarms[a++]);
+
+            //Assert.AreEqual((Alarm.DoubleTurn, 24), alarms[a++]);
+            Assert.AreEqual((Alarm.LeftCross, 27), alarms[a++]);
+            Assert.AreEqual((Alarm.LeftCross, 29), alarms[a++]);
+
+            Assert.AreEqual((Alarm.OffTrack, 46), alarms[a++]);
+            Assert.AreEqual((Alarm.Disengage, 48), alarms[a++]);
         }
 
         [TestMethod]
@@ -359,17 +363,21 @@ namespace TrackRadar.Tests
             Toolbox.Ride(prefs, plan_filename, tracked_filename, null,
                 out var alarmCounters, out var alarms, out var messages);
 
-            Assert.AreEqual(9, alarms.Count);
+            Assert.AreEqual(8, alarms.Count);
+            int a = 0;
 
-            Assert.AreEqual((Alarm.Engaged, 3), alarms[0]);
-            Assert.AreEqual((Alarm.Crossroad, 9), alarms[1]);
-            Assert.AreEqual((Alarm.RightCross, 11), alarms[2]);
-            Assert.AreEqual((Alarm.RightCross, 13), alarms[3]);
-            Assert.AreEqual((Alarm.DoubleTurn, 23), alarms[4]);
-            Assert.AreEqual((Alarm.LeftCross, 26), alarms[5]);
-            Assert.AreEqual((Alarm.LeftCross, 28), alarms[6]);
-            Assert.AreEqual((Alarm.OffTrack, 46), alarms[7]);
-            Assert.AreEqual((Alarm.Disengage, 48), alarms[8]);
+            Assert.AreEqual((Alarm.Engaged, 3), alarms[a++]);
+
+            Assert.AreEqual((Alarm.DoubleTurn, 9), alarms[a++]);
+            Assert.AreEqual((Alarm.RightCross, 11), alarms[a++]);
+            Assert.AreEqual((Alarm.RightCross, 13), alarms[a++]);
+
+           // Assert.AreEqual((Alarm.DoubleTurn, 23), alarms[a++]);
+            Assert.AreEqual((Alarm.LeftCross, 26), alarms[a++]);
+            Assert.AreEqual((Alarm.LeftCross, 28), alarms[a++]);
+
+            Assert.AreEqual((Alarm.OffTrack, 46), alarms[a++]);
+            Assert.AreEqual((Alarm.Disengage, 48), alarms[a++]);
         }
 
         [TestMethod]
@@ -389,17 +397,22 @@ namespace TrackRadar.Tests
             Toolbox.Ride(prefs, plan_data, track_points,
                 out var alarmCounters, out var alarms, out var messages);
 
-            Assert.AreEqual(8, alarms.Count);
+            Assert.AreEqual(7, alarms.Count);
+            int a = 0;
 
-            Assert.AreEqual((Alarm.Engaged, 3), alarms[0]);
-            Assert.AreEqual((Alarm.Crossroad, 9), alarms[1]);
-            Assert.AreEqual((Alarm.RightCross, 11), alarms[2]);
-            Assert.AreEqual((Alarm.RightCross, 13), alarms[3]);
-            Assert.AreEqual((Alarm.DoubleTurn, 24), alarms[4]);
-            Assert.AreEqual((Alarm.LeftCross, 27), alarms[5]);
+            Assert.AreEqual((Alarm.Engaged, 3), alarms[a++]);
+
+            Assert.AreEqual((Alarm.DoubleTurn, 9), alarms[a++]);
+            Assert.AreEqual((Alarm.RightCross, 11), alarms[a++]);
+            Assert.AreEqual((Alarm.RightCross, 13), alarms[a++]);
+
+            //Assert.AreEqual((Alarm.DoubleTurn, 24), alarms[a++]);
+            Assert.AreEqual((Alarm.LeftCross, 27), alarms[a++]);
             // up to this point it should be the same as non-speed-up version
-            Assert.AreEqual((Alarm.OffTrack, 45), alarms[6]);
-            Assert.AreEqual((Alarm.Disengage, 47), alarms[7]);
+            // there is no room before turn-point to squeeze in another alarm
+
+            Assert.AreEqual((Alarm.OffTrack, 45), alarms[a++]);
+            Assert.AreEqual((Alarm.Disengage, 47), alarms[a++]);
         }
 
         [TestMethod]
@@ -419,18 +432,22 @@ namespace TrackRadar.Tests
             Toolbox.Ride(prefs, plan_data, track_points,
                 out var alarmCounters, out var alarms, out var messages);
 
-            Assert.AreEqual(9, alarms.Count);
+            Assert.AreEqual(8, alarms.Count);
+            int a = 0;
 
-            Assert.AreEqual((Alarm.Engaged, 3), alarms[0]);
-            Assert.AreEqual((Alarm.Crossroad, 9), alarms[1]);
-            Assert.AreEqual((Alarm.RightCross, 11), alarms[2]);
-            Assert.AreEqual((Alarm.RightCross, 13), alarms[3]);
-            Assert.AreEqual((Alarm.DoubleTurn, 23), alarms[4]);
-            Assert.AreEqual((Alarm.LeftCross, 26), alarms[5]);
+            Assert.AreEqual((Alarm.Engaged, 3), alarms[a++]);
+
+            Assert.AreEqual((Alarm.DoubleTurn, 9), alarms[a++]);
+            Assert.AreEqual((Alarm.RightCross, 11), alarms[a++]);
+            Assert.AreEqual((Alarm.RightCross, 13), alarms[a++]);
+
+            // Assert.AreEqual((Alarm.DoubleTurn, 23), alarms[a++]);
+            Assert.AreEqual((Alarm.LeftCross, 26), alarms[a++]);
             // up to this point it should be the same as non-speed-up version
-            Assert.AreEqual((Alarm.LeftCross, 28), alarms[6]);
-            Assert.AreEqual((Alarm.OffTrack, 45), alarms[7]);
-            Assert.AreEqual((Alarm.Disengage, 47), alarms[8]);
+            Assert.AreEqual((Alarm.LeftCross, 28), alarms[a++]);
+
+            Assert.AreEqual((Alarm.OffTrack, 45), alarms[a++]);
+            Assert.AreEqual((Alarm.Disengage, 47), alarms[a++]);
         }
 
         [TestMethod]
@@ -546,17 +563,16 @@ namespace TrackRadar.Tests
 
             Toolbox.Ride(prefs, plan_data, track_points, out var alarm_counters, out var alarms, out var messages);
 
-            Assert.AreEqual(10, alarms.Count());
+            Assert.AreEqual(9, alarms.Count());
             int a = 0;
 
             Assert.AreEqual((Alarm.Engaged, 3), alarms[a++]);
 
-            Assert.AreEqual((Alarm.Crossroad, 240), alarms[a++]);
+            Assert.AreEqual((Alarm.DoubleTurn, 240), alarms[a++]);
             Assert.AreEqual((Alarm.LeftCross, 242), alarms[a++]);
             Assert.AreEqual((Alarm.LeftCross, 244), alarms[a++]);
 
-            Assert.AreEqual((Alarm.DoubleTurn, 255), alarms[a++]);
-
+            //Assert.AreEqual((Alarm.DoubleTurn, 255), alarms[a++]);
             Assert.AreEqual((Alarm.RightCross, 257), alarms[a++]);
             Assert.AreEqual((Alarm.RightCross, 259), alarms[a++]);
 
@@ -600,17 +616,16 @@ namespace TrackRadar.Tests
 
             Toolbox.Ride(prefs, plan_data, track_points, out var alarm_counters, out var alarms, out var messages);
 
-            Assert.AreEqual(10, alarms.Count());
+            Assert.AreEqual(9, alarms.Count());
             int a = 0;
 
             Assert.AreEqual((Alarm.Engaged, 3), alarms[a++]);
 
-            Assert.AreEqual((Alarm.Crossroad, 240), alarms[a++]);
+            Assert.AreEqual((Alarm.DoubleTurn, 240), alarms[a++]);
             Assert.AreEqual((Alarm.LeftCross, 242), alarms[a++]);
             Assert.AreEqual((Alarm.LeftCross, 244), alarms[a++]);
 
-            Assert.AreEqual((Alarm.DoubleTurn, 255), alarms[a++]);
-
+           // Assert.AreEqual((Alarm.DoubleTurn, 255), alarms[a++]);
             Assert.AreEqual((Alarm.RightCross, 257), alarms[a++]);
             Assert.AreEqual((Alarm.RightCross, 259), alarms[a++]);
 

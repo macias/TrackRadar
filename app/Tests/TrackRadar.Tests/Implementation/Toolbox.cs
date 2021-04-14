@@ -41,6 +41,26 @@ namespace TrackRadar.Tests.Implementation
 
         }
 
+        public static (double maxUpdate, double avgUpdate) Ride(Preferences prefs, TimeSpan playDuration, string planFilename, string trackedFilename,
+    Speed? speed,
+    out IReadOnlyDictionary<Alarm, int> alarmCounters,
+    out IReadOnlyList<(Alarm alarm, int index)> alarms,
+    out IReadOnlyList<(string message, int index)> messages,
+    bool reverse = false)
+        {
+            LoadData(prefs, planFilename, trackedFilename,
+                out IPlanData plan_data, out List<GeoPoint> track_points);
+
+            if (speed != null)
+                PopulateTrackDensely(track_points, speed.Value);
+
+            if (reverse)
+                track_points.Reverse();
+
+            return Ride(prefs, playDuration, plan_data, track_points, out alarmCounters, out alarms, out messages, out _);
+
+        }
+
         internal static void PrintAlarms(IReadOnlyList<(Alarm alarm, int index)> alarms)
         {
             foreach (var alarm in alarms)
@@ -127,7 +147,7 @@ namespace TrackRadar.Tests.Implementation
                 {
                     using (sequencer.OpenAlarmContext(gpsAcquired: false, hasGpsSignal: true))
                     {
-                        if (point_index == 495)
+                        if (point_index == 24)
                         {
                             ;
                         }

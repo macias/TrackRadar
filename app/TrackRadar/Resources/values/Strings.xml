@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="ApplicationName">TrackRadar</string>
+  <string name="ApplicationName">TrackRadar</string>
   <string name="StartService">Start</string>
   <string name="StopService">Stop</string>
 </resources>

@@ -39,8 +39,8 @@ namespace TrackRadar
                 }
             }
 
-            // if two adjacent track nodes are assigned to two different turn points add one track node between them
-            // without it we couldn't add info about alternate turn point to the segment because there would be no node
+            // if two adjacent track nodes are assigned to two different turn points add one track node between them.
+            // Without it we couldn't add info about alternate turn point to the segment because there would be no node
             // to attach to (alternates are added only to non-turn nodes)
             foreach ((TrackNode node, GeoPoint turn_point) in priority_queue.NodeTurnPoints)
             {

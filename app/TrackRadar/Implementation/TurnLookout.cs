@@ -13,7 +13,7 @@ namespace TrackRadar.Implementation
 
         private const int crossroadWarningLimit = 3;
 
-        private static readonly TimeSpan WEAK_timeStep = TimeSpan.FromSeconds(1);
+        private static readonly TimeSpan WEAK_updateRate = TimeSpan.FromSeconds(1);
 
         private static readonly (Length, int) crossroadInitDistance = (Length.MaxValue, -1);
 
@@ -82,6 +82,7 @@ namespace TrackRadar.Implementation
             return result;
         }
 
+        private readonly static int[] emptyIndices = new int[0];
         private bool doAlarmTurnAhead(in GeoPoint currentPoint,
             ISegment segment, in ArcSegmentIntersection crosspointInfo,
             Speed currentSpeed, long now, out string reason)
@@ -110,7 +111,7 @@ namespace TrackRadar.Implementation
                 return false;
             }
 
-            Length leap_distance = currentSpeed * WEAK_timeStep;
+            Length leap_distance = currentSpeed * WEAK_updateRate;
             // rider can accelerate, how much it is hard to say, so we add some slack by adding "1" to the number
             // of alarms needed
             Length alarms_distance = alarmsNeededDistance(currentSpeed, crossroadWarningLimit + 1);
@@ -126,6 +127,11 @@ namespace TrackRadar.Implementation
             {
                 cx_index = -1;
             }
+
+            // we are hitting the same crossroad as before
+            bool same_cx_as_before = lastPrimaryCrossroadIndex != -1 && cx_index == lastPrimaryCrossroadIndex;
+
+            this.lastPrimaryCrossroadIndex = cx_index;
 
             (GeoPoint closest_cx, Length cx_dist) = primary_cx;
 
@@ -152,7 +158,8 @@ namespace TrackRadar.Implementation
             if (currentSpeed == Speed.Zero) // if we are walking do not do any additional processing
                 return false;
 
-            if (this.planData.Graph.IsApproxTurnNode(crosspointInfo.Intersection))// rare, but in such case it is better not to give some crazy alarms
+            // we are right at the turn point, rare, but in such case it is better not to give some crazy alarms
+            if (this.planData.Graph.IsApproxTurnNode(crosspointInfo.Intersection))
             {
                 reason = $"Right on spot, hard to tell the turn direction";
                 alarmSequencer.NotifyAlarm(Alarm.Crossroad); // not sure if this is needed
@@ -178,10 +185,7 @@ namespace TrackRadar.Implementation
                 }
             }
 
-            this.lastPrimaryCrossroadIndex = cx_index;
-
-            if (// we are hitting the same crossroad as before
-                lastPrimaryCrossroadIndex != -1 && cx_index == lastPrimaryCrossroadIndex
+            if (same_cx_as_before && cx_index!=-1
                 // we are leaving turn node
                 && this.crossroadLeaveCount[cx_index] > 0
                 && alternate_cx.HasValue)
@@ -209,7 +213,7 @@ namespace TrackRadar.Implementation
                 return false;
             }
 
-            if (!isWithinAlarmDistance( cx_dist, currentSpeed, alarms_distance, turn_ahead_distance))
+            if (!isWithinAlarmDistance(cx_dist, currentSpeed, alarms_distance, turn_ahead_distance))
             {
                 reason = $"Too far {cx_dist} to turn ahead alarm distance {turn_ahead_distance}";
                 return false;
@@ -243,9 +247,23 @@ namespace TrackRadar.Implementation
             }
 
             TurnKind? turn_kind = null;
-            //string debug_turn_history = null;
+            int[] incoming_double_turns = emptyIndices;
+            string debug_turn_history = null;
 
-            if (this.crossroadAlarmCount[cx_index] >= proper_alarm_after)
+            if (this.crossroadAlarmCount[cx_index] < proper_alarm_after)
+            {
+                // normally this would be generic "attention" alarm for incoming turn, but let's check if we don't have double
+                // turn on the horizon
+                incoming_double_turns = this.planData.Graph.GetAdjacentTurns(closest_cx)
+                    // skip alternate turn because this turn we already passed (it is "behind our back")
+                    .Where(it => alternate_cx?.TurnPoint != it.TurnPoint
+                        // if the distance between incoming turns is so small than even with rest pace we won't manage to get
+                        // proper time to warn about it (i.e. the second turn)
+                        && service.RestSpeedThreshold * service.TurnAheadAlarmDistance >= it.Distance)
+                    .Select(it => crossroadIndexOf(it.TurnPoint))
+                    .ToArray();
+            }
+            else
             {
                 if (this.planData.Graph.TryGetOutgoingArmSection(closest_cx, segment.SectionId, out ArmSectionPoints outgoing_arm_points))
                 {
@@ -276,7 +294,7 @@ namespace TrackRadar.Implementation
 
                         Angle bearing_diff = GeoCalculator.AbsoluteBearingDifference(intersection_cx_bearing, point_cx_bearing);
 
-                        //debug_turn_history = $"{nameof(bearing_diff)}={(bearing_diff.Degrees.ToString("0.##"))}";
+                        debug_turn_history = $"{nameof(bearing_diff)}={(bearing_diff.Degrees.ToString("0.##"))}";
 
                         if (bearing_diff > Angle.PI) // do NOT use modulo, this has to be mirror symmetry
                             bearing_diff = Angle.PI * 2 - bearing_diff;
@@ -302,26 +320,29 @@ namespace TrackRadar.Implementation
 
                         turn_kind = getTurnKind(turn.BearingA, turn.BearingB + Angle.PI);
 
-                        //debug_turn_history += $", {nameof(currentSpeed)}={currentSpeed}, {nameof(alarmSequencer.MaxTurnDuration)}={alarmSequencer.MaxTurnDuration}, {nameof(primary_kept)}={primary_kept}"
-                          //  + $", {nameof(cx_index)}={cx_index}, {nameof(crossroadAlarmCount)}={this.crossroadAlarmCount[cx_index]}, {nameof(proper_alarm_after)}={proper_alarm_after}"
-//                            + $", {nameof(this.planData.Graph.TryGetOutgoingArmSection)}: {nameof(closest_cx)}={closest_cx}, {nameof(segment.SectionId)}={segment.SectionId}";
+                        debug_turn_history += $", {nameof(currentSpeed)}={currentSpeed}, {nameof(alarmSequencer.MaxTurnDuration)}={alarmSequencer.MaxTurnDuration}, {nameof(primary_kept)}={primary_kept}"
+                            + $", {nameof(cx_index)}={cx_index}, {nameof(crossroadAlarmCount)}={this.crossroadAlarmCount[cx_index]}, {nameof(proper_alarm_after)}={proper_alarm_after}"
+                            + $", {nameof(this.planData.Graph.TryGetOutgoingArmSection)}: {nameof(closest_cx)}={closest_cx}, {nameof(segment.SectionId)}={segment.SectionId}";
                     }
                 }
             }
 
-            //if (turn_kind.HasValue)
-              //  service.WriteDebug(latitudeDegrees: currentPoint.Latitude.Degrees, longitudeDegrees: currentPoint.Longitude.Degrees, name: turn_kind.Value.ToString(), comment: debug_turn_history);
+            if (turn_kind.HasValue)
+                service.WriteDebug(latitudeDegrees: currentPoint.Latitude.Degrees, longitudeDegrees: currentPoint.Longitude.Degrees,
+                    name: turn_kind.Value.ToString(), comment: debug_turn_history);
+
+            Alarm attention = incoming_double_turns.Any() ? Alarm.DoubleTurn : Alarm.Crossroad;
 
             reason = null;
-            return playAlarm(closest_cx, cx_dist, cx_index, turn_kind.HasValue ? turn_kind.Value.ToAlarm() : Alarm.Crossroad);//, out reason);
+            return playAlarm(closest_cx, cx_dist, turn_kind.HasValue ? turn_kind.Value.ToAlarm() : attention, cx_index, incoming_double_turns);//, out reason);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool isWithinAlarmDistance(Length cxDistance, Speed currentSpeed, Length alarmsDistance, Length turnAheadDistance)
         {
-            return cxDistance <= turnAheadDistance 
+            return cxDistance <= turnAheadDistance
                 // if at next update (assuming current speed) we will go through needed distance for all alarms it is better to start alarms right now
-                || cxDistance - currentSpeed * WEAK_timeStep <= alarmsDistance;
+                || cxDistance - currentSpeed * WEAK_updateRate <= alarmsDistance;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -355,7 +376,7 @@ namespace TrackRadar.Implementation
                         if (keepOnWarnLimit(cx_index, out reason, limit: 1)) // pre-alarm can be played only once
                         {
                             reason = null;
-                            return playAlarm(closest_next.TurnPoint, closest_next.Distance, cx_index, Alarm.DoubleTurn);//, out reason);
+                            return playAlarm(closest_next.TurnPoint, closest_next.Distance,  Alarm.DoubleTurn, cx_index);//, out reason);
                         }
                         else
                         {
@@ -376,7 +397,7 @@ namespace TrackRadar.Implementation
             return alarmsNeededDistance(currentSpeed, crossroadWarningLimit);
         }
 
-        private bool playAlarm(GeoPoint closest_cx, Length cx_dist, int cx_index, Alarm alarm)//, out string reason)
+        private bool playAlarm(GeoPoint closest_cx, Length cx_dist, Alarm alarm, int cx_index, params int[] doubleTurnIndices)//, out string reason)
         {
             service.LogDebug(LogLevel.Info, $"Turn at {closest_cx}, dist {cx_dist}, repeat {this.crossroadAlarmCount[cx_index]}");
 
@@ -388,6 +409,8 @@ namespace TrackRadar.Implementation
             if (played)
             {
                 ++this.crossroadAlarmCount[cx_index];
+                foreach (int idx in doubleTurnIndices)
+                    ++this.crossroadAlarmCount[idx];
             }
             else
                 service.LogDebug(LogLevel.Warning, $"Turn ahead alarm, couldn't play, reason {play_reason}");

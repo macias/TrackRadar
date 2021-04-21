@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx
+  version="1.0"
+  creator="GPSBabel - http://www.gpsbabel.org"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://www.topografix.com/GPX/1/0"
+  xsi:schemaLocation="http://www.topografix.com/GPX/1/0 http://www.topografix.com/GPX/1/0/gpx.xsd">
+<time>2021-04-16T16:08:31Z</time>
+<wpt lat="52.978268000" lon="27.887052000">
+  <ele>0.000000</ele>
+  <name>Point 2</name>
+  <cmt>Point 2</cmt>
+  <desc>Point 2</desc>
+</wpt>
+<trk>
+  <name>route</name>
+<trkseg>
+<trkpt lat="52.971181000" lon="27.878374000">
+  <ele>90.000000</ele>
+</trkpt>
+<trkpt lat="52.971197000" lon="27.878392000">
+  <ele>90.000000</ele>
+</trkpt>
+<trkpt lat="52.971684000" lon="27.878886000">
+  <ele>90.000000</ele>
+</trkpt>
+<trkpt lat="52.972019000" lon="27.879282000">
+  <ele>89.000000</ele>
+</trkpt>
+<trkpt lat="52.972393000" lon="27.879731000">
+  <ele>88.000000</ele>
+</trkpt>
+<trkpt lat="52.972994000" lon="27.880504000">
+  <ele>88.000000</ele>
+</trkpt>
+<trkpt lat="52.973210000" lon="27.880781000">
+  <ele>87.000000</ele>
+</trkpt>
+<trkpt lat="52.973945000" lon="27.881734000">
+  <ele>87.000000</ele>
+</trkpt>
+<trkpt lat="52.974535000" lon="27.882452000">
+  <ele>87.000000</ele>
+</trkpt>
+<trkpt lat="52.975314000" lon="27.883405000">
+  <ele>89.000000</ele>
+</trkpt>
+<trkpt lat="52.976142000" lon="27.884402000">
+  <ele>89.000000</ele>
+</trkpt>
+<trkpt lat="52.977294000" lon="27.885866000">
+  <ele>93.000000</ele>
+</trkpt>
+<trkpt lat="52.978268000" lon="27.887052000">
+  <ele>94.000000</ele>
+</trkpt>
+<trkpt lat="52.978868000" lon="27.885534000">
+  <ele>93.000000</ele>
+</trkpt>
+<trkpt lat="52.979387000" lon="27.884223000">
+  <ele>92.000000</ele>
+</trkpt>
+<trkpt lat="52.980203000" lon="27.882147000">
+  <ele>92.000000</ele>
+</trkpt>
+<trkpt lat="52.980864000" lon="27.880476000">
+  <ele>94.000000</ele>
+</trkpt>
+</trkseg>
+</trk>
+</gpx>

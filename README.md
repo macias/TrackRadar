@@ -15,6 +15,11 @@ Bell sound extracted from: https://www.youtube.com/watch?v=NtgXxZcEA90
 
 Please use Visual Studio 2017 or compatible tool. You need GPX library: https://github.com/macias/Gpx
 
+**DevRadar**
+
+To speed up testing I upload to my phone this app as TrackRadar (which I tested last time and it didn't have major problems) and another copy as DevRadar
+(which is supposed to be improvement, but was not yet tested for real).
+
 ## Rationale
 
 I need moderately priced, e-ink, around 5" device with GPS and ability to run custom apps. The problem is it does not exist, there are some options like:

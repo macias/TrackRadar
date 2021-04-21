@@ -18,6 +18,54 @@ namespace TrackRadar.Tests
         private const double precision = 0.00000001;
 
         [TestMethod]
+        public void ComingBackToOffsetTurnTest()
+        {
+            // we are coming from off-track position towards turn point which does not lie on actual track turn
+
+            // the purpose of this test is to check we have just generic alarms on the turn-point, not directional ones
+            // because when coming back we are moving towards track, not along track, so giving directions would be wrong
+
+            string plan_filename = @"Data/coming-back-to-offset-turn.plan.gpx";
+            string tracked_filename = @"Data/coming-back-to-offset-turn.tracked.gpx";
+
+            var prefs = Toolbox.CreatePreferences(); // regular thresholds for speed
+            Toolbox.Ride(prefs, plan_filename, tracked_filename, null,
+                out var alarmCounters, out var alarms, out var messages);
+
+            Toolbox.PrintAlarms(alarms);
+            Assert.AreEqual(5, alarms.Count);
+            int a = 0;
+
+            Assert.AreEqual((Alarm.OffTrack, 3), alarms[a++]);
+            Assert.AreEqual((Alarm.OffTrack, 13), alarms[a++]);
+
+            Assert.AreEqual((Alarm.Crossroad, 15), alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 20), alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 22), alarms[a++]);
+        }
+
+        [TestMethod]
+        public void AttentionTurnTest()
+        {
+            // we are accelerating towards turn so at first it led to unwanted alarm with direction info (it should be generic attention alarm, as it is now)
+            string plan_filename = @"Data/attention-turn.plan.gpx";
+            string tracked_filename = @"Data/attention-turn.tracked.gpx";
+
+            var prefs = Toolbox.CreatePreferences(); // regular thresholds for speed
+            Toolbox.Ride(prefs, playDuration: TimeSpan.FromSeconds(2.229), plan_filename, tracked_filename, null,
+                out var alarmCounters, out var alarms, out var messages);
+
+            Assert.AreEqual(4, alarms.Count);
+            int a = 0;
+
+            Assert.AreEqual((Alarm.Engaged, 3), alarms[a++]);
+
+            Assert.AreEqual((Alarm.Crossroad, 16), alarms[a++]); // despite we are accelerating the program should give us generic alarm (now is OK)
+            Assert.AreEqual((Alarm.LeftCross, 18), alarms[a++]);
+            Assert.AreEqual((Alarm.LeftCross, 20), alarms[a++]);
+        }
+
+        [TestMethod]
         public void TwoRegularTurnsTest()
         {
             //            |
@@ -67,11 +115,11 @@ namespace TrackRadar.Tests
         {
             //            |
             //            |
-            ///           |
+            //            |
             //      *-----*
             //      |
             //      |
-            ///     |
+            //      |
             // nothing fancy, sanity test
 
             var prefs = Toolbox.CreatePreferences();
@@ -112,11 +160,11 @@ namespace TrackRadar.Tests
         {
             //            |
             //            |
-            ///           |
+            //            |
             //      *-O---*
             //      |
             //      |
-            ///     |
+            //      |
             // same as regular test, only here O we simulate stop
 
             var prefs = Toolbox.CreatePreferences();
@@ -921,7 +969,7 @@ namespace TrackRadar.Tests
                         counting_alarm_master.SetPointIndex(point_index);
                         PositionCalculator.IsOnTrack(pt, map, prefs.OffTrackAlarmDistance,
                             out ISegment segment, out _, out ArcSegmentIntersection cx_info);
-                        lookout.AlarmTurnAhead(pt, segment, cx_info, ride_speed, clock.GetTimestamp(), out _);
+                        lookout.AlarmTurnAhead(pt, segment, cx_info, ride_speed, engagedState:true, clock.GetTimestamp(), out _);
                         ++point_index;
                         last_pt = pt;
                     }
@@ -973,7 +1021,7 @@ namespace TrackRadar.Tests
                 PositionCalculator.IsOnTrack(turning_point, map, prefs.OffTrackAlarmDistance,
                     out ISegment segment, out _, out ArcSegmentIntersection cx_info);
                 // simulate we are exactly at turning point (no bearing then) and look out for program crash
-                lookout.AlarmTurnAhead(turning_point, segment, cx_info, ride_speed, clock.GetTimestamp(), out _);
+                lookout.AlarmTurnAhead(turning_point, segment, cx_info, ride_speed, engagedState: true, clock.GetTimestamp(), out _);
             }
         }
 

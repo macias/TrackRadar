@@ -196,7 +196,7 @@ namespace TrackRadar.Implementation
             if (isOnTrack)
             {
                 this.offTrackAlarmsCount = 0;
-                if (Lookout.AlarmTurnAhead(currentPoint, segment, crosspointInfo, this.ridingSpeed, now, out string _))
+                if (Lookout.AlarmTurnAhead(currentPoint, segment, crosspointInfo, this.ridingSpeed, engagedState, now, out string _))
                     engagedState = true;
             }
 

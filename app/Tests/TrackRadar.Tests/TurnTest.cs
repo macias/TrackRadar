@@ -18,6 +18,24 @@ namespace TrackRadar.Tests
         private const double precision = 0.00000001;
 
         [TestMethod]
+        public void TurningAfterStartTest()
+        {
+            string plan_filename = @"Data/turning-after-start.plan.gpx";
+            string tracked_filename = @"Data/turning-after-start.tracked.gpx";
+
+            var prefs = Toolbox.CreatePreferences(); // regular thresholds for speed
+            var stats = Toolbox.Ride(prefs, playDuration: TimeSpan.FromSeconds(2.229), plan_filename, tracked_filename, null,
+                out var alarmCounters, out var alarms, out var messages);
+
+            Assert.AreEqual(3, alarms.Count);
+            int a = 0;
+
+            Assert.AreEqual((Alarm.Crossroad, 12), alarms[a++]);
+            Assert.AreEqual((Alarm.RightCross, 14), alarms[a++]);
+            Assert.AreEqual((Alarm.RightCross, 16), alarms[a++]);
+        }
+
+        [TestMethod]
         public void ComingBackToOffsetTurnTest()
         {
             // we are coming from off-track position towards turn point which does not lie on actual track turn
@@ -420,7 +438,7 @@ namespace TrackRadar.Tests
             Assert.AreEqual((Alarm.RightCross, 11), alarms[a++]);
             Assert.AreEqual((Alarm.RightCross, 13), alarms[a++]);
 
-           // Assert.AreEqual((Alarm.DoubleTurn, 23), alarms[a++]);
+            // Assert.AreEqual((Alarm.DoubleTurn, 23), alarms[a++]);
             Assert.AreEqual((Alarm.LeftCross, 26), alarms[a++]);
             Assert.AreEqual((Alarm.LeftCross, 28), alarms[a++]);
 
@@ -673,7 +691,7 @@ namespace TrackRadar.Tests
             Assert.AreEqual((Alarm.LeftCross, 242), alarms[a++]);
             Assert.AreEqual((Alarm.LeftCross, 244), alarms[a++]);
 
-           // Assert.AreEqual((Alarm.DoubleTurn, 255), alarms[a++]);
+            // Assert.AreEqual((Alarm.DoubleTurn, 255), alarms[a++]);
             Assert.AreEqual((Alarm.RightCross, 257), alarms[a++]);
             Assert.AreEqual((Alarm.RightCross, 259), alarms[a++]);
 
@@ -917,9 +935,9 @@ namespace TrackRadar.Tests
             int i = 0;
             for (; i < turn_points.Count; ++i)
             {
-                Assert.AreEqual(track_points[alarms[i].index].Latitude.Degrees, turn_points[i].Latitude.Degrees, precision);
-                Assert.AreEqual(track_points[alarms[i].index].Longitude.Degrees, turn_points[i].Longitude.Degrees, precision);
-                Assert.AreEqual(alarms[i].alarm, Enum.Parse<Alarm>(turn_points[i].Name));
+                Assert.AreEqual(turn_points[i].Latitude.Degrees, track_points[alarms[i].index].Latitude.Degrees, precision);
+                Assert.AreEqual(turn_points[i].Longitude.Degrees, track_points[alarms[i].index].Longitude.Degrees, precision);
+                Assert.AreEqual(Enum.Parse<Alarm>(turn_points[i].Name), alarms[i].alarm);
             }
 
             // endpoint (end of ride) alarms
@@ -969,7 +987,7 @@ namespace TrackRadar.Tests
                         counting_alarm_master.SetPointIndex(point_index);
                         PositionCalculator.IsOnTrack(pt, map, prefs.OffTrackAlarmDistance,
                             out ISegment segment, out _, out ArcSegmentIntersection cx_info);
-                        lookout.AlarmTurnAhead(pt, segment, cx_info, ride_speed, engagedState:true, clock.GetTimestamp(), out _);
+                        lookout.AlarmTurnAhead(pt, segment, cx_info, ride_speed, comebackOnTrack: false, clock.GetTimestamp(), out _);
                         ++point_index;
                         last_pt = pt;
                     }
@@ -1021,7 +1039,7 @@ namespace TrackRadar.Tests
                 PositionCalculator.IsOnTrack(turning_point, map, prefs.OffTrackAlarmDistance,
                     out ISegment segment, out _, out ArcSegmentIntersection cx_info);
                 // simulate we are exactly at turning point (no bearing then) and look out for program crash
-                lookout.AlarmTurnAhead(turning_point, segment, cx_info, ride_speed, engagedState: true, clock.GetTimestamp(), out _);
+                lookout.AlarmTurnAhead(turning_point, segment, cx_info, ride_speed, comebackOnTrack: false, clock.GetTimestamp(), out _);
             }
         }
 

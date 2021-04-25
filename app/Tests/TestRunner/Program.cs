@@ -18,7 +18,7 @@ namespace TestRunner
             //CheckLoading();            Measure();
 
             //CheckLoadingOne();
-            var test = new TrackRadar.Tests.TurnTest(); test.ComingBackToOffsetTurnTest();
+            var test = new TrackRadar.Tests.TurnTest(); test.RideWithTurnsTest();
 
             //RunAllTests();
             Console.WriteLine("Hello World!");
@@ -33,7 +33,7 @@ namespace TestRunner
             var times = Toolbox.Ride(Toolbox.CreatePreferences(), plan_filename, tracked_filename, null, out _, out _, out _);
             // android-max 0.14-0.40
             // without turns ~0.14
-            Console.WriteLine($"times {times}, on android {times.maxUpdate * 6}, {times.avgUpdate * 6}");
+            Console.WriteLine($"times {times}, on android {times.MaxUpdate * 6}, {times.AvgUpdate * 6}");
         }
 
         public static void CheckLoadingOne()

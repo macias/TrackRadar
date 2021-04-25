@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx
+  version="1.1"
+  creator="GPSBabel - http://www.gpsbabel.org"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://www.topografix.com/GPX/1/1"
+  xsi:schemaLocation="http://www.topografix.com/GPX/1/0 http://www.topografix.com/GPX/1/0/gpx.xsd http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd ">
+<trk>
+  <name>Tracked with OSMTracker for Android™</name>
+<trkseg>
+<trkpt lat="53.182703641" lon="27.448803750">
+  <ele>119.098499</ele>
+  <time>2021-04-24T09:39:36Z</time>
+<extensions>
+					<speed>0.40382513403892517</speed>
+				</extensions>
+</trkpt>
+<trkpt lat="53.182704387" lon="27.448813207">
+  <ele>119.112247</ele>
+  <time>2021-04-24T09:39:37Z</time>
+<extensions>
+					<speed>0.0</speed>
+				</extensions>
+</trkpt>
+<trkpt lat="53.182706628" lon="27.448827108">
+  <ele>119.127852</ele>
+  <time>2021-04-24T09:39:38Z</time>
+<extensions>
+					<speed>0.0</speed>
+				</extensions>
+</trkpt>
+<trkpt lat="53.182709793" lon="27.448835541">
+  <ele>119.285887</ele>
+  <time>2021-04-24T09:39:39Z</time>
+<extensions>
+					<speed>0.0</speed>
+				</extensions>
+</trkpt>
+<trkpt lat="53.182711231" lon="27.448845660">
+  <ele>119.463240</ele>
+  <time>2021-04-24T09:39:40Z</time>
+<extensions>
+					<speed>0.28071632981300354</speed>
+				</extensions>
+</trkpt>
+<trkpt lat="53.182714632" lon="27.448858278">
+  <ele>119.621330</ele>
+  <time>2021-04-24T09:39:41Z</time>
+<extensions>
+					<speed>0.6244590878486633</speed>
+				</extensions>
+</trkpt>
+<trkpt lat="53.182719441" lon="27.448870490">
+  <ele>119.752546</ele>
+  <time>2021-04-24T09:39:42Z</time>
+<extensions>
+					<speed>0.8228179812431335</speed>
+				</extensions>
+</trkpt>
+<trkpt lat="53.182724392" lon="27.448877975">
+  <ele>119.864846</ele>
+  <time>2021-04-24T09:39:43Z</time>
+<extensions>
+					<speed>1.2064626216888428</speed>
+				</extensions>
+</trkpt>
+<trkpt lat="53.182733055" lon="27.448892603">
+  <ele>119.974765</ele>
+  <time>2021-04-24T09:39:44Z</time>
+<extensions>
+					<speed>1.4497413635253906</speed>
+				</extensions>
+</trkpt>
+<trkpt lat="53.182747485" lon="27.448913730">
+  <ele>120.078638</ele>
+  <time>2021-04-24T09:39:45Z</time>
+<extensions>
+					<speed>1.7832108736038208</speed>
+				</extensions>
+</trkpt>
+<trkpt lat="53.182764813" lon="27.448924370">
+  <ele>120.181333</ele>
+  <time>2021-04-24T09:39:46Z</time>
+<extensions>
+					<speed>2.1663296222686768</speed>
+				</extensions>
+</trkpt>
+<trkpt lat="53.182791675" lon="27.448943569">
+  <ele>120.274768</ele>
+  <time>2021-04-24T09:39:47Z</time>
+<extensions>
+					<speed>2.5825250148773193</speed>
+				</extensions>
+</trkpt>
+<trkpt lat="53.182822888" lon="27.448967894">
+  <ele>121.112395</ele>
+  <time>2021-04-24T09:39:48Z</time>
+<extensions>
+					<speed>2.9221434593200684</speed>
+				</extensions>
+</trkpt>
+<trkpt lat="53.182850760" lon="27.448995749">
+  <ele>121.164172</ele>
+  <time>2021-04-24T09:39:49Z</time>
+<extensions>
+					<speed>3.0374863147735596</speed>
+				</extensions>
+</trkpt>
+<trkpt lat="53.182881600" lon="27.449030696">
+  <ele>121.207648</ele>
+  <time>2021-04-24T09:39:50Z</time>
+<extensions>
+					<speed>3.144859552383423</speed>
+				</extensions>
+</trkpt>
+<trkpt lat="53.182914745" lon="27.449065781">
+  <ele>121.466511</ele>
+  <time>2021-04-24T09:39:51Z</time>
+<extensions>
+					<speed>3.273672580718994</speed>
+				</extensions>
+</trkpt>
+<trkpt lat="53.182950150" lon="27.449104683">
+  <ele>121.818830</ele>
+  <time>2021-04-24T09:39:52Z</time>
+<extensions>
+					<speed>3.4095911979675293</speed>
+				</extensions>
+</trkpt>
+<trkpt lat="53.182985544" lon="27.449148684">
+  <ele>122.182494</ele>
+  <time>2021-04-24T09:39:53Z</time>
+<extensions>
+					<speed>3.53530216217041</speed>
+				</extensions>
+</trkpt>
+</trkseg>
+</trk>
+</gpx>

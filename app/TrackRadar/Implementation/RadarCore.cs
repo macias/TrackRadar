@@ -16,6 +16,7 @@ namespace TrackRadar.Implementation
         // when we walk, we don't alter the speed (sic!)
         private Speed ridingSpeed;
         private bool engagedState;
+        private bool wasOffTrackPreviously => this.lastOnTrackAlarmAt < this.lastOffTrackAlarmAt;
         private readonly IRadarService service;
         private readonly IAlarmSequencer alarmSequencer;
         private readonly ITimeStamper timeStamper;
@@ -82,7 +83,7 @@ namespace TrackRadar.Implementation
             this.startRidingDistance = startRidingDistance;
             this.overlappingRidingDistance = Length.Zero;
             this.ridingTime = ridingTime;
-            this.ridingStartedAt = timeStamper.GetBeforeTimeTimestamp();
+            this.lastOffTrackAlarmAt = this.lastOnTrackAlarmAt = this.ridingStartedAt = timeStamper.GetBeforeTimeTimestamp();
             this.topSpeed = topSpeed;
             this.speedTicksWindow = 3 * timeStamper.Frequency; // 3 seconds is good time window
 
@@ -196,7 +197,7 @@ namespace TrackRadar.Implementation
             if (isOnTrack)
             {
                 this.offTrackAlarmsCount = 0;
-                if (Lookout.AlarmTurnAhead(currentPoint, segment, crosspointInfo, this.ridingSpeed, engagedState, now, out string _))
+                if (Lookout.AlarmTurnAhead(currentPoint, segment, crosspointInfo, this.ridingSpeed, wasOffTrackPreviously, now, out string _))
                     engagedState = true;
             }
 
@@ -223,10 +224,10 @@ namespace TrackRadar.Implementation
             {
                 if (!engagedState
                     //prevRiding == Speed.Zero  // we started riding, engagement
-                    || this.lastOnTrackAlarmAt < this.lastOffTrackAlarmAt) // we were previously off-track
+                    || wasOffTrackPreviously) // we were previously off-track
                 {
                     //var alarm = prevRiding == Speed.Zero ? Alarm.Engaged : Alarm.BackOnTrack;
-                    var alarm = this.lastOnTrackAlarmAt < this.lastOffTrackAlarmAt ? Alarm.BackOnTrack : Alarm.Engaged;
+                    var alarm = wasOffTrackPreviously ? Alarm.BackOnTrack : Alarm.Engaged;
                     var played = alarmSequencer.TryAlarm(alarm, out string reason);//? AlarmState.Played : AlarmState.Failed;
                     service.LogDebug(LogLevel.Verbose, $"ACK played {played}, reason: {reason}, back on track");
 
@@ -272,6 +273,7 @@ namespace TrackRadar.Implementation
                 }
             }
         }
+
 
         /// <param name="dist">negative value means on track</param>
         private bool isOnTrack(in GeoPoint point, Length? accuracy, out ISegment segment, out double dist,

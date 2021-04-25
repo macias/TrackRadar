@@ -52,6 +52,12 @@
     <None Update="Data\extension.gpx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="Data\turning-after-start.plan.gpx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Data\turning-after-start.tracked.gpx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="Data\intersection-apart.gpx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

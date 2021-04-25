@@ -25,7 +25,7 @@ namespace TrackRadar.Implementation
         private readonly IPlanData planData;
         private readonly int[] crossroadAlarmCount;
         private readonly int[] crossroadLeaveCount;
-        private readonly bool[] crossroadEngagedStates;
+        private readonly bool[] crossroadDirectionsEnabled;
         private readonly (Length distance, int sectionId)[] crossroadDistances;
         private int lastPrimaryCrossroadIndex;
 
@@ -40,14 +40,14 @@ namespace TrackRadar.Implementation
             this.planData = gpxData;
             this.crossroadAlarmCount = gpxData.Crossroads.Select(_ => 0).ToArray();
             this.crossroadLeaveCount = gpxData.Crossroads.Select(_ => 0).ToArray();
-            this.crossroadEngagedStates = gpxData.Crossroads.Select(_ => true).ToArray();
+            this.crossroadDirectionsEnabled = gpxData.Crossroads.Select(_ => true).ToArray();
             this.lastPrimaryCrossroadIndex = -1;
             this.crossroadDistances = gpxData.Crossroads.Select(_ => crossroadInitDistance).ToArray();
         }
 
         internal bool AlarmTurnAhead(in GeoPoint currentPoint,
             ISegment segment, in ArcSegmentIntersection crosspointInfo,
-            Speed currentSpeed, bool engagedState, long now, out string reason)
+            Speed currentSpeed, bool comebackOnTrack, long now, out string reason)
         {
             if (this.planData.Graph == null)
             {
@@ -64,7 +64,7 @@ namespace TrackRadar.Implementation
             bool result;
             try
             {
-                result = doAlarmTurnAhead(currentPoint, segment, crosspointInfo, currentSpeed,engagedState, now, out reason);
+                result = doAlarmTurnAhead(currentPoint, segment, crosspointInfo, currentSpeed, comebackOnTrack, now, out reason);
             }
 #pragma warning disable CS0168 // do not warn about `ex`
             catch (Exception ex)
@@ -87,7 +87,7 @@ namespace TrackRadar.Implementation
         private readonly static int[] emptyIndices = new int[0];
         private bool doAlarmTurnAhead(in GeoPoint currentPoint,
             ISegment segment, in ArcSegmentIntersection crosspointInfo,
-            Speed currentSpeed, bool engagedState, long now, out string reason)
+            Speed currentSpeed, bool comebackOnTrack, long now, out string reason)
         {
 
             reason = "No reason given";
@@ -146,7 +146,7 @@ namespace TrackRadar.Implementation
                         this.crossroadDistances[i] = crossroadInitDistance;
                         this.crossroadLeaveCount[i] = 0;
                         this.crossroadAlarmCount[i] = 0;
-                        this.crossroadEngagedStates[i] = true;
+                        this.crossroadDirectionsEnabled[i] = true;
                     }
                 }
             }
@@ -187,7 +187,7 @@ namespace TrackRadar.Implementation
                 }
             }
 
-            if (same_cx_as_before && cx_index!=-1
+            if (same_cx_as_before && cx_index != -1
                 // we are leaving turn node
                 && this.crossroadLeaveCount[cx_index] > 0
                 && alternate_cx.HasValue)
@@ -234,8 +234,8 @@ namespace TrackRadar.Implementation
                 }
             }
 
-            if (!engagedState)
-                this.crossroadEngagedStates[cx_index] = false;
+            if (comebackOnTrack) // if we are just returning to the track disable giving directions for the turn-point
+                this.crossroadDirectionsEnabled[cx_index] = false;
 
             // if we have tight turns, when we leave one turn and already the second one is in proximity of the alarm
             // then drop the introductory, generic, alarm and go straight to informative alarm (right-cross, left-easy, etc)
@@ -301,7 +301,7 @@ namespace TrackRadar.Implementation
 
                         Angle bearing_diff = GeoCalculator.AbsoluteBearingDifference(intersection_cx_bearing, point_cx_bearing);
 
-                        debug_turn_history = $"{Formatter.ZuluFormat(new DateTimeOffset(now, TimeSpan.Zero))} {nameof(bearing_diff)}={(bearing_diff.Degrees.ToString("0.##"))}";
+                        debug_turn_history = $"{Formatter.ZuluFormat(DateTimeOffset.UtcNow)} {nameof(bearing_diff)}={(bearing_diff.Degrees.ToString("0.##"))}";
 
                         if (bearing_diff > Angle.PI) // do NOT use modulo, this has to be mirror symmetry
                             bearing_diff = Angle.PI * 2 - bearing_diff;
@@ -327,7 +327,7 @@ namespace TrackRadar.Implementation
 
                         turn_kind = getTurnKind(turn.BearingA, turn.BearingB + Angle.PI);
 
-                        debug_turn_history += $", {nameof(currentSpeed)}={currentSpeed}, {nameof(alarmSequencer.MaxTurnDuration)}={alarmSequencer.MaxTurnDuration}, {nameof(primary_kept)}={primary_kept}"
+                        debug_turn_history += $",{nameof(cx_dist)}={cx_dist}, {nameof(currentSpeed)}={currentSpeed}, {nameof(alarmSequencer.MaxTurnDuration)}={alarmSequencer.MaxTurnDuration}, {nameof(primary_kept)}={primary_kept}"
                             + $", {nameof(cx_index)}={cx_index}, {nameof(crossroadAlarmCount)}={this.crossroadAlarmCount[cx_index]}, {nameof(proper_alarm_after)}={proper_alarm_after}"
                             + $", {nameof(this.planData.Graph.TryGetOutgoingArmSection)}: {nameof(closest_cx)}={closest_cx}, {nameof(segment.SectionId)}={segment.SectionId}";
                     }
@@ -338,7 +338,7 @@ namespace TrackRadar.Implementation
             {
                 string debug_turn_kind_name = turn_kind.Value.ToString();
 
-                if (!this.crossroadEngagedStates[cx_index])
+                if (!this.crossroadDirectionsEnabled[cx_index])
                 {
                     // there is problem with returning to track in such way they we are hitting turn-point right away, in such case we don't like to give directions
                     // because they are usually wrong. We see to ways to detect if we are hitting turn-point on comeback
@@ -361,8 +361,9 @@ namespace TrackRadar.Implementation
                     debug_turn_kind_name = "comeback";
                 }
 
-                service.WriteDebug(latitudeDegrees: currentPoint.Latitude.Degrees, longitudeDegrees: currentPoint.Longitude.Degrees,
-                    name: debug_turn_kind_name, comment: debug_turn_history);
+                if (this.crossroadAlarmCount[cx_index] == 0) 
+                    service.WriteDebug(latitudeDegrees: currentPoint.Latitude.Degrees, longitudeDegrees: currentPoint.Longitude.Degrees,
+                        name: debug_turn_kind_name, comment: debug_turn_history);
             }
 
             Alarm attention = incoming_double_turns.Any() ? Alarm.DoubleTurn : Alarm.Crossroad;
@@ -410,7 +411,7 @@ namespace TrackRadar.Implementation
                         if (keepOnWarnLimit(cx_index, out reason, limit: 1)) // pre-alarm can be played only once
                         {
                             reason = null;
-                            return playAlarm(closest_next.TurnPoint, closest_next.Distance,  Alarm.DoubleTurn, cx_index);//, out reason);
+                            return playAlarm(closest_next.TurnPoint, closest_next.Distance, Alarm.DoubleTurn, cx_index);//, out reason);
                         }
                         else
                         {

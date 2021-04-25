@@ -10,7 +10,7 @@ using TrackRadar.Implementation;
 using static TrackRadar.GpxLoader;
 
 namespace TrackRadar.Tests.Implementation
-{
+{ 
     public static class Toolbox
     {
         /* public static (double maxUpdate, double avgUpdate) Ride(Preferences prefs, string planFilename, string trackedFilename,
@@ -21,7 +21,7 @@ namespace TrackRadar.Tests.Implementation
              return Ride(prefs, planFilename, trackedFilename, null, out alarmCounters, out alarms, out messages);
          }
          */
-        public static (double maxUpdate, double avgUpdate) Ride(Preferences prefs, string planFilename, string trackedFilename,
+        public static RideStats Ride(Preferences prefs, string planFilename, string trackedFilename,
             Speed? speed,
             out IReadOnlyDictionary<Alarm, int> alarmCounters,
             out IReadOnlyList<(Alarm alarm, int index)> alarms,
@@ -41,7 +41,7 @@ namespace TrackRadar.Tests.Implementation
 
         }
 
-        public static (double maxUpdate, double avgUpdate) Ride(Preferences prefs, TimeSpan playDuration, string planFilename, string trackedFilename,
+        public static RideStats Ride(Preferences prefs, TimeSpan playDuration, string planFilename, string trackedFilename,
             Speed? speed,
             out IReadOnlyDictionary<Alarm, int> alarmCounters,
             out IReadOnlyList<(Alarm alarm, int index)> alarms,
@@ -101,16 +101,16 @@ namespace TrackRadar.Tests.Implementation
             return GpxLoader.ReadGpx(planFilename, prefs.OffTrackAlarmDistance, onProgress: OnProgressValidator(), CancellationToken.None);
         }
 
-        public static (double maxUpdate, double avgUpdate) Ride(Preferences prefs, IPlanData planData,
+        public static RideStats Ride(Preferences prefs, IPlanData planData,
             IReadOnlyList<GeoPoint> trackPoints,
             out IReadOnlyDictionary<Alarm, int> alarmCounters,
             out IReadOnlyList<(Alarm alarm, int index)> alarms,
             out IReadOnlyList<(string message, int index)> messages)
         {
-            return Ride(prefs, playDuration:null, planData, trackPoints, out alarmCounters, out alarms, out messages, out _);
+            return Ride(prefs, playDuration: null, planData, trackPoints, out alarmCounters, out alarms, out messages, out _);
         }
 
-        public static (double maxUpdate, double avgUpdate) Ride(Preferences prefs, TimeSpan? playDuration, IPlanData planData,
+        public static RideStats Ride(Preferences prefs, TimeSpan? playDuration, IPlanData planData,
             IReadOnlyList<GeoPoint> trackPoints,
             out IReadOnlyDictionary<Alarm, int> alarmCounters,
             out IReadOnlyList<(Alarm alarm, int index)> alarms,
@@ -119,7 +119,7 @@ namespace TrackRadar.Tests.Implementation
             return Ride(prefs, playDuration, planData, trackPoints, out alarmCounters, out alarms, out messages, out _);
         }
 
-        internal static (double maxUpdate, double avgUpdate) Ride(Preferences prefs, TimeSpan? playDuration,
+        internal static RideStats Ride(Preferences prefs, TimeSpan? playDuration,
             IPlanData planData,
             IReadOnlyList<GeoPoint> trackPoints,
             out IReadOnlyDictionary<Alarm, int> alarmCounters,
@@ -166,8 +166,9 @@ namespace TrackRadar.Tests.Implementation
                 alarms = counting_alarm_master.Alarms;
                 messages = counting_alarm_master.Messages;
 
-                return (longest_update * 1.0 / Stopwatch.Frequency,
-                    (Stopwatch.GetTimestamp() - start_all - 0.0) / (Stopwatch.Frequency * trackPoints.Count));
+                return new RideStats (longest_update * 1.0 / Stopwatch.Frequency,
+                    (Stopwatch.GetTimestamp() - start_all - 0.0) / (Stopwatch.Frequency * trackPoints.Count),
+                    trackPoints.Count);
             }
         }
 
@@ -236,32 +237,32 @@ namespace TrackRadar.Tests.Implementation
         public static void SaveGpxSegments(string filename, params IEnumerable<GeoPoint>[] segments)
         {
 #if DEBUG
-            GpxToolbox.SaveGpxSegments(filename,  segments);
+            GpxToolbox.SaveGpxSegments(filename, segments);
 #endif
         }
         public static void SaveGpxWaypoints(string filename, IEnumerable<GeoPoint> points)
         {
 #if DEBUG
-            GpxToolbox.SaveGpxWaypoints(filename,  points);
+            GpxToolbox.SaveGpxWaypoints(filename, points);
 #endif
         }
 
-        internal static void PopulateAlarms(this AlarmMaster alarmMaster,TimeSpan? duration = null)
+        internal static void PopulateAlarms(this AlarmMaster alarmMaster, TimeSpan? duration = null)
         {
             alarmMaster.Reset(new TestAlarmVibrator(),
-                offTrackPlayer: new TestAlarmPlayer(AlarmSound.OffTrack,duration),
-                gpsLostPlayer: new TestAlarmPlayer(AlarmSound.GpsLost,duration),
-                gpsOnPlayer: new TestAlarmPlayer(AlarmSound.BackOnTrack,duration),
-                disengage: new TestAlarmPlayer(AlarmSound.Disengage,duration),
-                crossroadsPlayer: new TestAlarmPlayer(AlarmSound.Crossroad,duration),
-                goAhead: new TestAlarmPlayer(AlarmSound.GoAhead,duration),
-                leftEasy: new TestAlarmPlayer(AlarmSound.LeftEasy,duration),
-                leftCross: new TestAlarmPlayer(AlarmSound.LeftCross,duration),
-                leftSharp: new TestAlarmPlayer(AlarmSound.LeftSharp,duration),
-                rightEasy: new TestAlarmPlayer(AlarmSound.RightEasy,duration),
-                rightCross: new TestAlarmPlayer(AlarmSound.RightCross,duration),
-                rightSharp: new TestAlarmPlayer(AlarmSound.RightSharp,duration),
-                doubleTurn: new TestAlarmPlayer(AlarmSound.DoubleTurn,duration));
+                offTrackPlayer: new TestAlarmPlayer(AlarmSound.OffTrack, duration),
+                gpsLostPlayer: new TestAlarmPlayer(AlarmSound.GpsLost, duration),
+                gpsOnPlayer: new TestAlarmPlayer(AlarmSound.BackOnTrack, duration),
+                disengage: new TestAlarmPlayer(AlarmSound.Disengage, duration),
+                crossroadsPlayer: new TestAlarmPlayer(AlarmSound.Crossroad, duration),
+                goAhead: new TestAlarmPlayer(AlarmSound.GoAhead, duration),
+                leftEasy: new TestAlarmPlayer(AlarmSound.LeftEasy, duration),
+                leftCross: new TestAlarmPlayer(AlarmSound.LeftCross, duration),
+                leftSharp: new TestAlarmPlayer(AlarmSound.LeftSharp, duration),
+                rightEasy: new TestAlarmPlayer(AlarmSound.RightEasy, duration),
+                rightCross: new TestAlarmPlayer(AlarmSound.RightCross, duration),
+                rightSharp: new TestAlarmPlayer(AlarmSound.RightSharp, duration),
+                doubleTurn: new TestAlarmPlayer(AlarmSound.DoubleTurn, duration));
         }
 
         public static void PopulateTrackDensely(List<GeoPoint> trackPoints)
@@ -317,7 +318,7 @@ namespace TrackRadar.Tests.Implementation
          CancellationToken token)
         {
 #if DEBUG
-            return GpxLoader.TryLoadGpx(filename, out tracks,out waypoints,onProgress,token);
+            return GpxLoader.TryLoadGpx(filename, out tracks, out waypoints, onProgress, token);
 #else
             throw new NotImplementedException();
 #endif
@@ -334,7 +335,7 @@ namespace TrackRadar.Tests.Implementation
 #endif
         }
         public static IPlanData ProcessTrackData(IEnumerable<IEnumerable<GeoPoint>> tracks,
-    IEnumerable<GeoPoint> waypoints, 
+    IEnumerable<GeoPoint> waypoints,
     Length offTrackDistance, Length segmentLengthLimit, Action<Stage, double> onProgress, CancellationToken token)
         {
             return ProcessTrackData(tracks, waypoints, Enumerable.Empty<GeoPoint>(), offTrackDistance, segmentLengthLimit, onProgress, token);

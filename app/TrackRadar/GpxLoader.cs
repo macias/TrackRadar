@@ -205,21 +205,31 @@ namespace TrackRadar
                                 string name = reader.WayPoint.Name ?? "";
                                 if (name.StartsWith("-"))
                                 {
-                                    ; // hack, treat such point only as display/visual hint, do not use it for navigation
+                                    ; // hack, treat such object only as display/visual hint, do not use it for navigation
                                 }
                                 else
                                 {
                                     GeoPoint pt = GpxHelper.FromGpx(reader.WayPoint);
-                                    waypoints.Add((pt, (name ?? "").StartsWith("end") ? WayPointKind.Endpoint : WayPointKind.Regular));
+                                    waypoints.Add((pt, name.StartsWith("end") ? WayPointKind.Endpoint : WayPointKind.Regular));
                                 }
                                 break;
                             }
                         case GpxObjectType.Route:
                             break;
                         case GpxObjectType.Track:
-                            tracks.AddRange(reader.Track.Segments
-                                .Select(trk => trk.TrackPoints.Select(p => GpxHelper.FromGpx(p)).ToList()));
-                            break;
+                            {
+                                string name = reader.Track.Name ?? "";
+                                if (name.StartsWith("-"))
+                                {
+                                    ; // hack, treat such object only as display/visual hint, do not use it for navigation
+                                }
+                                else
+                                {
+                                    tracks.AddRange(reader.Track.Segments
+                                    .Select(trk => trk.TrackPoints.Select(p => GpxHelper.FromGpx(p)).ToList()));
+                                }
+                                break;
+                            }
                     }
                 }
             }

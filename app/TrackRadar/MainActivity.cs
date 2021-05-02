@@ -13,7 +13,9 @@ using System.Reflection;
 namespace TrackRadar
 {
     // player.setDataSource(getAssets().openFD("raw/...").getFileDescriptor());
+
     [Activity(Label = "DevRadar", MainLauncher = true, Icon = "@drawable/icon")]
+    //[Activity(Label = "TrackRadar", MainLauncher = true, Icon = "@drawable/icon")]
     public sealed class MainActivity : ListActivity, GpsStatus.IListener
     {
         private const int SelectTrackCode = 1;

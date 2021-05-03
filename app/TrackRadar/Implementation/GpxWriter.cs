@@ -35,14 +35,14 @@ namespace TrackRadar.Implementation
             double? altitudeMeters = null, double? accuracyMeters = null, string comment = null, string name = null)
         {
             writer.Write($"<wpt lat=\"{latitudeDegrees.ToString(CultureInfo.InvariantCulture)}\" lon=\"{longitudeDegrees.ToString(CultureInfo.InvariantCulture)}\"");
-            if (name != null)
-                writer.Write($" name=\"{name}\"");
             writer.WriteLine($">");
             if (accuracyMeters.HasValue)
                 writer.WriteLine($"<Proximity>{accuracyMeters.Value.ToString(CultureInfo.InvariantCulture)}</Proximity>");
             if (altitudeMeters.HasValue)
                 writer.WriteLine($"<ele>{altitudeMeters.Value.ToString(CultureInfo.InvariantCulture)}</ele>");
-            if (comment!=null)
+            if (name != null)
+                writer.WriteLine($"<name>{name}</name>");
+            if (comment != null)
                 writer.WriteLine($"<cmt>{comment}</cmt>");
             writer.WriteLine($"</wpt>");
         }

@@ -21,6 +21,11 @@ namespace TrackRadar.Tests.Implementation
              return Ride(prefs, planFilename, trackedFilename, null, out alarmCounters, out alarms, out messages);
          }
          */
+
+        public static string TestData(string filename)
+        {
+            return System.IO.Path.Combine("Data/",filename);
+        }
         public static RideStats Ride(Preferences prefs, string planFilename, string trackedFilename,
             Speed? speed,
             out IReadOnlyDictionary<Alarm, int> alarmCounters,
@@ -127,7 +132,7 @@ namespace TrackRadar.Tests.Implementation
             out IReadOnlyList<(string message, int index)> messages,
             out TurnLookout lookout)
         {
-
+            var speeds = new List<Speed>();
             var clock = new SecondStamper();
             using (var raw_alarm_master = new AlarmMaster(clock))
             {
@@ -147,13 +152,16 @@ namespace TrackRadar.Tests.Implementation
                 {
                     using (sequencer.OpenAlarmContext(gpsAcquired: false, hasGpsSignal: true))
                     {
-                        if (point_index == 225)
+                        if (point_index == 22)
                         {
                             ;
                         }
                         counting_alarm_master.SetPointIndex(point_index);
                         long start = Stopwatch.GetTimestamp();
                         core.UpdateLocation(pt, null, accuracy: null);
+#if DEBUG
+                        speeds.Add(core.DEBUG_CurrentSpeed);
+#endif
                         long passed = Stopwatch.GetTimestamp() - start;
                         if (longest_update < passed)
                             longest_update = passed;
@@ -166,10 +174,16 @@ namespace TrackRadar.Tests.Implementation
                 alarms = counting_alarm_master.Alarms;
                 messages = counting_alarm_master.Messages;
 
-                return new RideStats (longest_update * 1.0 / Stopwatch.Frequency,
+                return new RideStats(speeds, longest_update * 1.0 / Stopwatch.Frequency,
                     (Stopwatch.GetTimestamp() - start_all - 0.0) / (Stopwatch.Frequency * trackPoints.Count),
                     trackPoints.Count);
             }
+        }
+
+        public static void PrintSpeeds(IEnumerable<Speed> speeds)
+        {
+            foreach (var sp in speeds)
+                Console.WriteLine(sp.KilometersPerHour.ToString("0.##"));
         }
 
         public static Preferences CreatePreferences()

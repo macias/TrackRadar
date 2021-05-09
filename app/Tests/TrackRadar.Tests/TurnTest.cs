@@ -18,10 +18,33 @@ namespace TrackRadar.Tests
         private const double precision = 0.00000001;
 
         [TestMethod]
+        public void GeneralAttentionNeededAfterStartTest()
+        {
+            // the original problem was program created endpoint so close to turn (this is OK), then when riding program recognized as double turn (not OK)
+            // so it decided to drop general attention alarm assuming we are tight turns scenario (we are not)
+
+            string plan_filename = Toolbox.TestData("attention-needed-near-start.plan.gpx");
+            string tracked_filename = Toolbox.TestData("attention-needed-near-start.tracked.gpx");
+
+            var prefs = Toolbox.CreatePreferences(); // regular thresholds for speed
+            var stats = Toolbox.Ride(prefs, playDuration: TimeSpan.FromSeconds(2.229), plan_filename, tracked_filename, null,
+                out var alarmCounters, out var alarms, out var messages);
+
+            Assert.AreEqual(4, alarms.Count);
+            int a = 0;
+
+            Assert.AreEqual((Alarm.Engaged, 7), alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 22), alarms[a++]); // we want here general attention alarm, not direction
+            Assert.AreEqual((Alarm.LeftEasy, 24), alarms[a++]);
+            Assert.AreEqual((Alarm.LeftEasy, 26), alarms[a++]);
+        }
+
+
+        [TestMethod]
         public void TurningAfterStartTest()
         {
-            string plan_filename = @"Data/turning-after-start.plan.gpx";
-            string tracked_filename = @"Data/turning-after-start.tracked.gpx";
+            string plan_filename = Toolbox.TestData("turning-after-start.plan.gpx");
+            string tracked_filename = Toolbox.TestData("turning-after-start.tracked.gpx");
 
             var prefs = Toolbox.CreatePreferences(); // regular thresholds for speed
             var stats = Toolbox.Ride(prefs, playDuration: TimeSpan.FromSeconds(2.229), plan_filename, tracked_filename, null,
@@ -43,8 +66,8 @@ namespace TrackRadar.Tests
             // the purpose of this test is to check we have just generic alarms on the turn-point, not directional ones
             // because when coming back we are moving towards track, not along track, so giving directions would be wrong
 
-            string plan_filename = @"Data/coming-back-to-offset-turn.plan.gpx";
-            string tracked_filename = @"Data/coming-back-to-offset-turn.tracked.gpx";
+            string plan_filename = Toolbox.TestData("coming-back-to-offset-turn.plan.gpx");
+            string tracked_filename = Toolbox.TestData("coming-back-to-offset-turn.tracked.gpx");
 
             var prefs = Toolbox.CreatePreferences(); // regular thresholds for speed
             Toolbox.Ride(prefs, plan_filename, tracked_filename, null,
@@ -66,8 +89,8 @@ namespace TrackRadar.Tests
         public void AttentionTurnTest()
         {
             // we are accelerating towards turn so at first it led to unwanted alarm with direction info (it should be generic attention alarm, as it is now)
-            string plan_filename = @"Data/attention-turn.plan.gpx";
-            string tracked_filename = @"Data/attention-turn.tracked.gpx";
+            string plan_filename = Toolbox.TestData("attention-turn.plan.gpx");
+            string tracked_filename = Toolbox.TestData("attention-turn.tracked.gpx");
 
             var prefs = Toolbox.CreatePreferences(); // regular thresholds for speed
             Toolbox.Ride(prefs, playDuration: TimeSpan.FromSeconds(2.229), plan_filename, tracked_filename, null,
@@ -321,8 +344,8 @@ namespace TrackRadar.Tests
         public void TightTurnsTest()
         {
             // please note the tracked file went off-track, so the last alarms are junk
-            string plan_filename = @"Data/tight-turns.plan.gpx";
-            string tracked_filename = @"Data/tight-turns.tracked.gpx";
+            string plan_filename = Toolbox.TestData("tight-turns.plan.gpx");
+            string tracked_filename = Toolbox.TestData("tight-turns.tracked.gpx");
 
             var prefs = Toolbox.CreatePreferences(); // regular thresholds for speed
             Toolbox.Ride(prefs, plan_filename, tracked_filename, null,
@@ -353,8 +376,8 @@ namespace TrackRadar.Tests
             // when coming to the middle turn program should NOT give double-turn warning (despite the adjacent turn is in range)
             // because there are two possible outgoing tracks, user was notified about this by generic alarm (instead of navigational
             // one) so she/he has to slow down anyway, so there is no point in messing with yet another watch-out/slow-down alarm
-            string plan_filename = @"Data/double-turn-forked.plan.gpx";
-            string tracked_filename = @"Data/no-back-double-turn.tracked.gpx"; // yes, the track is from another test
+            string plan_filename = Toolbox.TestData("double-turn-forked.plan.gpx");
+            string tracked_filename = Toolbox.TestData("no-back-double-turn.tracked.gpx"); // yes, the track is from another test
 
             var prefs = Toolbox.CreatePreferences();
             Toolbox.LoadData(prefs, plan_filename, tracked_filename,
@@ -390,8 +413,8 @@ namespace TrackRadar.Tests
             // the distances are set in such way that the closest turn is the one in the back (the one we came from)
             // program should ignore it and correctly warn about _incoming_ adjacent turn
 
-            string plan_filename = @"Data/no-back-double-turn.plan.gpx";
-            string tracked_filename = @"Data/no-back-double-turn.tracked.gpx";
+            string plan_filename = Toolbox.TestData("no-back-double-turn.plan.gpx");
+            string tracked_filename = Toolbox.TestData("no-back-double-turn.tracked.gpx");
 
             var prefs = Toolbox.CreatePreferences();
             Toolbox.LoadData(prefs, plan_filename, tracked_filename,
@@ -422,8 +445,8 @@ namespace TrackRadar.Tests
         public void TightTurnsShiftedTest()
         {
             // please note the tracked file went off-track, so the last alarms are junk
-            string plan_filename = @"Data/tight-turns-shifted.plan.gpx";
-            string tracked_filename = @"Data/tight-turns.tracked.gpx";
+            string plan_filename = Toolbox.TestData("tight-turns-shifted.plan.gpx");
+            string tracked_filename = Toolbox.TestData("tight-turns.tracked.gpx");
 
             var prefs = Toolbox.CreatePreferences(); // regular thresholds for speed
             Toolbox.Ride(prefs, plan_filename, tracked_filename, null,
@@ -450,8 +473,8 @@ namespace TrackRadar.Tests
         public void TightTurnsSpeedUpExitTest()
         {
             // please note the tracked file went off-track, so the last alarms are junk
-            string plan_filename = @"Data/tight-turns.plan.gpx";
-            string tracked_filename = @"Data/tight-turns.tracked.gpx";
+            string plan_filename = Toolbox.TestData("tight-turns.plan.gpx");
+            string tracked_filename = Toolbox.TestData("tight-turns.tracked.gpx");
 
             var prefs = Toolbox.CreatePreferences(); // regular thresholds for speed
             Toolbox.LoadData(prefs, plan_filename, tracked_filename,
@@ -485,8 +508,8 @@ namespace TrackRadar.Tests
         public void TightTurnsShiftedSpeedUpExitTest()
         {
             // please note the tracked file went off-track, so the last alarms are junk
-            string plan_filename = @"Data/tight-turns-shifted.plan.gpx";
-            string tracked_filename = @"Data/tight-turns.tracked.gpx";
+            string plan_filename = Toolbox.TestData("tight-turns-shifted.plan.gpx");
+            string tracked_filename = Toolbox.TestData("tight-turns.tracked.gpx");
 
             var prefs = Toolbox.CreatePreferences(); // regular thresholds for speed
             Toolbox.LoadData(prefs, plan_filename, tracked_filename,
@@ -519,8 +542,8 @@ namespace TrackRadar.Tests
         [TestMethod]
         public void ReverseTightTurnsTest()
         {
-            string plan_filename = @"Data/tight-turns.plan.gpx";
-            string tracked_filename = @"Data/tight-turns.tracked.gpx";
+            string plan_filename = Toolbox.TestData("tight-turns.plan.gpx");
+            string tracked_filename = Toolbox.TestData("tight-turns.tracked.gpx");
 
             var prefs = Toolbox.CreatePreferences(); // regular thresholds for speed
             Toolbox.Ride(prefs, plan_filename, tracked_filename, null,
@@ -537,8 +560,8 @@ namespace TrackRadar.Tests
         [TestMethod]
         public void ReverseTightTurnsShiftedTest()
         {
-            string plan_filename = @"Data/tight-turns-shifted.plan.gpx";
-            string tracked_filename = @"Data/tight-turns.tracked.gpx";
+            string plan_filename = Toolbox.TestData("tight-turns-shifted.plan.gpx");
+            string tracked_filename = Toolbox.TestData("tight-turns.tracked.gpx");
 
             var prefs = Toolbox.CreatePreferences(); // regular thresholds for speed
             Toolbox.Ride(prefs, plan_filename, tracked_filename, null,
@@ -555,8 +578,8 @@ namespace TrackRadar.Tests
         [TestMethod]
         public void ZTwoTurnsSlowSpeedTest()
         {
-            string plan_filename = @"Data/z-two-turns.plan.gpx";
-            string tracked_filename = @"Data/z-two-turns.mocked.gpx";
+            string plan_filename = Toolbox.TestData("z-two-turns.plan.gpx");
+            string tracked_filename = Toolbox.TestData("z-two-turns.mocked.gpx");
 
             var prefs = Toolbox.CreatePreferences();
             IPlanData gpx_data = Toolbox.LoadPlan(prefs, plan_filename);
@@ -746,8 +769,8 @@ namespace TrackRadar.Tests
         [TestMethod]
         public void ZTwoTurnsTest()
         {
-            string plan_filename = @"Data/z-two-turns.plan.gpx";
-            string tracked_filename = @"Data/z-two-turns.mocked.gpx";
+            string plan_filename = Toolbox.TestData("z-two-turns.plan.gpx");
+            string tracked_filename = Toolbox.TestData("z-two-turns.mocked.gpx");
 
             var prefs = Toolbox.LowThresholdSpeedPreferences();
             IPlanData gpx_data = Toolbox.LoadPlan(prefs, plan_filename);
@@ -782,8 +805,8 @@ namespace TrackRadar.Tests
         public void DuplicateTurnPointTest()
         {
             // basically L track with duplicate waypoint at the turn
-            string plan_filename = @"Data/dup-turn-point.plan.gpx";
-            string tracked_filename = @"Data/dup-turn-point.tracked.gpx";
+            string plan_filename = Toolbox.TestData("dup-turn-point.plan.gpx");
+            string tracked_filename = Toolbox.TestData("dup-turn-point.tracked.gpx");
 
             var prefs = Toolbox.CreatePreferences();
 
@@ -924,8 +947,8 @@ namespace TrackRadar.Tests
         [TestMethod]
         public void RideWithTurnsTest()
         {
-            const string result_filename = @"Data/turning-excercise.result.gpx";
-            IReadOnlyList<GpxWayPoint> turn_points = Toolbox.ReadWaypoints(result_filename).ToList();
+            const string result_filename = "turning-excercise.result.gpx";
+            IReadOnlyList<GpxWayPoint> turn_points = Toolbox.ReadWaypoints(Toolbox.TestData(result_filename)).ToList();
 
             List<GeoPoint> track_points = new List<GeoPoint>();
             RideWithTurns(track_points, out IReadOnlyList<(Alarm alarm, int index)> alarms);
@@ -948,12 +971,12 @@ namespace TrackRadar.Tests
 
         internal double RideWithTurns(List<GeoPoint> trackPoints, out IReadOnlyList<(Alarm alarm, int index)> alarms)
         {
-            const string plan_filename = @"Data/turning-excercise.gpx";
+            const string plan_filename = "turning-excercise.gpx";
 
             var prefs = Toolbox.CreatePreferences();
             prefs.TurnAheadAlarmDistance = TimeSpan.FromSeconds(13);
 
-            trackPoints.AddRange(Toolbox.ReadTrackGpxPoints(plan_filename).Select(it => GpxHelper.FromGpx(it)));
+            trackPoints.AddRange(Toolbox.ReadTrackGpxPoints(Toolbox.TestData(plan_filename)).Select(it => GpxHelper.FromGpx(it)));
 
             var gpx_data = Toolbox.CreateBasicTrackData(trackPoints,
                 //new TrackData(Enumerable.Range(0, trackPoints.Count - 1)

@@ -23,6 +23,7 @@ namespace TrackRadar.Implementation
         private readonly ITimeStamper timeStamper;
         private readonly IGeoMap trackMap;
         private readonly IPlanData planData;
+        private readonly long[] crossroadLastAlarm;
         private readonly int[] crossroadAlarmCount;
         private readonly int[] crossroadLeaveCount;
         private readonly bool[] crossroadDirectionsEnabled;
@@ -40,6 +41,7 @@ namespace TrackRadar.Implementation
             this.planData = gpxData;
             this.crossroadAlarmCount = gpxData.Crossroads.Select(_ => 0).ToArray();
             this.crossroadLeaveCount = gpxData.Crossroads.Select(_ => 0).ToArray();
+            this.crossroadLastAlarm = gpxData.Crossroads.Select(_ => timeStamper.GetBeforeTimeTimestamp()).ToArray();
             this.crossroadDirectionsEnabled = gpxData.Crossroads.Select(_ => true).ToArray();
             this.lastPrimaryCrossroadIndex = -1;
             this.crossroadDistances = gpxData.Crossroads.Select(_ => crossroadInitDistance).ToArray();
@@ -143,12 +145,15 @@ namespace TrackRadar.Implementation
                 {
                     for (int i = 0; i < this.planData.Crossroads.Count; ++i)
                     {
-                        this.crossroadDistances[i] = crossroadInitDistance;
-                        this.crossroadLeaveCount[i] = 0;
-                        this.crossroadAlarmCount[i] = 0;
-                        this.crossroadDirectionsEnabled[i] = true;
+                        ClearTurnCounters(i);
                     }
                 }
+
+            }
+            // if we stopped near turn point, clear its alarm after a while
+            else if (cx_index != -1 && timeStamper.GetSecondsSpan(now, this.crossroadLastAlarm[cx_index]) > service.TurnAheadAlarmDistance.TotalSeconds)
+            {
+                ClearTurnCounters(cx_index);
             }
 
             bool primary_keep_running = true;
@@ -242,7 +247,10 @@ namespace TrackRadar.Implementation
             int proper_alarm_after = 1;
             if (!primary_kept) // when switched to alt-turn lower the limit
             {
-                proper_alarm_after = 0;
+                // adding more logic, skip general attention alarm, only when we have alarm on primary turn
+                // when we don't have such alarm -- when we are starting riding, so we don't have it, or if primary turn is not a turn actually, but start of the track
+                if (this.crossroadAlarmCount[lastPrimaryCrossroadIndex] != 0)
+                    proper_alarm_after = 0;
             }
             else
             {
@@ -361,7 +369,7 @@ namespace TrackRadar.Implementation
                     debug_turn_kind_name = "comeback";
                 }
 
-                if (this.crossroadAlarmCount[cx_index] == 0) 
+                if (this.crossroadAlarmCount[cx_index] == 0)
                     service.WriteDebug(latitudeDegrees: currentPoint.Latitude.Degrees, longitudeDegrees: currentPoint.Longitude.Degrees,
                         name: debug_turn_kind_name, comment: debug_turn_history);
             }
@@ -370,6 +378,16 @@ namespace TrackRadar.Implementation
 
             reason = null;
             return playAlarm(closest_cx, cx_dist, turn_kind.HasValue ? turn_kind.Value.ToAlarm() : attention, cx_index, incoming_double_turns);//, out reason);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void ClearTurnCounters(int i)
+        {
+            this.crossroadDistances[i] = crossroadInitDistance;
+            this.crossroadLeaveCount[i] = 0;
+            this.crossroadAlarmCount[i] = 0;
+            this.crossroadLastAlarm[i] = timeStamper.GetBeforeTimeTimestamp();
+            this.crossroadDirectionsEnabled[i] = true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

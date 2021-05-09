@@ -5,11 +5,7 @@
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xmlns="http://www.topografix.com/GPX/1/1"
   xsi:schemaLocation="http://www.topografix.com/GPX/1/0 http://www.topografix.com/GPX/1/0/gpx.xsd http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd ">
-<metadata>
-<time>2021-04-20T17:35:16Z</time>
-</metadata>
 <trk>
-  <name>Tracked with OSMTracker for Android™</name>
 <trkseg>
 <trkpt lat="52.977201782" lon="27.885702872">
   <ele>125.319440</ele>

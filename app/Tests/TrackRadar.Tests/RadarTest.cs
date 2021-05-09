@@ -1,5 +1,4 @@
 using Geo;
-using Gpx;
 using MathUnit;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
@@ -16,6 +15,55 @@ namespace TrackRadar.Tests
     public class RadarTest
     {
         private const double precision = 0.00000001;
+
+        [TestMethod]
+        public void IMPROVE_SpeedingSlowingTest()
+        {
+            // the purpose of this test is to check if we can get from engage/disengage cycle because of constant
+            // speeding up and slowing down (this was initial state of the program)
+
+            // the problem is we don't have any kind of smoothing algorithm implemented and the effect of high-speeds
+            // is probably due to riding under high-voltage lines, the actual ride was with low but steady speed
+
+            // (1) we could engage/disengage if we reach speed limit several times in a row, but we have data
+            // with exactly such patterns -- several low-speeds (represented as clipped 0), then several high-speeds, and so on
+
+            // (2) we could notify about disengaging until it is really needed (like being off-track), but we need this on turns
+            // as well. It is possible to pass minimal riding speed to check if the turn is needed, but this would complicate
+            // logic a lot, and besides it would not communicate clearly with user. I prefer know by heart the state of the tracking
+
+            // in short we need to improve speed calculation and smoothing
+        
+            string filename = Toolbox.TestData("slowing-speeding.gpx");
+
+            var prefs = Toolbox.CreatePreferences(); // regular thresholds for speed
+            var stats = Toolbox.Ride(prefs, playDuration: TimeSpan.FromSeconds(2.229), filename, filename, null,
+                out var alarmCounters, out var alarms, out var messages);
+
+            Assert.AreEqual(20, alarms.Count);
+            int a = 0;
+
+            Assert.AreEqual((Alarm.Engaged, 3), alarms[a++]);
+            Assert.AreEqual((Alarm.Disengage, 32), alarms[a++]);
+            Assert.AreEqual((Alarm.Engaged, 40), alarms[a++]);
+            Assert.AreEqual((Alarm.Disengage, 49), alarms[a++]);
+            Assert.AreEqual((Alarm.Engaged, 52), alarms[a++]);
+            Assert.AreEqual((Alarm.Disengage, 62), alarms[a++]);
+            Assert.AreEqual((Alarm.Engaged, 71), alarms[a++]);
+            Assert.AreEqual((Alarm.Disengage, 80), alarms[a++]);
+            Assert.AreEqual((Alarm.Engaged, 89), alarms[a++]);
+            Assert.AreEqual((Alarm.Disengage, 92), alarms[a++]);
+            Assert.AreEqual((Alarm.Engaged, 96), alarms[a++]);
+            Assert.AreEqual((Alarm.Disengage, 103), alarms[a++]);
+            Assert.AreEqual((Alarm.Engaged, 144), alarms[a++]);
+            Assert.AreEqual((Alarm.Disengage, 213), alarms[a++]);
+            Assert.AreEqual((Alarm.Engaged, 217), alarms[a++]);
+            Assert.AreEqual((Alarm.Disengage, 268), alarms[a++]);
+            Assert.AreEqual((Alarm.Engaged, 273), alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 399), alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 401), alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 403), alarms[a++]);
+        }
 
         [TestMethod]
         public void LimitingOffTrackAlarmsTest()
@@ -165,7 +213,7 @@ namespace TrackRadar.Tests
         [TestMethod]
         public void TurnGraphVerificationTest()
         {
-            string plan_filename = @"Data/z-two-turns.plan.gpx";
+            string plan_filename = Toolbox.TestData("z-two-turns.plan.gpx");
 
             var prefs = Toolbox.CreatePreferences();
             IPlanData gpx_data = Toolbox.LoadPlan(prefs, plan_filename);
@@ -183,8 +231,8 @@ namespace TrackRadar.Tests
         [TestMethod]
         public void OffTrackComparison_DuplicateTurnPoint_Test()
         {
-            string plan_filename = @"Data/dup-turn-point.plan.gpx";
-            string tracked_filename = @"Data/dup-turn-point.tracked.gpx";
+            string plan_filename = Toolbox.TestData("dup-turn-point.plan.gpx");
+            string tracked_filename = Toolbox.TestData("dup-turn-point.tracked.gpx");
 
             var prefs = Toolbox.CreatePreferences();
 
@@ -245,10 +293,12 @@ namespace TrackRadar.Tests
         }
 
         [TestMethod]
-        [DataRow(@"Data/single-segment.gpx")]
-        [DataRow(@"Data/single-point.gpx")]
+        [DataRow("single-segment.gpx")]
+        [DataRow("single-point.gpx")]
         public void TestLoading(string planFilename)
         {
+            planFilename = Toolbox.TestData(planFilename);
+
             var prefs = Toolbox.CreatePreferences();
             prefs.TurnAheadAlarmDistance = TimeSpan.FromSeconds(13);
             IPlanData gpx_data = Toolbox.LoadPlan(prefs, planFilename);

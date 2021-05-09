@@ -14,7 +14,10 @@ namespace TrackRadar.Implementation
         private readonly long speedTicksWindow; // measure speed only when we have time window of X ticks or more
 
         // when we walk, we don't alter the speed (sic!)
-        private Speed ridingSpeed;
+        private Speed clippedRidingSpeed;
+#if DEBUG
+        internal Speed DEBUG_CurrentSpeed { get; private set; }
+#endif
         private bool engagedState;
         private bool wasOffTrackPreviously => this.lastOnTrackAlarmAt < this.lastOffTrackAlarmAt;
         private readonly IRadarService service;
@@ -40,6 +43,7 @@ namespace TrackRadar.Implementation
         private Length? lastAltitude;
         private int offTrackAlarmsCount;
         private long lastOffTrackAlarmAt;
+        //private bool postponeSpeedDisengage;
 
         // todo: this is lame solution, I don't want to recompute the distance each time
         // so I accumulated overlapping segments, so now I have to divide by average number
@@ -113,7 +117,7 @@ namespace TrackRadar.Implementation
             bool on_track = isOnTrack(currentPoint, accuracy, out ISegment segment, out dist,
                 out ArcSegmentIntersection crosspointInfo);
 
-            Speed prev_riding = this.ridingSpeed;
+            Speed prev_riding = this.clippedRidingSpeed;
 
             {
                 Length climb = Length.Zero;
@@ -140,7 +144,10 @@ namespace TrackRadar.Implementation
                         ++this.lastPoints.Capacity;
                         service.LogDebug(LogLevel.Verbose, $"Resizing {nameof(lastPoints)} buffer to {lastPoints.Capacity}");
                     }
-                    this.ridingSpeed = Speed.Zero;
+                    this.clippedRidingSpeed = Speed.Zero;
+#if DEBUG
+                    this.DEBUG_CurrentSpeed = Speed.Zero;
+#endif
                 }
                 else
                 {
@@ -153,6 +160,9 @@ namespace TrackRadar.Implementation
                         moved_dist_m = Math.Sqrt(Math.Pow(moved_dist_m, 2) + Math.Pow(last_alt.Value.Meters - altitude.Value.Meters, 2));
 
                     Speed curr_speed = Speed.FromMetersPerSecond(moved_dist_m / time_s_passed);
+#if DEBUG
+                    this.DEBUG_CurrentSpeed = curr_speed;
+#endif
                     // if we use only single value (below -- rest, above -- movement) then around this particular value user would have a flood
                     // of notification -- so we use two values, to separate well movement and rest "zones"
                     if (curr_speed <= service.RestSpeedThreshold)
@@ -160,16 +170,16 @@ namespace TrackRadar.Implementation
                         if (this.ridingStartedAt != timeStamper.GetBeforeTimeTimestamp())
                             this.ridingTime += TimeSpan.FromSeconds(timeStamper.GetSecondsSpan(now, ridingStartedAt));
                         this.ridingStartedAt = timeStamper.GetBeforeTimeTimestamp();
-                        this.ridingSpeed = Speed.Zero;
+                        this.clippedRidingSpeed = Speed.Zero;
                     }
                     else if (curr_speed > service.RidingSpeedThreshold)
                     {
                         if (this.ridingStartedAt == timeStamper.GetBeforeTimeTimestamp())
                             this.ridingStartedAt = last_ts;
-                        this.ridingSpeed = curr_speed;
+                        this.clippedRidingSpeed = curr_speed;
                     }
 
-                    if (this.ridingSpeed != Speed.Zero)
+                    if (this.clippedRidingSpeed != Speed.Zero)
                     {
                         this.overlappingRidingDistance += Length.FromMeters(moved_dist_m);
                         this.ridingPieces += older_points.Count() - 1;
@@ -197,12 +207,13 @@ namespace TrackRadar.Implementation
             if (isOnTrack)
             {
                 this.offTrackAlarmsCount = 0;
-                if (Lookout.AlarmTurnAhead(currentPoint, segment, crosspointInfo, this.ridingSpeed, wasOffTrackPreviously, now, out string _))
+                if (Lookout.AlarmTurnAhead(currentPoint, segment, crosspointInfo, this.clippedRidingSpeed, wasOffTrackPreviously, now, out string _))
                     engagedState = true;
+
             }
 
             // do not trigger alarm if we stopped moving
-            if (this.ridingSpeed == Speed.Zero)
+            if (this.clippedRidingSpeed == Speed.Zero)
             {
                 // here we check the interval to prevent too often playing ACK
                 // possible case: user got back on track and then stopped, without checking interval she/he would got two ACKs
@@ -212,18 +223,23 @@ namespace TrackRadar.Implementation
                    //               && timeStamper.GetSecondsSpan(now, this.lastOnTrackAlarmAt) >= service.OffTrackAlarmInterval.TotalSeconds
                    )
                 {
-                    //alarm = Alarm.Disengage;
-                    bool played = alarmSequencer.TryAlarm(Alarm.Disengage, out string reason);
-                    service.LogDebug(LogLevel.Verbose, $"Disengage played {played}, reason {reason}, stopped, previously riding {prevRiding}m/s");
+                    //this.postponeSpeedDisengage = true;
+                    //if (false)
+                    {
+                        bool played = alarmSequencer.TryAlarm(Alarm.Disengage, out string reason);
+                        service.LogDebug(LogLevel.Verbose, $"Disengage played {played}, reason {reason}, stopped, previously riding {prevRiding}m/s");
 
-                    if (played)
-                        engagedState = false;
+                        if (played)
+                        {
+                            engagedState = false;
+                          //  this.postponeSpeedDisengage = false;
+                        }
+                    }
                 }
             }
-            else if (isOnTrack)
+            else if (isOnTrack) // we are riding "full" speed
             {
-                if (!engagedState
-                    //prevRiding == Speed.Zero  // we started riding, engagement
+                if (!engagedState// we started riding, engagement
                     || wasOffTrackPreviously) // we were previously off-track
                 {
                     //var alarm = prevRiding == Speed.Zero ? Alarm.Engaged : Alarm.BackOnTrack;
@@ -235,6 +251,7 @@ namespace TrackRadar.Implementation
                     {
                         this.lastOnTrackAlarmAt = now;
                         engagedState = true;
+                       // this.postponeSpeedDisengage = false;
                     }
                 }
 
@@ -243,6 +260,7 @@ namespace TrackRadar.Implementation
             {
                 // alarm = Alarm.OffTrack;
 
+                // we are off-track but we cannot alarm about it (because of the count limit, or interval)
                 if (offTrackAlarmsCount > offTrackAlarmsCountLimit ||
                     timeStamper.GetSecondsSpan(now, this.lastOffTrackAlarmAt) < service.OffTrackAlarmInterval.TotalSeconds)
                 {
@@ -250,26 +268,42 @@ namespace TrackRadar.Implementation
                 }
                 else
                 {
-                    // do NOT try to be smart, and check if we are closing to the any of the tracks, this is because in real life
-                    // we can be closing to parallel track however with some fence between us, so when we are off the track
-                    // we are OFF THE TRACK and alarm the user about it -- user has info about environment, she/he sees if it possible
-                    // to take a shortcut, we don't see a thing
-
-                    Alarm alarm = offTrackAlarmsCount == offTrackAlarmsCountLimit ? Alarm.Disengage : Alarm.OffTrack;
-                    var played = alarmSequencer.TryAlarm(alarm, out string reason);
-                    if (played)
+                    // technically we are off-track, but if didn't alarm user we disengaged because of the speed
+                    // (user is walking, usually sightseeing)
+                    /*if (false && this.postponeSpeedDisengage)
                     {
-                        this.lastOffTrackAlarmAt = now;
-                        ++this.offTrackAlarmsCount;
-                        if (alarm == Alarm.Disengage)
-                            engagedState = false;
-                    }
-                    else
-                        service.LogDebug(LogLevel.Warning, $"Off-track alarm, couldn't play, reason {reason}");
+                        bool played = alarmSequencer.TryAlarm(Alarm.Disengage, out string reason);
+                        service.LogDebug(LogLevel.Verbose, $"Disengage played {played}, reason {reason}, stopped, previously riding {prevRiding}m/s");
 
-                    // it should be easier to make a GPX file out of it (we don't create it here because service crashes too often)
-                    service.WriteOffTrack(latitudeDegrees: currentPoint.Latitude.Degrees, longitudeDegrees: currentPoint.Longitude.Degrees,
-                        $"speed {this.ridingSpeed}, rest {service.RestSpeedThreshold}, ride {service.RidingSpeedThreshold}");
+                        if (played)
+                        {
+                            engagedState = false;
+                            this.postponeSpeedDisengage = false;
+                        }
+                    }
+                    else*/
+                    {
+                        // do NOT try to be smart, and check if we are closing to the any of the tracks, this is because in real life
+                        // we can be closing to parallel track however with some fence between us, so when we are off the track
+                        // we are OFF THE TRACK and alarm the user about it -- user has info about environment, she/he sees if it possible
+                        // to take a shortcut, we don't see a thing
+
+                        Alarm alarm = offTrackAlarmsCount == offTrackAlarmsCountLimit ? Alarm.Disengage : Alarm.OffTrack;
+                        var played = alarmSequencer.TryAlarm(alarm, out string reason);
+                        if (played)
+                        {
+                            this.lastOffTrackAlarmAt = now;
+                            ++this.offTrackAlarmsCount;
+                            if (alarm == Alarm.Disengage)
+                                engagedState = false;
+                        }
+                        else
+                            service.LogDebug(LogLevel.Warning, $"Off-track alarm, couldn't play, reason {reason}");
+
+                        // it should be easier to make a GPX file out of it (we don't create it here because service crashes too often)
+                        service.WriteOffTrack(latitudeDegrees: currentPoint.Latitude.Degrees, longitudeDegrees: currentPoint.Longitude.Degrees,
+                            $"speed {this.clippedRidingSpeed}, rest {service.RestSpeedThreshold}, ride {service.RidingSpeedThreshold}");
+                    }
                 }
             }
         }

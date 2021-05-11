@@ -23,26 +23,34 @@ namespace TrackRadar.Collections
             this.root = null;
         }
 
-        public void AddOrUpdate(TWeight weight, TTag tag)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="weight"></param>
+        /// <param name="tag"></param>
+        /// <returns>true when weight was added/updated, false otherwise</returns>
+        public bool AddOrUpdate(TWeight weight, TTag tag)
         {
             if (this.dict.TryGetValue(tag, out PairingHeapNode<TWeight, TTag> heap_node))
             {
-                if (weight.CompareTo(heap_node.Weight) < 0)
-                {
-                    // only heap get its tag updated, but not dict
-                    root.DecreaseWeight(ref root, heap_node, weight, tag);
-                }
+                if (weight.CompareTo(heap_node.Weight) >= 0)
+                    return false;
+            
+                // only heap get its tag updated, but not dict
+                root.DecreaseWeight(ref root, heap_node, weight, tag);
             }
             else
             {
                 heap_node = PairingHeap.Add(ref root, weight, tag);
                 this.dict.Add(tag, heap_node);
             }
+
+            return true;
         }
 
         public bool TryPop(out TWeight weight, out TTag tag)
         {
-            if (root==null)
+            if (root == null)
             {
                 weight = default;
                 tag = default;

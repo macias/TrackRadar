@@ -373,6 +373,11 @@ namespace TrackRadar.Implementation
                     service.WriteDebug(latitudeDegrees: currentPoint.Latitude.Degrees, longitudeDegrees: currentPoint.Longitude.Degrees,
                         name: debug_turn_kind_name, comment: debug_turn_history);
             }
+            else if (incoming_double_turns.Any())
+            {
+                service.WriteDebug(latitudeDegrees: currentPoint.Latitude.Degrees, longitudeDegrees: currentPoint.Longitude.Degrees,
+                    name: "double-turn", comment: $"{Formatter.ZuluFormat(DateTimeOffset.UtcNow)} {nameof(currentSpeed)}={currentSpeed}");
+            }
 
             Alarm attention = incoming_double_turns.Any() ? Alarm.DoubleTurn : Alarm.Crossroad;
 

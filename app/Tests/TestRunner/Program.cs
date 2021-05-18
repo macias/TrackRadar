@@ -18,7 +18,7 @@ namespace TestRunner
             //CheckLoading();            Measure();
 
             //CheckLoadingOne();
-            var test = new TrackRadar.Tests.TurnTest(); test.GeneralAttentionNeededAfterStartTest();
+            var test = new TrackRadar.Tests.TurnTest(); test.AlternateTurnsTest();
 
             //RunAllTests();
             Console.WriteLine("Hello World!");

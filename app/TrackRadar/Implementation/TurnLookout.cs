@@ -213,7 +213,7 @@ namespace TrackRadar.Implementation
                 if (!primary_keep_on_warn_limit) // we reached the limit of alarms for this turn
                 {
                     // we quit anyway, but let's check if we have adjacent (double) turn ahead
-                    return adjacentTurnAlarm(currentSpeed, closest_cx, alternate_cx?.TurnPoint, cx_dist, ref reason);
+                    return adjacentTurnAlarm(currentPoint, currentSpeed, closest_cx, alternate_cx?.TurnPoint, cx_dist, ref reason);
                 }
 
 
@@ -373,16 +373,11 @@ namespace TrackRadar.Implementation
                     service.WriteDebug(latitudeDegrees: currentPoint.Latitude.Degrees, longitudeDegrees: currentPoint.Longitude.Degrees,
                         name: debug_turn_kind_name, comment: debug_turn_history);
             }
-            else if (incoming_double_turns.Any())
-            {
-                service.WriteDebug(latitudeDegrees: currentPoint.Latitude.Degrees, longitudeDegrees: currentPoint.Longitude.Degrees,
-                    name: "double-turn", comment: $"{Formatter.ZuluFormat(DateTimeOffset.UtcNow)} {nameof(currentSpeed)}={currentSpeed}");
-            }
 
             Alarm attention = incoming_double_turns.Any() ? Alarm.DoubleTurn : Alarm.Crossroad;
 
             reason = null;
-            return playAlarm(closest_cx, cx_dist, turn_kind.HasValue ? turn_kind.Value.ToAlarm() : attention, cx_index, incoming_double_turns);//, out reason);
+            return playAlarm(closest_cx, cx_dist, turn_kind.HasValue ? turn_kind.Value.ToAlarm() : attention, cx_index, currentPoint, currentSpeed, incoming_double_turns);//, out reason);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -409,7 +404,7 @@ namespace TrackRadar.Implementation
             return currentSpeed * (service.TurnAheadAlarmInterval + alarmSequencer.MaxTurnDuration) * count;
         }
 
-        private bool adjacentTurnAlarm(Speed currentSpeed, GeoPoint closest_cx, GeoPoint? altTurnPoint, Length cx_dist, ref string reason)
+        private bool adjacentTurnAlarm(in GeoPoint DEBUG_currentPoint, Speed currentSpeed, GeoPoint closest_cx, GeoPoint? altTurnPoint, Length cx_dist, ref string reason)
         {
             Length double_turn_advance_distance = currentSpeed * service.DoubleTurnAlarmDistance;
             if (cx_dist <= double_turn_advance_distance)
@@ -434,7 +429,7 @@ namespace TrackRadar.Implementation
                         if (keepOnWarnLimit(cx_index, out reason, limit: 1)) // pre-alarm can be played only once
                         {
                             reason = null;
-                            return playAlarm(closest_next.TurnPoint, closest_next.Distance, Alarm.DoubleTurn, cx_index);//, out reason);
+                            return playAlarm(closest_next.TurnPoint, closest_next.Distance, Alarm.DoubleTurn, cx_index, DEBUG_currentPoint, currentSpeed);//, out reason);
                         }
                         else
                         {
@@ -455,8 +450,13 @@ namespace TrackRadar.Implementation
             return alarmsNeededDistance(currentSpeed, crossroadWarningLimit);
         }
 
-        private bool playAlarm(GeoPoint closest_cx, Length cx_dist, Alarm alarm, int cx_index, params int[] doubleTurnIndices)//, out string reason)
+        private bool playAlarm(GeoPoint closest_cx, Length cx_dist, Alarm alarm, int cx_index,
+            in GeoPoint DEBUG_currentPoint, Speed DEBUG_currentSpeed, params int[] doubleTurnIndices)//, out string reason)
         {
+            if (alarm == Alarm.DoubleTurn)
+                service.WriteDebug(latitudeDegrees: DEBUG_currentPoint.Latitude.Degrees, longitudeDegrees: DEBUG_currentPoint.Longitude.Degrees,
+                    name: "double-turn", comment: $"{Formatter.ZuluFormat(DateTimeOffset.UtcNow)} {nameof(DEBUG_currentSpeed)}={DEBUG_currentSpeed}");
+
             service.LogDebug(LogLevel.Info, $"Turn at {closest_cx}, dist {cx_dist}, repeat {this.crossroadAlarmCount[cx_index]}");
 
             bool played;

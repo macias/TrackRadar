@@ -1,25 +1,30 @@
 ﻿using System;
+using System.IO;
 using Android.Content;
 
 namespace TrackRadar
 {
-    public sealed class LogFile : IDisposable
+    public sealed class LogFile : ILogger
     {
-        private readonly HotWriter writer;
-
-        public LogFile(ContextWrapper ctx, string filename, DateTime expires)
+        public static IDisposable Create(ContextWrapper ctx, string filename, DateTime expires,out ILogger logger)
         {
-            this.writer = new HotWriter(ctx, filename, expires,out bool dummy);
+            var stream = HotWriter.CreateStreamWriter(ctx, filename, expires, out _);
+            logger = new LogFile(stream);
+            return stream;
         }
 
-        public void Dispose()
+        private readonly StreamWriter stream;
+
+        public LogFile(StreamWriter stream)
         {
-            this.writer.Dispose();
+            this.stream = stream;
         }
 
-        internal void WriteLine(LogLevel level, string message)
+
+        public void LogDebug(LogLevel level, string message)
         {
-            this.writer.WriteLine($"[{Common.FormatLongDateTime(DateTimeOffset.Now)}] {level}: {message}");
+            this.stream.WriteLine($"[{Common.FormatLongDateTime(DateTimeOffset.Now)}] {level}: {message}");
+            this.stream.Flush();
         }
     }
 

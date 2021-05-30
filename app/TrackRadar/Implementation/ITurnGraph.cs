@@ -4,26 +4,11 @@ using System.Collections.Generic;
 
 namespace TrackRadar.Implementation
 {
-#if DEBUG
-    public readonly struct DEBUG_TrackToTurnHack // all of the sudden VS2017 claims it cannot resolve ValueTuple, brilliant
-    {
-        public GeoPoint TrackPoint { get; }
-        public TurnPointInfo Primary { get; }
-        public TurnPointInfo? Alternate { get; }
-
-        public DEBUG_TrackToTurnHack(GeoPoint trackPoint, TurnPointInfo primary, TurnPointInfo? alternate)
-        {
-            TrackPoint = trackPoint;
-            Primary = primary;
-            Alternate = alternate;
-        }
-
-    }
-#endif
     public interface ITurnGraph
     {
 #if DEBUG
-        IEnumerable<DEBUG_TrackToTurnHack> DEBUG_TrackToTurns { get; }
+        IEnumerable<DEBUG_TrackToTurnHack> DEBUG_TrackToTurnPoints { get; }
+        IEnumerable<GeoPoint> DEBUG_TurnPoints { get; }
 
         bool DEBUG_TrackpointExists(in GeoPoint pt);
         bool DEBUG_TryGetTurnInfo(in GeoPoint trackPoint, out TurnPointInfo primary, out TurnPointInfo? alternate);

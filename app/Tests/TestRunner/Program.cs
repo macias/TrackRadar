@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using TrackRadar;
+using TrackRadar.Implementation;
 using TrackRadar.Tests.Implementation;
 
 namespace TestRunner
@@ -18,7 +19,7 @@ namespace TestRunner
             //CheckLoading();            Measure();
 
             //CheckLoadingOne();
-            var test = new TrackRadar.Tests.TurnTest(); test.AlternateTurnsTest();
+            var test = new TrackRadar.Tests.TurnTest(); test.FIXING_FarIsCloserTest();
 
             //RunAllTests();
             Console.WriteLine("Hello World!");
@@ -79,7 +80,7 @@ namespace TestRunner
             foreach (string plan_filename in System.IO.Directory.GetFiles(@"C:\Projekty\TrackRadar\priv-data\plan\", "*.gpx"))
             {
                 Console.WriteLine(plan_filename);
-                GpxLoader.ReadGpx(plan_filename, prefs.OffTrackAlarmDistance, Toolbox.OnProgressValidator(), CancellationToken.None);
+                GpxLoader.ReadGpx(MetaLogger.None, plan_filename, prefs.OffTrackAlarmDistance, Toolbox.OnProgressValidator(), CancellationToken.None);
             }
         }
 

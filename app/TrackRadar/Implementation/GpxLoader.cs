@@ -10,7 +10,7 @@ using TrackRadar.Implementation;
 
 [assembly: InternalsVisibleTo("TestRunner")]
 
-namespace TrackRadar
+namespace TrackRadar.Implementation
 {
     public sealed partial class GpxLoader
     {
@@ -20,7 +20,11 @@ namespace TrackRadar
         {
             return ((int)stage + progress) / StageCount;
         }
-        public static IPlanData ReadGpx(string filename, Length offTrackDistance,
+        public static IPlanData ReadGpx(
+#if DEBUG
+            MetaLogger DEBUG_logger,
+#endif
+            string filename, Length offTrackDistance,
             Action<double> onProgress,
             CancellationToken token)
         {
@@ -31,34 +35,36 @@ namespace TrackRadar
             if (token.IsCancellationRequested)
                 return null;
 
-            return processTrackData(tracks, waypoints, offTrackDistance, segmentLengthLimit: GeoMapFactory.SegmentLengthLimit,
+            return processTrackData( DEBUG_logger, tracks, waypoints, offTrackDistance, segmentLengthLimit: GeoMapFactory.SegmentLengthLimit,
                 (stage, progress) => onProgress?.Invoke(recomputeProgress(stage, progress)), token);
         }
 
 #if DEBUG
         // another sick hack for ValueTuple and problems with resolving them in test projects
-        internal static IPlanData ProcessTrackData(IEnumerable<IEnumerable<GeoPoint>> tracks,
+        internal static IPlanData ProcessTrackData(
+            MetaLogger DEBUG_logger,
+            IEnumerable<IEnumerable<GeoPoint>> tracks,
     IEnumerable<GeoPoint> waypoints, IEnumerable<GeoPoint> endpoints,
     Length offTrackDistance, Length segmentLengthLimit, Action<Stage, double> onProgress, CancellationToken token)
         {
-            return processTrackData(tracks,
+            return processTrackData(DEBUG_logger,
+                tracks,
                 waypoints.Select(it => (it, WayPointKind.Regular)).Concat(endpoints.Select(it => (it, WayPointKind.Endpoint))),
                 offTrackDistance, segmentLengthLimit, onProgress, token);
         }
 
-        internal static IPlanData ProcessTrackData(IEnumerable<IEnumerable<GeoPoint>> tracks,
+        internal static IPlanData ProcessTrackData(
+            MetaLogger DEBUG_logger,
+            IEnumerable<IEnumerable<GeoPoint>> tracks,
     IEnumerable<GeoPoint> waypoints,
     Length offTrackDistance, Length segmentLengthLimit, Action<Stage, double> onProgress, CancellationToken token)
         {
-            return ProcessTrackData(tracks,
+            return ProcessTrackData(DEBUG_logger, tracks,
                 waypoints, Enumerable.Empty<GeoPoint>(),
                 offTrackDistance, segmentLengthLimit, onProgress, token);
         }
 
-        internal static bool TryLoadGpx(string filename, out List<List<GeoPoint>> tracks,
-         out List<GeoPoint> waypoints,
-         Action<double> onProgress,
-         CancellationToken token)
+        internal static bool TryLoadGpx(string filename, out List<List<GeoPoint>> tracks, out List<GeoPoint> waypoints, Action<double> onProgress, CancellationToken token)
         {
             bool result = tryLoadGpx(filename, out tracks, out List<(GeoPoint point, WayPointKind kind)> waypoints_out,
                 onProgress, token);
@@ -66,23 +72,42 @@ namespace TrackRadar
             return result;
         }
 #endif
-        internal static IPlanData processTrackData(IEnumerable<IEnumerable<GeoPoint>> tracks,
+
+        internal static IPlanData processTrackData(
+#if DEBUG
+            MetaLogger DEBUG_Logger,
+#endif
+            IEnumerable<IEnumerable<GeoPoint>> tracks,
             IEnumerable<(GeoPoint point, WayPointKind kind)> waypoints,
             Length offTrackDistance, Length segmentLengthLimit, Action<Stage, double> onProgress, CancellationToken token)
         {
-            var waypoints_dict = (waypoints ?? Enumerable.Empty<(GeoPoint point, WayPointKind kind)>())
+            Dictionary<GeoPoint, WayPointKind> waypoints_dict = (waypoints ?? Enumerable.Empty<(GeoPoint point, WayPointKind kind)>())
                 .GroupBy(it => it.point)
                 .ToDictionary(it => it.Key, it => it.First().kind);
 
             var tracks_list = tracks.Select(it => new Track(it)).Where(it => it.Nodes.Count() > 1).ToList();
 
-            // add only distant intersections to user already marked waypoints
+            // add only distant intersections from user's already marked waypoints
+
             if (!tryFindCrossroads(tracks_list, offTrackDistance, onProgress,
                 out List<Crossroad> crossroads_found, token))
                 return null;
 
             if (token.IsCancellationRequested)
                 return null;
+
+            // todo: REMOVE THIS
+#if DEBUG
+            if (false)
+            {
+                DEBUG_Logger.GpxLogger.WritePoint(crossroads_found.Single().Point, "X");
+                foreach (var entry in crossroads_found.Single().Neighbours)
+                {
+                    DEBUG_Logger.GpxLogger.WritePoint(entry.node.Point, entry.distance.ToString());
+                    DEBUG_Logger.TextLogger.Info($"{entry.node.Point} -> {entry.distance}");
+                }
+            }
+#endif
 
             crossroads_found = getDistant(waypoints_dict.Keys, crossroads_found, offTrackDistance).ToList();
 
@@ -94,7 +119,11 @@ namespace TrackRadar
             try
             {
 #endif
-            turn_graph = createTurnGraph(tracks_list, waypoints_dict, crossroads_found,
+            turn_graph = createTurnGraph(
+#if DEBUG
+                DEBUG_Logger,
+#endif
+                tracks_list, waypoints_dict, crossroads_found,
                 offTrackDistance, segmentLengthLimit: segmentLengthLimit, onProgress);
 #if !DEBUG
             }
@@ -309,7 +338,7 @@ namespace TrackRadar
             throw new NotImplementedException();
         }
 
-        public static void WriteGpxPoints(string path, IEnumerable<GeoPoint> points)
+/*        public static void WriteGpxPoints(string path, IEnumerable<GeoPoint> points)
         {
             using (var file = new GpxDirtyWriter(path))
             {
@@ -317,8 +346,8 @@ namespace TrackRadar
                     file.WritePoint(null, p);
             }
         }
-
-        public static void WriteGpxSegments(string path, IEnumerable<ISegment> segments)
+        */
+        /*public static void WriteGpxSegments(string path, IEnumerable<ISegment> segments)
         {
             using (var file = new GpxDirtyWriter(path))
             {
@@ -326,7 +355,7 @@ namespace TrackRadar
                 foreach (ISegment s in segments)
                     file.WriteTrack($"seg{count++}", new[] { s.A, s.B });
             }
-        }
+        }*/
         private static void removePassingBy(List<GpxLoader.Crossroad> crossroads, Length limit)
         {
             // this is weak but it was easy to implement and so far it works

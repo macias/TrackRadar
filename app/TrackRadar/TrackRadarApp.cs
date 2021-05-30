@@ -3,6 +3,7 @@ using Android.Content.Res;
 using System;
 using System.Linq;
 using System.Threading;
+using TrackRadar.Implementation;
 
 namespace TrackRadar
 {

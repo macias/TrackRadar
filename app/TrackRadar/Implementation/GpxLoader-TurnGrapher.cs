@@ -5,11 +5,15 @@ using System.Collections.Generic;
 using System.Linq;
 using TrackRadar.Implementation;
 
-namespace TrackRadar
+namespace TrackRadar.Implementation
 {
     public sealed partial class GpxLoader
     {
-        internal static ITurnGraph createTurnGraph(IEnumerable<Track> tracks,
+        internal static ITurnGraph createTurnGraph(
+#if DEBUG
+            MetaLogger DEBUG_logger,
+#endif
+            IEnumerable<Track> tracks,
             IReadOnlyDictionary<GeoPoint, WayPointKind> waypoints, IEnumerable<Crossroad> crossroads,
             Length offTrackDistance, Length segmentLengthLimit, Action<Stage, double> onProgress)
         {
@@ -22,30 +26,42 @@ namespace TrackRadar
             if (segmentLengthLimit > Length.Zero)
                 splitTracksByLength(tracks, segmentLengthLimit);
 
-            var priority_queue = new NodeQueue();
+            var node_queue = new NodeQueue();
 
             {
                 // get track nodes closest to waypoints
 
-                splitTracksByWaypoints(tracks, waypoints.Keys, offTrackDistance, priority_queue, onProgress);
+                splitTracksByWaypoints(tracks, waypoints.Keys, offTrackDistance, node_queue, onProgress);
 
+#if DEBUG
+                var DEBUG_neighbours = new Dictionary<GeoPoint, int>();
+#endif
                 // as above -- this time get closest track nodes to crossroads (i.e. computed on the fly)
                 foreach (Crossroad cx in crossroads.Where(it => it.Kind != CrossroadKind.Extension))
                 {
                     foreach ((TrackNode neighbour, Length? dist) in cx.Neighbours)
                     {
-                        priority_queue.Update(neighbour, turnPoint: cx.Point, hops: 0, dist.Value);
+                        bool updated = node_queue.Update(neighbour, turnPoint: cx.Point, hops: 0, dist.Value);
+#if DEBUG
+                        DEBUG_neighbours.TryAdd(neighbour.Point, DEBUG_neighbours.Count);
+                        DEBUG_logger.GpxLogger.WritePoint(cx.Point, $"cx {DEBUG_neighbours[neighbour.Point]} {(dist.Value.ToString("0"))} {updated}");
+#endif
                     }
                 }
+
+#if DEBUG
+                foreach (var neighbour in DEBUG_neighbours)
+                    DEBUG_logger.GpxLogger.WritePoint(neighbour.Key, $"node-neighbour {neighbour.Value}");
+#endif
             }
 
             // if two adjacent track nodes are assigned to two different turn points add one track node between them.
             // Without it we couldn't add info about alternate turn point to the segment because there would be no node
             // to attach to (alternates are added only to non-turn nodes)
-            foreach ((TrackNode node, GeoPoint turn_point) in priority_queue.NodeTurnPoints)
+            foreach ((TrackNode node, GeoPoint turn_point) in node_queue.NodeTurnPoints)
             {
                 if (node.Next != null
-                    && priority_queue.TryGetTurnPoint(node.Next, out GeoPoint other_turn)
+                    && node_queue.TryGetTurnPoint(node.Next, out GeoPoint other_turn)
                     && turn_point != other_turn)
                 {
                     node.Add(GeoCalculator.GetMidPoint(node.Point, node.Next.Point));
@@ -60,10 +76,10 @@ namespace TrackRadar
             // point to any given track point using Dijkstra approach
             IReadOnlyDictionary<GeoPoint, IEnumerable<(TrackNode adjNode, Length distance)>> track_point_connections
                 = aggregateNodeConnections(tracks, rich_extensions);
-            // track point -> closest turn point
-            var track_to_turns = new Dictionary<GeoPoint, TurnPointInfo>();
+            // track node -> closest turn point
+            var track_to_turn_points = new Dictionary<GeoPoint, TurnPointInfo>();
 
-            var turns_to_tracks = new Dictionary<GeoPoint, List<(TrackNode turn, TrackNode.Direction dir)>>();
+            var turn_points_to_tracks = new Dictionary<GeoPoint, List<(TrackNode turn, TrackNode.Direction dir)>>();
 
             var turn_nodes = new HashSet<GeoPoint>();
 
@@ -75,7 +91,7 @@ namespace TrackRadar
                     .Concat(crossroads.Where(it => it.Kind == CrossroadKind.Endpoint).Select(it => it.Point))
                     .ToHashSet();
 
-                while (priority_queue.TryPop(out Length current_dist, out TrackNode track_node, out GeoPoint turn_point, out int hops))
+                while (node_queue.TryPop(out Length current_dist, out TrackNode track_node, out GeoPoint turn_point, out int hops))
                 {
                     onProgress?.Invoke(Stage.AssigningTurns, ++current_step / total_steps);
 
@@ -86,10 +102,10 @@ namespace TrackRadar
                         // for endpoints we don't provide turn navigation info (go right/left), so there is no sense in computing it
                         if (!endpoints.Contains(turn_point))
                         {
-                            if (!turns_to_tracks.TryGetValue(turn_point, out List<(TrackNode turn, TrackNode.Direction dir)> turn_node_arms))
+                            if (!turn_points_to_tracks.TryGetValue(turn_point, out List<(TrackNode turn, TrackNode.Direction dir)> turn_node_arms))
                             {
                                 turn_node_arms = new List<(TrackNode turn, TrackNode.Direction dir)>();
-                                turns_to_tracks.Add(turn_point, turn_node_arms);
+                                turn_points_to_tracks.Add(turn_point, turn_node_arms);
                             }
                             if (track_node.Next != null)
                                 turn_node_arms.Add((track_node, TrackNode.Direction.Forward));
@@ -100,13 +116,13 @@ namespace TrackRadar
 
                     // this particular point might be already addded, but thanks to aggregated siblings
                     // we don't need to process it in such case
-                    if (track_to_turns.TryAdd(track_node.Point, new TurnPointInfo(turn_point, current_dist)))
+                    if (track_to_turn_points.TryAdd(track_node.Point, new TurnPointInfo(turn_point, current_dist)))
                     {
                         foreach ((TrackNode sibling, Length sib_distance) in track_point_connections[track_node.Point])
                         {
                             Length total = current_dist + sib_distance;
 
-                            priority_queue.Update(sibling, turnPoint: turn_point, hops + 1, total);
+                            node_queue.Update(sibling, turnPoint: turn_point, hops + 1, total);
                         }
                     }
                 }
@@ -114,30 +130,30 @@ namespace TrackRadar
 
             assignSectionsIds(tracks, turn_nodes, buildTrackExtensions(crossroads, turn_nodes), onProgress);
 
-            IReadOnlyDictionary<GeoPoint, TurnPointInfo> alt_track_to_turns = calculateAlternateTurns(tracks,
-                track_to_turns, turn_nodes, rich_extensions, onProgress);
+            IReadOnlyDictionary<GeoPoint, TurnPointInfo> alt_track_to_turn_points = calculateAlternateTurns(tracks,
+                track_to_turn_points, turn_nodes, rich_extensions, onProgress);
 
             // turn POINTS (not nodes) to adjacent turn POINTS
             IReadOnlyDictionary<GeoPoint, IEnumerable<TurnPointInfo>> turn_points_graph =
-                calculateTurnsGraph(tracks, track_point_connections, track_to_turns, alt_track_to_turns, turn_nodes, onProgress);
+                calculateTurnsGraph(tracks, track_point_connections, track_to_turn_points, alt_track_to_turn_points, turn_nodes, onProgress);
 
-            var turns_to_arms = new Dictionary<GeoPoint, (TurnArm a, TurnArm b)>();
-            foreach (KeyValuePair<GeoPoint, List<(TrackNode turn, TrackNode.Direction dir)>> entry in turns_to_tracks)
+            var turn_points_to_arms = new Dictionary<GeoPoint, (TurnArm a, TurnArm b)>();
+            foreach (KeyValuePair<GeoPoint, List<(TrackNode turn, TrackNode.Direction dir)>> entry in turn_points_to_tracks)
             {
                 // we can only tell turn direction when the turn has 2 arms (incoming and outgoing)
                 if (entry.Value.Count == 2)
                 {
-                    TurnArm arm_a = buildArmSection(entry.Key, entry.Value[0].turn, entry.Value[0].dir, track_to_turns);
-                    TurnArm arm_b = buildArmSection(entry.Key, entry.Value[1].turn, entry.Value[1].dir, track_to_turns);
+                    TurnArm arm_a = buildArmSection(entry.Key, entry.Value[0].turn, entry.Value[0].dir, track_to_turn_points);
+                    TurnArm arm_b = buildArmSection(entry.Key, entry.Value[1].turn, entry.Value[1].dir, track_to_turn_points);
 #if DEBUG
                     if (arm_a.SectionId == arm_b.SectionId)
                         throw new InvalidOperationException($"Both arms cannot have the same section id {arm_a.SectionId}");
 #endif
-                    turns_to_arms.Add(entry.Key, (arm_a, arm_b));
+                    turn_points_to_arms.Add(entry.Key, (arm_a, arm_b));
                 }
             }
 
-            return new TurnGraph(turn_nodes, track_to_turns, alt_track_to_turns, turns_to_arms, turn_points_graph);
+            return new TurnGraph(turn_nodes, track_to_turn_points, alt_track_to_turn_points, turn_points_to_arms, turn_points_graph);
         }
 
         private static IReadOnlyDictionary<GeoPoint, IEnumerable<TurnPointInfo>>

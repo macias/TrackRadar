@@ -31,13 +31,13 @@ namespace TrackRadar
         private HandlerThread handler;
         private RadarReceiver receiver;
         //   private LogFile serviceLog;
-        private GpxWriter offTrackWriter;
-        private GpxWriter crossroadsWriter;
-        private GpxWriter debugPositionsWriter;
+        private GpxLogger offTrackWriter;
+        private GpxLogger crossroadsWriter;
+        private GpxLogger debugPositionsWriter;
         private int gpsLastStatus;
         private DisposableGuard guard;
         private int subscriptions;
-        private GpxWriter traceWriter;
+        private GpxLogger traceWriter;
         private double longestUpdate;
 
         /*
@@ -101,9 +101,9 @@ private long mLastTime;
                 }
                 */
 
-                this.offTrackWriter = new GpxWriter(this, "off-track.gpx", DateTime.UtcNow.AddDays(-2));
-                this.debugPositionsWriter = new GpxWriter(this, "debug-pos.gpx", DateTime.UtcNow.AddDays(-2));
-                this.crossroadsWriter = new GpxWriter(this, "crossroads.gpx", DateTime.UtcNow.AddDays(-2));
+                this.offTrackWriter = new GpxLogger(this, "off-track.gpx", DateTime.UtcNow.AddDays(-2));
+                this.debugPositionsWriter = new GpxLogger(this, "debug-pos.gpx", DateTime.UtcNow.AddDays(-2));
+                this.crossroadsWriter = new GpxLogger(this, "crossroads.gpx", DateTime.UtcNow.AddDays(-2));
 
                 this.handler = new HandlerThread("GPSHandler");
                 this.handler.Start();
@@ -115,7 +115,7 @@ private long mLastTime;
                 loadPreferences();
 
                 if (this.prefs.GpsDump)
-                    this.traceWriter = new GpxWriter(this, "trace.gpx", DateTime.UtcNow.AddDays(-2));
+                    this.traceWriter = new GpxLogger(this, "trace.gpx", DateTime.UtcNow.AddDays(-2));
 
                 if (this.prefs.ShowTurnAhead)
                 {

@@ -18,6 +18,33 @@ namespace TrackRadar.Tests
         private const double precision = 0.00000001;
 
         [TestMethod]
+        public void FIXING_FarIsCloserTest()
+        {
+            // the original problem was program checked distance to two turn points and decided the far one is closer
+
+            string plan_filename = Toolbox.TestData("far-is-closer.plan.gpx");
+            string tracked_filename = Toolbox.TestData("far-is-closer.tracked.gpx");
+
+            var prefs = Toolbox.CreatePreferences(); // regular thresholds for speed
+            RideStats stats;
+            using (GpxDirtyWriter.Create("neighbours.gpx", out IGpxDirtyWriter gpx_writer))
+            {
+                stats = Toolbox.Ride(new MetaLogger( gpx_writer, new ConsoleLogger() ), prefs, playDuration: TimeSpan.FromSeconds(2.229), plan_filename, tracked_filename, null);
+            }
+
+            //Toolbox.SaveGraph("graph.gpx", stats.Plan.Graph);
+
+            Toolbox.PrintAlarms(stats.Alarms);
+            Assert.AreEqual(4, stats.Alarms.Count);
+            int a = 0;
+
+            Assert.AreEqual((Alarm.Engaged, 7), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 22), stats.Alarms[a++]); // we want here general attention alarm, not direction
+            Assert.AreEqual((Alarm.LeftEasy, 24), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.LeftEasy, 26), stats.Alarms[a++]);
+        }
+
+        [TestMethod]
         public void GeneralAttentionNeededAfterStartTest()
         {
             // the original problem was program created endpoint so close to turn (this is OK), then when riding program recognized as double turn (not OK)
@@ -629,7 +656,7 @@ namespace TrackRadar.Tests
             Assert.AreEqual(6, plan_data.Segments.Count());
 
 #if DEBUG
-            IEnumerable<DEBUG_TrackToTurnHack> alts = plan_data.Graph.DEBUG_TrackToTurns.Where(it => it.Alternate.HasValue)
+            IEnumerable<DEBUG_TrackToTurnHack> alts = plan_data.Graph.DEBUG_TrackToTurnPoints.Where(it => it.Alternate.HasValue)
                 .ToArray();
             var track_points_with_alt = alts.Select(it => it.TrackPoint).ToHashSet();
             // checking if the alternate turn points are assigned only to the single section + two alternates

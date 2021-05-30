@@ -167,7 +167,11 @@ namespace TrackRadar
                 }
                 else
                 {
-                    data = GpxLoader.ReadGpx(path, offTrackDistance,
+                    data = GpxLoader.ReadGpx(
+#if DEBUG
+                        MetaLogger.None,
+#endif
+                        path, offTrackDistance,
                                             onProgress: i =>
                                             {
                                                 i = i * 0.8 + 0.1; // clip the values within range 0.1-0.9

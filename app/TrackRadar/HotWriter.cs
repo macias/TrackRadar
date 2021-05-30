@@ -8,11 +8,7 @@ namespace TrackRadar
     // Android/data/TrackRadar.TrackRadar/
     public sealed class HotWriter : IDisposable
     {
-        private readonly object threadLock = new object();
-
-        private readonly StreamWriter writer;
-
-        public HotWriter(ContextWrapper ctx, string filename, DateTime expires,out bool appended)
+        internal static StreamWriter CreateStreamWriter(ContextWrapper ctx, string filename, DateTime expires, out bool appended)
         {
             string path;
 
@@ -24,9 +20,19 @@ namespace TrackRadar
                     // check if last modification to file was after experition
                     && Common.FromTimeStampMs(file.LastModified()) > expires;
             }
-            this.writer = new StreamWriter(path, appended);
-            //            this.writer = new StreamWriter(ctx.OpenFileOutput(log_filename, FileCreationMode.WorldReadable | (append ? FileCreationMode.Append : 0)));
+
+            return new StreamWriter(path, appended);
         }
+
+        private readonly object threadLock = new object();
+
+        private readonly StreamWriter writer;
+
+        public HotWriter(ContextWrapper ctx, string filename, DateTime expires,out bool appended)
+        {
+            this.writer = CreateStreamWriter(ctx, filename, expires, out appended);
+        }
+
 
         public void Dispose()
         {

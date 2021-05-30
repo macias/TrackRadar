@@ -1,41 +1,42 @@
 using Geo;
 using System.Collections.Generic;
 using System.Linq;
-using static TrackRadar.GpxLoader;
+using TrackRadar.Implementation;
+using static TrackRadar.Implementation.GpxLoader;
 
-namespace TrackRadar.Implementation
+namespace TrackRadar.Tests.Implementation
 {
 #if DEBUG
     public static class GpxToolbox
     {        
         public static void SaveGpxSegments(string filename, IEnumerable<ISegment> segments)
         {
-            using (var writer = new GpxDirtyWriter(filename))
+            using (GpxDirtyWriter.Create(filename,out IGpxDirtyWriter writer))
             {
                 int idx = 0;
                 foreach (ISegment seg in segments)
                 {
-                    writer.WriteTrack($"{idx}:{seg.SectionId}", seg.Points().ToArray());
+                    writer.WriteTrack(seg.Points().ToArray(), $"{idx}:{seg.SectionId}");
                     ++idx;
                 }
             }
         }
         public static void SaveGpx(string filename, IPlanData plan)
         {
-            using (var writer = new GpxDirtyWriter(filename))
+            using (GpxDirtyWriter.Create(filename, out IGpxDirtyWriter writer))
             {
                 {
                     int idx = 0;
                     foreach (ISegment seg in plan.Segments)
                     {
-                        writer.WriteTrack($"Line {idx}:{seg.SectionId} #{seg.__DEBUG_id}", seg.Points().ToArray());
+                        writer.WriteTrack(seg.Points().ToArray(), $"Line {idx}:{seg.SectionId} #{seg.__DEBUG_id}");
                         ++idx;
                     }
                 }
                 {
                     foreach (var cx_entry in plan.Crossroads)
                     {
-                        writer.WritePoint($"Point {cx_entry.Value}", cx_entry.Key);
+                        writer.WritePoint(cx_entry.Key, $"Point {cx_entry.Value}");
                     }
                 }
             }
@@ -44,13 +45,13 @@ namespace TrackRadar.Implementation
         public static void SaveGpx(string filename, IEnumerable<IEnumerable<GeoPoint>> segments,
             IEnumerable<GeoPoint> waypoints)
         {
-            using (var writer = new GpxDirtyWriter(filename))
+            using (GpxDirtyWriter.Create(filename, out IGpxDirtyWriter writer))
             {
                 {
                     int idx = 0;
                     foreach (IEnumerable<GeoPoint> seg in segments)
                     {
-                        writer.WriteTrack($"Line {idx}", seg.ToArray());
+                        writer.WriteTrack(seg.ToArray(), $"Line {idx}");
                         ++idx;
                     }
                 }
@@ -58,7 +59,7 @@ namespace TrackRadar.Implementation
                     int idx = 0;
                     foreach (GeoPoint pt in waypoints)
                     {
-                        writer.WritePoint($"Point {idx}", pt);
+                        writer.WritePoint(pt, $"Point {idx}");
                         ++idx;
                     }
                 }
@@ -66,36 +67,36 @@ namespace TrackRadar.Implementation
         }
         public static void SaveGpxSegments(string filename, params IEnumerable<GeoPoint>[] segments)
         {
-            using (var writer = new GpxDirtyWriter(filename))
+            using (GpxDirtyWriter.Create(filename, out IGpxDirtyWriter writer))
             {
                 int idx = 0;
                 foreach (IEnumerable<GeoPoint> seg in segments)
                 {
-                    writer.WriteTrack($"Line {idx}", seg.ToArray());
+                    writer.WriteTrack(seg.ToArray(), $"Line {idx}");
                     ++idx;
                 }
             }
         }
         public static void SaveGpxWaypoints(string filename, IEnumerable<GeoPoint> points)
         {
-            using (var writer = new GpxDirtyWriter(filename))
+            using (GpxDirtyWriter.Create(filename, out IGpxDirtyWriter writer))
             {
                 int idx = 0;
                 foreach (GeoPoint pt in points)
                 {
-                    writer.WritePoint($"{idx}", pt);
+                    writer.WritePoint(pt, $"{idx}");
                     ++idx;
                 }
             }
         }
         internal static void SaveGpxCrossroads(string filename, IEnumerable<Crossroad> points)
         {
-            using (var writer = new GpxDirtyWriter(filename))
+            using (GpxDirtyWriter.Create(filename, out IGpxDirtyWriter writer))
             {
                 int idx = 0;
                 foreach (Crossroad cx in points)
                 {
-                    writer.WritePoint($"{idx}-{cx.Kind}", cx.Point);
+                    writer.WritePoint(cx.Point, $"{idx}-{cx.Kind}");
                     ++idx;
                 }
             }

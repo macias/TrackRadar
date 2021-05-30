@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using TrackRadar.Implementation;
 
-namespace TrackRadar
+namespace TrackRadar.Implementation
 {
     public partial class GpxLoader
     {

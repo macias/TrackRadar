@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Geo;
 using MathUnit;
 
-namespace TrackRadar
+namespace TrackRadar.Implementation
 {
     public partial class GpxLoader
     {

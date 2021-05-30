@@ -1,5 +1,4 @@
 ﻿using Geo;
-using Gpx;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -7,52 +6,92 @@ using System.IO;
 
 namespace TrackRadar.Implementation
 {
-    internal sealed class GpxDirtyWriter : IDisposable
+    internal sealed class GpxDirtyWriter : IGpxDirtyWriter
     {
-        private readonly StreamWriter file;
-
-        public GpxDirtyWriter(string path)
+#if DEBUG
+        public static IDisposable Create(string path, out IGpxDirtyWriter writer)
         {
-            this.file = new System.IO.StreamWriter(path);
+            var stream = System.IO.File.CreateText(path);
+            var gpx_writer = new GpxDirtyWriter(stream);
+            gpx_writer.WriteHeader();
 
-            file.WriteLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
-            file.WriteLine("<gpx");
-            file.WriteLine("version=\"1.0\"");
-            file.WriteLine("creator=\"TrackRadar https://github.com/macias/TrackRadar\"");
-            file.WriteLine("xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"");
-            file.WriteLine("xmlns=\"http://www.topografix.com/GPX/1/0\"");
-            file.WriteLine("xsi:schemaLocation=\"http://www.topografix.com/GPX/1/0 http://www.topografix.com/GPX/1/0/gpx.xsd\">");
+            writer = gpx_writer;
+
+            return Disposable.Create(() =>
+            {
+                gpx_writer.Close();
+                stream.Dispose();
+            });
         }
-        public void Dispose()
+#endif
+
+        private readonly StreamWriter stream;
+
+        public GpxDirtyWriter(StreamWriter stream)
         {
-            file.WriteLine("</gpx>");
-            file.Dispose();
+            this.stream = stream;
         }
 
-        public void WriteTrack(string name, IEnumerable<GeoPoint> points)
+        public void WriteHeader()
         {
-            file.WriteLine("<trk>");
-            file.WriteLine($"<name>{name}</name>");
-            file.WriteLine("<trkseg>");
+            this.stream.WriteLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
+            this.stream.WriteLine("<gpx");
+            this.stream.WriteLine("version=\"1.0\"");
+            this.stream.WriteLine("creator=\"TrackRadar https://github.com/macias/TrackRadar\"");
+            this.stream.WriteLine("xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"");
+            this.stream.WriteLine("xmlns=\"http://www.topografix.com/GPX/1/0\"");
+            this.stream.WriteLine("xsi:schemaLocation=\"http://www.topografix.com/GPX/1/0 http://www.topografix.com/GPX/1/0/gpx.xsd\">");
+        }
+
+        public void WriteComment(string comment)
+        {
+            this.stream.WriteLine($"<!--{comment}-->");
+        }
+
+        public void Close()
+        {
+            this.stream.WriteLine("</gpx>");
+        }
+
+        public void WriteLocation(double latitudeDegrees, double longitudeDegrees,
+            double? altitudeMeters = null, double? accuracyMeters = null, string name = null, string comment = null)
+        {
+            stream.Write($"<wpt lat=\"{latitudeDegrees.ToString(CultureInfo.InvariantCulture)}\" lon=\"{longitudeDegrees.ToString(CultureInfo.InvariantCulture)}\"");
+            stream.WriteLine($">");
+            if (accuracyMeters.HasValue)
+                stream.WriteLine($"<Proximity>{accuracyMeters.Value.ToString(CultureInfo.InvariantCulture)}</Proximity>");
+            if (altitudeMeters.HasValue)
+                stream.WriteLine($"<ele>{altitudeMeters.Value.ToString(CultureInfo.InvariantCulture)}</ele>");
+            if (name != null)
+                stream.WriteLine($"<name>{name}</name>");
+            if (comment != null)
+                stream.WriteLine($"<cmt>{comment}</cmt>");
+            stream.WriteLine($"</wpt>");
+
+            stream.Flush();
+        }
+
+#if DEBUG
+        public void WritePoint(in GeoPoint point, string name, string comment = null)
+        {
+            this.WriteLocation(point.Latitude.Degrees, point.Longitude.Degrees, altitudeMeters: null, accuracyMeters: null, comment: comment, name: name);
+        }
+
+        public void WriteTrack(IEnumerable<GeoPoint> points, string name)
+        {
+            stream.WriteLine("<trk>");
+            stream.WriteLine($"<name>{name}</name>");
+            stream.WriteLine("<trkseg>");
             foreach (var point in points)
             {
-                file.WriteLine($"<trkpt {str(point)}/>");
+                stream.WriteLine($"<trkpt lat=\"{point.Latitude.Degrees.ToString(CultureInfo.InvariantCulture)}\" lon=\"{point.Longitude.Degrees.ToString(CultureInfo.InvariantCulture)}\"/>");
             }
-            file.WriteLine("</trkseg>");
-            file.WriteLine("</trk>");
-        }
-        public void WritePoint( string name,in GeoPoint point)
-        {
-            file.WriteLine($"<wpt {str(point)}>");
-            if (name != null)
-                file.WriteLine($"<name>{name}</name>");
-            file.WriteLine("</wpt>");
+            stream.WriteLine("</trkseg>");
+            stream.WriteLine("</trk>");
+
+            stream.Flush();
         }
 
-        private string str(in GeoPoint point)
-        {
-            return $"lat=\"{point.Latitude.Degrees.ToString(CultureInfo.InvariantCulture)}\" lon=\"{point.Longitude.Degrees.ToString(CultureInfo.InvariantCulture)}\"";
-        }
-
+#endif
     }
 }

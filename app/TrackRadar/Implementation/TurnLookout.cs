@@ -393,9 +393,15 @@ namespace TrackRadar.Implementation
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool isWithinAlarmDistance(Length cxDistance, Speed currentSpeed, Length alarmsDistance, Length turnAheadDistance)
         {
-            return cxDistance <= turnAheadDistance
-                // if at next update (assuming current speed) we will go through needed distance for all alarms it is better to start alarms right now
-                || cxDistance - currentSpeed * WEAK_updateRate <= alarmsDistance;
+            if (cxDistance <= turnAheadDistance)
+                return true;
+            // if at next update (assuming current speed) we will go through needed distance for all alarms it is better to start alarms right now
+            Length step = currentSpeed * WEAK_updateRate;
+            Length next_cxDistance = cxDistance - step;
+            if (next_cxDistance <= alarmsDistance)
+                return true;
+
+            return false;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

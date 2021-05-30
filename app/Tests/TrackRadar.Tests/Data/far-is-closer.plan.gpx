@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx
+  version="1.0"
+  creator="GPSBabel - http://www.gpsbabel.org"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://www.topografix.com/GPX/1/0"
+  xsi:schemaLocation="http://www.topografix.com/GPX/1/0 http://www.topografix.com/GPX/1/0/gpx.xsd">
+<time>2021-05-29T11:58:21Z</time>
+<wpt lat="53.290650000" lon="27.800656000">
+  <ele>0.000000</ele>
+  <name>Point 17</name>
+  <cmt>Point 17</cmt>
+  <desc>Point 17</desc>
+</wpt>
+<trk>
+  <name>Line 8</name>
+<trkseg>
+<trkpt lat="53.302980000" lon="27.807821000">
+  <ele>0.000000</ele>
+</trkpt>
+<trkpt lat="53.296876000" lon="27.803787000">
+  <ele>0.000000</ele>
+</trkpt>
+<trkpt lat="53.290668000" lon="27.800526000">
+  <ele>0.000000</ele>
+</trkpt>
+</trkseg>
+</trk>
+<trk>
+  <name>Line 7</name>
+<trkseg>
+<trkpt lat="53.291724000" lon="27.777255000">
+  <ele>0.000000</ele>
+</trkpt>
+<trkpt lat="53.290801000" lon="27.800000000">
+  <ele>0.000000</ele>
+</trkpt>
+</trkseg>
+</trk>
+</gpx>

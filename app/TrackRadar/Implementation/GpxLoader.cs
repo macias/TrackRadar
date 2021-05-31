@@ -37,7 +37,7 @@ namespace TrackRadar.Implementation
 
             return processTrackData(
 #if DEBUG
-                DEBUG_logger, 
+                DEBUG_logger,
 #endif
                 tracks, waypoints, offTrackDistance, segmentLengthLimit: GeoMapFactory.SegmentLengthLimit,
                 (stage, progress) => onProgress?.Invoke(recomputeProgress(stage, progress)), token);
@@ -264,31 +264,76 @@ namespace TrackRadar.Implementation
             // what's move we move neighbour information from crossroads to waypoints, so even if given waypoint is far from actual track
             // thanks to getting info from crossroad we would know about "connected" tracks
             // it is important for carelessly prepared plans
-            
-            Dictionary<GeoPoint, GeoPoint> mapped_waypoints = userWaypoints.Keys.ToDictionary(it => it, it => it);
 
-            for (int i = computedCrossroads.Count - 1; i >= 0; --i)
+            // in agressive mode waypoint absorbs all crossroads within the limit, in non-agressive mode it absorbs only the single (closest) crossroads within the limit
+            const bool aggressive = false;
+
+            if (aggressive)
             {
-                bool remove = false;
+                Dictionary<GeoPoint, GeoPoint> mapped_waypoints = userWaypoints.Keys.ToDictionary(it => it, it => it);
 
-                foreach (GeoPoint wpt in userWaypoints.Keys)
+                for (int i = computedCrossroads.Count - 1; i >= 0; --i)
                 {
-                    var cx = computedCrossroads[i];
-                    if (GeoCalculator.GetDistance(wpt, cx.Point) <= limit)
+                    bool remove = false;
+
+                    foreach (GeoPoint wpt in userWaypoints.Keys)
                     {
-                        remove = true;
-                        mapped_waypoints[wpt] = GeoCalculator.GetMidPoint(mapped_waypoints[wpt], cx.Point);
-                        userWaypoints[wpt].AddNeighbours(cx.Neighbours.Select(it => it.node));
+                        var cx = computedCrossroads[i];
+                        if (GeoCalculator.GetDistance(wpt, cx.Point) <= limit)
+                        {
+                            remove = true;
+                            mapped_waypoints[wpt] = GeoCalculator.GetMidPoint(mapped_waypoints[wpt], cx.Point);
+                            userWaypoints[wpt].AddNeighbours(cx.Neighbours.Select(it => it.node));
+                        }
                     }
+
+                    if (remove)
+                        computedCrossroads.RemoveAt(i);
                 }
 
-                if (remove)
-                    computedCrossroads.RemoveAt(i);
+                {
+                    var __waypoints_capture = userWaypoints;
+                    userWaypoints = mapped_waypoints.ToDictionary(it => it.Value, it => __waypoints_capture[it.Key]);
+                }
             }
-
+            else
             {
-                var __waypoints_capture = userWaypoints;
-                userWaypoints = mapped_waypoints.ToDictionary(it => it.Value, it => __waypoints_capture[it.Key]);
+                Dictionary<GeoPoint, (int cx_index, Length distance)> mapped_waypoints = userWaypoints.Keys.ToDictionary(it => it, it => (-1, Length.MaxValue));
+                var removals = new List<int>();
+
+                for (int i = computedCrossroads.Count - 1; i >= 0; --i)
+                {
+                    bool remove = false;
+
+                    foreach (GeoPoint wpt in userWaypoints.Keys)
+                    {
+                        var cx = computedCrossroads[i];
+                        if (GeoCalculator.GetDistance(wpt, cx.Point) <= limit)
+                        {
+                            remove = true;
+                            if (mapped_waypoints[wpt].distance > limit)
+                                mapped_waypoints[wpt] = (i, limit);
+                        }
+                    }
+
+                    if (remove)
+                        removals.Add(i);
+                }
+
+                foreach ((GeoPoint wpt, (int cx_index, Length _)) in mapped_waypoints)
+                    if (cx_index != -1)
+                        userWaypoints[wpt].AddNeighbours(computedCrossroads[cx_index].Neighbours.Select(it => it.node));
+
+                {
+                    var __waypoints_capture = userWaypoints;
+                    userWaypoints = mapped_waypoints.ToDictionary(it =>
+                        it.Value.cx_index == -1 ? it.Key : GeoCalculator.GetMidPoint(it.Key, computedCrossroads[it.Value.cx_index].Point),
+                        it => __waypoints_capture[it.Key]);
+                }
+
+
+                foreach (int i in removals) // IMPORTANT: we iterate from highest to lowest indices here
+                    computedCrossroads.RemoveAt(i);
             }
         }
 

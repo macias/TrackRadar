@@ -18,30 +18,25 @@ namespace TrackRadar.Tests
         private const double precision = 0.00000001;
 
         [TestMethod]
-        public void FIXING_FarIsCloserTest()
+        public void FarIsCloserTest()
         {
             // the original problem was program checked distance to two turn points and decided the far one is closer
+            // this is because gpx-plan is sloppy, given waypoint is too far from both tracks and served as turning point only for one of them
 
             string plan_filename = Toolbox.TestData("far-is-closer.plan.gpx");
             string tracked_filename = Toolbox.TestData("far-is-closer.tracked.gpx");
 
             var prefs = Toolbox.CreatePreferences(); // regular thresholds for speed
             RideStats stats;
-            using (GpxDirtyWriter.Create("neighbours.gpx", out IGpxDirtyWriter gpx_writer))
-            {
-                stats = Toolbox.Ride(new MetaLogger( gpx_writer, new ConsoleLogger() ), prefs, playDuration: TimeSpan.FromSeconds(2.229), plan_filename, tracked_filename, null);
-            }
+            stats = Toolbox.Ride( prefs, playDuration: TimeSpan.FromSeconds(2.229), plan_filename, tracked_filename, null);
 
-            //Toolbox.SaveGraph("graph.gpx", stats.Plan.Graph);
-
-            Toolbox.PrintAlarms(stats.Alarms);
             Assert.AreEqual(4, stats.Alarms.Count);
             int a = 0;
 
-            Assert.AreEqual((Alarm.Engaged, 7), stats.Alarms[a++]);
-            Assert.AreEqual((Alarm.Crossroad, 22), stats.Alarms[a++]); // we want here general attention alarm, not direction
-            Assert.AreEqual((Alarm.LeftEasy, 24), stats.Alarms[a++]);
-            Assert.AreEqual((Alarm.LeftEasy, 26), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Engaged, 3), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 15), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.LeftCross, 17), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.LeftCross, 19), stats.Alarms[a++]);
         }
 
         [TestMethod]

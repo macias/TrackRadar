@@ -14,7 +14,8 @@ namespace TrackRadar.Implementation
             MetaLogger DEBUG_logger,
 #endif
             IEnumerable<Track> tracks,
-            IReadOnlyDictionary<GeoPoint, WayPointKind> waypoints, IEnumerable<Crossroad> crossroads,
+            IReadOnlyDictionary<GeoPoint, WayPointInfo> waypoints,
+            IEnumerable<Crossroad> crossroads,
             Length offTrackDistance, Length segmentLengthLimit, Action<Stage, double> onProgress)
         {
             // if there are no turns at all, simply disable navigation (one factor which is important as well here is
@@ -31,7 +32,7 @@ namespace TrackRadar.Implementation
             {
                 // get track nodes closest to waypoints
 
-                splitTracksByWaypoints(tracks, waypoints.Keys, offTrackDistance, node_queue, onProgress);
+                splitTracksByWaypoints(tracks, waypoints, offTrackDistance, node_queue, onProgress);
 
 #if DEBUG
                 var DEBUG_neighbours = new Dictionary<GeoPoint, int>();
@@ -87,7 +88,7 @@ namespace TrackRadar.Implementation
             double current_step = -1;
 
             {
-                var endpoints = waypoints.Where(it => it.Value == WayPointKind.Endpoint).Select(it => it.Key)
+                var endpoints = waypoints.Where(it => it.Value.Kind == WayPointKind.Endpoint).Select(it => it.Key)
                     .Concat(crossroads.Where(it => it.Kind == CrossroadKind.Endpoint).Select(it => it.Point))
                     .ToHashSet();
 
@@ -438,50 +439,74 @@ namespace TrackRadar.Implementation
             return new TurnArm(section_id, turn_section);
         }
 
-        private static void splitTracksByWaypoints(IEnumerable<Track> tracks, IEnumerable<GeoPoint> waypoints,
+        private static void splitTracksByWaypoints(IEnumerable<Track> tracks,
+            IReadOnlyDictionary<GeoPoint, WayPointInfo> waypoints,
             Length offTrackDistance, NodeQueue priorityQueue, Action<Stage, double> onProgress)
         {
             double total_steps = waypoints.Count();
             double current_step = -1;
-            foreach (GeoPoint wpt in waypoints)
+            foreach ((GeoPoint wpt, WayPointInfo wpt_info) in waypoints)
             {
                 onProgress?.Invoke(Stage.SplitByWaypoints, ++current_step / total_steps);
 
-                foreach (Track trk in tracks)
+                if (wpt_info.Neighbours.Any())
                 {
-                    Length min_distance = Length.MaxValue;
-                    TrackNode closest_track_node = default;
-                    GeoPoint crosspoint = default;
-
-                    foreach (GpxLoader.TrackNode node in trk.Nodes)
+                    // if we have any info from absorbed crossroads about connected tracks, use only those info, this way we
+                    // can reach a little farther to intersecting tracks which are related to this waypoint
+                    foreach (TrackNode node in wpt_info.Neighbours)
                     {
-                        if (node.Next == null)
+                        priorityQueue.Update(node, turnPoint: wpt, hops: 0, GeoCalculator.GetDistance(wpt, node.Point));
+                    }
+                }
+                else
+                {
+                    // when we have pure waypoint, we didn't absorb any crossroads, compute neighbour tracks
+
+                    foreach ((TrackNode node, Length distance) in computeNearbyNodes(wpt, tracks, offTrackDistance))
+                    {
+                        priorityQueue.Update(node, turnPoint: wpt, hops: 0, distance);
+                    }
+                }
+            }
+        }
+
+        private static IEnumerable<(TrackNode node, Length distance)> computeNearbyNodes(GeoPoint wpt, IEnumerable<Track> tracks, Length offTrackDistance)
+        {
+            foreach (Track trk in tracks)
+            {
+                Length min_distance = Length.MaxValue;
+                TrackNode closest_track_node = default;
+                GeoPoint crosspoint = default;
+
+                foreach (GpxLoader.TrackNode node in trk.Nodes)
+                {
+                    if (node.Next == null)
+                        break;
+
+                    Length d = GeoCalculator.GetDistanceToArcSegment(wpt, node.Point, node.Next.Point, out GeoPoint cx);
+                    if (min_distance > d)
+                    {
+                        min_distance = d;
+                        closest_track_node = node;
+                        crosspoint = cx;
+                        // todo: add some numeric slack?
+                        if (min_distance == Length.Zero)
                             break;
-
-                        Length d = GeoCalculator.GetDistanceToArcSegment(wpt, node.Point, node.Next.Point, out GeoPoint cx);
-                        if (min_distance > d)
-                        {
-                            min_distance = d;
-                            closest_track_node = node;
-                            crosspoint = cx;
-                            // todo: add some numeric slack?
-                            if (min_distance == Length.Zero)
-                                break;
-                        }
                     }
-                    if (min_distance < offTrackDistance / 2)
+                }
+
+                if (min_distance < offTrackDistance / 2)
+                {
+                    // if in reality we are closer to the end of the segment, update what track node we have in mind
+                    if (Geo.Mather.SufficientlySame(crosspoint, closest_track_node.Next.Point))
+                        closest_track_node = closest_track_node.Next;
+                    else if (!Geo.Mather.SufficientlySame(crosspoint, closest_track_node.Point))
                     {
-                        // if reality we are closer to the end of the segment, update what track node we have in mind
-                        if (Geo.Mather.SufficientlySame(crosspoint, closest_track_node.Next.Point))
-                            closest_track_node = closest_track_node.Next;
-                        else if (!Geo.Mather.SufficientlySame(crosspoint, closest_track_node.Point))
-                        {
-                            closest_track_node = closest_track_node.Add(crosspoint);
-                        }
-
-
-                        priorityQueue.Update(closest_track_node, turnPoint: wpt, hops: 0, min_distance);
+                        closest_track_node = closest_track_node.Add(crosspoint);
                     }
+
+
+                    yield return (closest_track_node, min_distance);
                 }
             }
         }

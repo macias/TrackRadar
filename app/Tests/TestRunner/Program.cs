@@ -19,7 +19,7 @@ namespace TestRunner
             //CheckLoading();            Measure();
 
             //CheckLoadingOne();
-            var test = new TrackRadar.Tests.TurnTest(); test.FIXING_FarIsCloserTest();
+            var test = new TrackRadar.Tests.TurnTest(); test.FarIsCloserTest();
 
             //RunAllTests();
             Console.WriteLine("Hello World!");
@@ -80,7 +80,11 @@ namespace TestRunner
             foreach (string plan_filename in System.IO.Directory.GetFiles(@"C:\Projekty\TrackRadar\priv-data\plan\", "*.gpx"))
             {
                 Console.WriteLine(plan_filename);
-                GpxLoader.ReadGpx(MetaLogger.None, plan_filename, prefs.OffTrackAlarmDistance, Toolbox.OnProgressValidator(), CancellationToken.None);
+                GpxLoader.ReadGpx(
+#if DEBUG
+                    MetaLogger.None, 
+#endif
+                    plan_filename, prefs.OffTrackAlarmDistance, Toolbox.OnProgressValidator(), CancellationToken.None);
             }
         }
 

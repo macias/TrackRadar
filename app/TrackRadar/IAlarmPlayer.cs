@@ -2,7 +2,6 @@
 
 namespace TrackRadar
 {
-
     // todo: split IDisposable
     public interface IAlarmPlayer : IDisposable
     {

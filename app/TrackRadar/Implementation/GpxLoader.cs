@@ -35,7 +35,11 @@ namespace TrackRadar.Implementation
             if (token.IsCancellationRequested)
                 return null;
 
-            return processTrackData( DEBUG_logger, tracks, waypoints, offTrackDistance, segmentLengthLimit: GeoMapFactory.SegmentLengthLimit,
+            return processTrackData(
+#if DEBUG
+                DEBUG_logger, 
+#endif
+                tracks, waypoints, offTrackDistance, segmentLengthLimit: GeoMapFactory.SegmentLengthLimit,
                 (stage, progress) => onProgress?.Invoke(recomputeProgress(stage, progress)), token);
         }
 
@@ -81,9 +85,9 @@ namespace TrackRadar.Implementation
             IEnumerable<(GeoPoint point, WayPointKind kind)> waypoints,
             Length offTrackDistance, Length segmentLengthLimit, Action<Stage, double> onProgress, CancellationToken token)
         {
-            Dictionary<GeoPoint, WayPointKind> waypoints_dict = (waypoints ?? Enumerable.Empty<(GeoPoint point, WayPointKind kind)>())
+            Dictionary<GeoPoint, WayPointInfo> waypoints_dict = (waypoints ?? Enumerable.Empty<(GeoPoint point, WayPointKind kind)>())
                 .GroupBy(it => it.point)
-                .ToDictionary(it => it.Key, it => it.First().kind);
+                .ToDictionary(it => it.Key, it => new WayPointInfo(it.First().kind));
 
             var tracks_list = tracks.Select(it => new Track(it)).Where(it => it.Nodes.Count() > 1).ToList();
 
@@ -96,20 +100,7 @@ namespace TrackRadar.Implementation
             if (token.IsCancellationRequested)
                 return null;
 
-            // todo: REMOVE THIS
-#if DEBUG
-            if (false)
-            {
-                DEBUG_Logger.GpxLogger.WritePoint(crossroads_found.Single().Point, "X");
-                foreach (var entry in crossroads_found.Single().Neighbours)
-                {
-                    DEBUG_Logger.GpxLogger.WritePoint(entry.node.Point, entry.distance.ToString());
-                    DEBUG_Logger.TextLogger.Info($"{entry.node.Point} -> {entry.distance}");
-                }
-            }
-#endif
-
-            crossroads_found = getDistant(waypoints_dict.Keys, crossroads_found, offTrackDistance).ToList();
+            cleanupWaypointsAndCrossroads(ref waypoints_dict, crossroads_found, offTrackDistance);
 
             if (!addEndpoints(tracks_list, waypoints_dict.Keys, crossroads_found, offTrackDistance * 2, onProgress, token))
                 return null;
@@ -266,12 +257,39 @@ namespace TrackRadar.Implementation
             return true;
         }
 
-        private static IEnumerable<Crossroad> getDistant(IEnumerable<GeoPoint> fixedPoints,
-            IEnumerable<Crossroad> incoming, Length limit)
+        private static void cleanupWaypointsAndCrossroads(ref Dictionary<GeoPoint, WayPointInfo> userWaypoints,
+            List<Crossroad> computedCrossroads, Length limit)
         {
-            foreach (Crossroad cx in incoming)
-                if (fixedPoints.All(it => GeoCalculator.GetDistance(it, cx.Point) > limit))
-                    yield return cx;
+            // here we compute average position for close waypoints and crossroads
+            // what's move we move neighbour information from crossroads to waypoints, so even if given waypoint is far from actual track
+            // thanks to getting info from crossroad we would know about "connected" tracks
+            // it is important for carelessly prepared plans
+            
+            Dictionary<GeoPoint, GeoPoint> mapped_waypoints = userWaypoints.Keys.ToDictionary(it => it, it => it);
+
+            for (int i = computedCrossroads.Count - 1; i >= 0; --i)
+            {
+                bool remove = false;
+
+                foreach (GeoPoint wpt in userWaypoints.Keys)
+                {
+                    var cx = computedCrossroads[i];
+                    if (GeoCalculator.GetDistance(wpt, cx.Point) <= limit)
+                    {
+                        remove = true;
+                        mapped_waypoints[wpt] = GeoCalculator.GetMidPoint(mapped_waypoints[wpt], cx.Point);
+                        userWaypoints[wpt].AddNeighbours(cx.Neighbours.Select(it => it.node));
+                    }
+                }
+
+                if (remove)
+                    computedCrossroads.RemoveAt(i);
+            }
+
+            {
+                var __waypoints_capture = userWaypoints;
+                userWaypoints = mapped_waypoints.ToDictionary(it => it.Value, it => __waypoints_capture[it.Key]);
+            }
         }
 
         private static bool tryFindCrossroads(List<Track> tracks,
@@ -338,15 +356,15 @@ namespace TrackRadar.Implementation
             throw new NotImplementedException();
         }
 
-/*        public static void WriteGpxPoints(string path, IEnumerable<GeoPoint> points)
-        {
-            using (var file = new GpxDirtyWriter(path))
-            {
-                foreach (var p in points)
-                    file.WritePoint(null, p);
-            }
-        }
-        */
+        /*        public static void WriteGpxPoints(string path, IEnumerable<GeoPoint> points)
+                {
+                    using (var file = new GpxDirtyWriter(path))
+                    {
+                        foreach (var p in points)
+                            file.WritePoint(null, p);
+                    }
+                }
+                */
         /*public static void WriteGpxSegments(string path, IEnumerable<ISegment> segments)
         {
             using (var file = new GpxDirtyWriter(path))

@@ -13,8 +13,6 @@
             GpxLogger = gpxLogger;
             TextLogger = logger;
         }
-
     }
 #endif
-
 }

@@ -13,15 +13,7 @@ namespace TrackRadar.Tests.Implementation
 {
     public static class Toolbox
     {
-        /* public static (double maxUpdate, double avgUpdate) Ride(Preferences prefs, string planFilename, string trackedFilename,
-             out IReadOnlyDictionary<Alarm, int> alarmCounters,
-             out IReadOnlyList<(Alarm alarm, int index)> alarms,
-             out IReadOnlyList<(string message, int index)> messages)
-         {
-             return Ride(prefs, planFilename, trackedFilename, null, out alarmCounters, out alarms, out messages);
-         }
-         */
-
+#if DEBUG
         public static void SaveGraph(string filename, ITurnGraph graph)
         {
             if (System.IO.File.Exists(filename))
@@ -46,6 +38,7 @@ namespace TrackRadar.Tests.Implementation
                 }
             }
         }
+#endif
 
         public static string TestData(string filename)
         {
@@ -78,17 +71,36 @@ namespace TrackRadar.Tests.Implementation
             out IReadOnlyList<(string message, int index)> messages,
             bool reverse = false)
         {
-            var result = Ride(MetaLogger.None, prefs, playDuration, planFilename, trackedFilename, speed, reverse);
+            var result = Ride(prefs, playDuration, planFilename, trackedFilename, speed, reverse);
             alarmCounters = result.AlarmCounters;
             alarms = result.Alarms;
             messages = result.Messages;
             return result;
         }
 
-        public static RideStats Ride(MetaLogger DEBUG_logger, Preferences prefs, TimeSpan playDuration, string planFilename, string trackedFilename,
+        public static RideStats Ride(Preferences prefs, TimeSpan playDuration, string planFilename, string trackedFilename,
+            Speed? speed,
+            bool reverse = false)
+        {
+            return RideLogged(
+#if DEBUG
+                MetaLogger.None, 
+#endif
+                prefs, playDuration, planFilename, trackedFilename, speed, reverse);
+        }
+
+        public static RideStats RideLogged(
+#if DEBUG
+            MetaLogger DEBUG_logger, 
+#endif
+            Preferences prefs, TimeSpan playDuration, string planFilename, string trackedFilename,
             Speed? speed, bool reverse = false)
         {
-            LoadData(DEBUG_logger, prefs, planFilename, trackedFilename,
+            LoadDataLogged(
+#if DEBUG
+                DEBUG_logger, 
+#endif
+                prefs, planFilename, trackedFilename,
                 out IPlanData plan_data, out List<GeoPoint> track_points);
 
             if (speed != null)
@@ -114,13 +126,25 @@ namespace TrackRadar.Tests.Implementation
         public static void LoadData(Preferences prefs, string planFilename, string trackedFilename,
             out IPlanData planData, out List<GeoPoint> trackPoints)
         {
-            LoadData(MetaLogger.None , prefs, planFilename, trackedFilename, out planData, out trackPoints);
+            LoadDataLogged(
+#if DEBUG
+                MetaLogger.None,
+#endif
+                prefs, planFilename, trackedFilename, out planData, out trackPoints);
         }
 
-        public static void LoadData(MetaLogger DEBUG_logger, Preferences prefs, string planFilename, string trackedFilename,
+        public static void LoadDataLogged(
+#if DEBUG
+            MetaLogger DEBUG_logger, 
+#endif
+            Preferences prefs, string planFilename, string trackedFilename,
     out IPlanData planData, out List<GeoPoint> trackPoints)
         {
-            planData = LoadPlan(DEBUG_logger, prefs, planFilename);
+            planData = LoadPlanLogged(
+#if DEBUG
+                DEBUG_logger, 
+#endif
+                prefs, planFilename);
             // we assume for reals rides GPS acquire interval was one second, thus we don't have to process timestamps
             // because 1 second is our test interval
             trackPoints = ReadTrackPoints(trackedFilename).ToList();
@@ -142,14 +166,26 @@ namespace TrackRadar.Tests.Implementation
             });
         }
 
-        internal static IPlanData LoadPlan(MetaLogger DEBUG_logger, Preferences prefs, string planFilename)
+        internal static IPlanData LoadPlanLogged(
+#if DEBUG
+            MetaLogger DEBUG_logger, 
+#endif
+            Preferences prefs, string planFilename)
         {
-            return GpxLoader.ReadGpx(DEBUG_logger, planFilename, prefs.OffTrackAlarmDistance, onProgress: OnProgressValidator(), CancellationToken.None);
+            return GpxLoader.ReadGpx(
+#if DEBUG
+                DEBUG_logger,
+#endif
+                planFilename, prefs.OffTrackAlarmDistance, onProgress: OnProgressValidator(), CancellationToken.None);
         }
 
         internal static IPlanData LoadPlan(Preferences prefs, string planFilename)
         {
-            return LoadPlan(MetaLogger.None, prefs, planFilename);
+            return LoadPlanLogged(
+#if DEBUG
+                MetaLogger.None, 
+#endif
+                prefs, planFilename);
         }
 
         public static RideStats Ride(Preferences prefs, IPlanData planData,
@@ -246,7 +282,7 @@ namespace TrackRadar.Tests.Implementation
             return prefs;
         }
 
-
+#if DEBUG
         public static void SaveGpxSegments(string filename, IEnumerable<ISegment> segments)
         {
             using (GpxDirtyWriter.Create(filename, out IGpxDirtyWriter writer))
@@ -267,11 +303,7 @@ namespace TrackRadar.Tests.Implementation
                     int idx = 0;
                     foreach (ISegment seg in plan.Segments)
                     {
-#if DEBUG
                         writer.WriteTrack(seg.Points().ToArray(), $"Line {idx}:{seg.SectionId} #{seg.__DEBUG_id}");
-#else
-                        writer.WriteTrack($"Line {idx}:{seg.SectionId}", seg.Points().ToArray());
-#endif
                         ++idx;
                     }
                 }
@@ -283,6 +315,7 @@ namespace TrackRadar.Tests.Implementation
                 }
             }
         }
+#endif
 
         public static IReadOnlyList<GeoPoint> GetCrossroadsList(this IPlanData plan)
         {

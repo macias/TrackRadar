@@ -74,7 +74,7 @@
     <Compile Include="AlarmVibrator.cs" />
     <Compile Include="Comparers\SelectComparer.cs" />
     <Compile Include="GpxHelper.cs" />
-    <Compile Include="GpxLogger.cs" />
+    <Compile Include="Implementation\GpxLoader.WayPointInfo.cs" />
     <Compile Include="Implementation\MetaLogger.cs" />
     <Compile Include="Implementation\NoneGpxDirtyWriter.cs" />
     <Compile Include="NoneLogger.cs" />
@@ -140,8 +140,8 @@
     <Compile Include="Implementation\GpxLoader.PlanData.cs" />
     <Compile Include="Implementation\GpxLoader.cs" />
     <Compile Include="Implementation\GpxDirtyWriter.cs" />
-    <Compile Include="HotWriter.cs" />
-    <Compile Include="LogFile.cs" />
+    <Compile Include="LogFactory.cs" />
+    <Compile Include="Implementation\FileLogger.cs" />
     <Compile Include="Alarm.cs" />
     <Compile Include="CustomExceptionHandler.cs" />
     <Compile Include="PositionCalculator.cs" />

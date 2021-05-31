@@ -20,6 +20,7 @@ namespace TrackRadar.Implementation
         {
         }
 
+#if DEBUG
         void IGpxDirtyWriter.WritePoint(in GeoPoint point, string name, string comment)
         {
         }
@@ -27,5 +28,6 @@ namespace TrackRadar.Implementation
         void IGpxDirtyWriter.WriteTrack(IEnumerable<GeoPoint> points, string name)
         {
         }
+#endif
     }
 }

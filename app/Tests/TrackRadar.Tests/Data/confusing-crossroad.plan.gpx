@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx
+  version="1.0"
+  creator="GPSBabel - http://www.gpsbabel.org"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://www.topografix.com/GPX/1/0"
+  xsi:schemaLocation="http://www.topografix.com/GPX/1/0 http://www.topografix.com/GPX/1/0/gpx.xsd">
+<wpt lat="52.941594200" lon="24.733254100">
+  <ele>0.000000</ele>
+  <name>Point 9</name>
+  <cmt>Point 9</cmt>
+  <desc>Point 9</desc>
+</wpt>
+<trk>
+  <name>Line 17</name>
+<trkseg>
+<trkpt lat="52.939800300" lon="24.735433900">
+  <ele>0.000000</ele>
+</trkpt>
+<trkpt lat="52.941669000" lon="24.733384200">
+  <ele>0.000000</ele>
+</trkpt>
+<trkpt lat="52.944532800" lon="24.731399800">
+  <ele>0.000000</ele>
+</trkpt>
+</trkseg>
+</trk>
+</gpx>

@@ -36,10 +36,16 @@ namespace TrackRadar
         TimeSpan TurnAheadAlarmInterval { get; }
         TimeSpan TurnAheadScreenTimeout { get; }
         TimeSpan OffTrackAlarmInterval { get; }
+        int OffTrackAlarmCountLimit { get; }
         bool UseVibration { get; }
         bool GpsFilter { get; }
         bool GpsDump { get; }
         bool ShowTurnAhead { get; }
+
+        Length DriftWarningDistance { get;  } 
+        int DriftMovingAwayCountLimit { get;  } 
+        int DriftComingCloserCountLimit { get; } 
+
 
         string TrackName { get; }
 

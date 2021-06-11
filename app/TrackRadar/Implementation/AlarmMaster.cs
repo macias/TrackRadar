@@ -44,6 +44,8 @@ namespace TrackRadar.Implementation
         private readonly ITimeStamper stamper;
         private readonly IReadOnlyList<AlarmSound> turnAheads;
 
+        public event AlarmHandler AlarmPlayed;
+
         public TimeSpan MaxTurnDuration { get; private set; }
 
         public AlarmMaster(ITimeStamper stamper)
@@ -209,6 +211,7 @@ namespace TrackRadar.Implementation
 
                 this.playStartedAt[sound] = stamper.GetTimestamp();
                 selected_player.Start();
+                this.AlarmPlayed?.Invoke(this, alarm);
                 reason = null;
                 return true;
             }

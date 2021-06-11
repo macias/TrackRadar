@@ -23,6 +23,8 @@ namespace TrackRadar
 
             public const string OffTrackAlarmInterval = "OffTrackAlarmInterval";
             public const string OffTrackAlarmDistance = "OffTrackAlarmDistance";
+            public const string OffTrackAlarmCountLimit = "OffTrackAlarmCountLimit";
+
             public const string NoGpsAgainAlarmInterval = "NoGpsAlarmInterval";
             public const string NoGpsFirstAlarmTimeout = "NoGpsAlarmTimeout";
 
@@ -57,6 +59,10 @@ namespace TrackRadar
             public const string DoubleTurnDistance = "DoubleTurnDistance";
             public const string TurnAheadAlarmInterval = "TurnAheadAlarmInterval";
             public const string TurnAheadScreenTimeout = "TurnAheadScreenTimeout";
+
+            public const string DriftWarningDistance = "DriftWarningDistance";
+            public const string DriftMovingAwayCountLimit = "DriftMovingAwayCountLimit";
+            public const string DriftComingCloserCountLimit = "DriftComingCloserCountLimit";
         }
 
         public const int OffTrackDefaultAudioId = Resource.Raw.sonar_ping;
@@ -112,6 +118,7 @@ namespace TrackRadar
         // and then alarm is repeated by given interval
 
         public TimeSpan OffTrackAlarmInterval { get; set; } // seconds
+       public int OffTrackAlarmCountLimit { get; set; }
         public Length OffTrackAlarmDistance { get; set; } // in meters
         // max timeout for which it is accepted to have no signal
         public TimeSpan NoGpsAlarmFirstTimeout { get; set; } // seconds
@@ -126,6 +133,10 @@ namespace TrackRadar
         public Length RidingDistance { get; set; }
         public TimeSpan RidingTime { get; set; }
         public Speed TopSpeed { get; set; }
+
+        public Length DriftWarningDistance { get; set; } // in meters
+        public int DriftMovingAwayCountLimit { get; set; } // count
+        public int DriftComingCloserCountLimit { get; set; } // count
 
         private string trackName;
         public string TrackName
@@ -144,6 +155,7 @@ namespace TrackRadar
 
             this.OffTrackAlarmDistance = DefaultOffTrackAlarmDistance;
             this.OffTrackAlarmInterval = TimeSpan.FromSeconds(10);
+            this.OffTrackAlarmCountLimit = 3;
 
             this.RestSpeedThreshold = Speed.FromKilometersPerHour(5); // average walking speed: https://en.wikipedia.org/wiki/Walking
             this.RidingSpeedThreshold = Speed.FromKilometersPerHour(10); // erderly person: https://en.wikipedia.org/wiki/Bicycle_performance
@@ -157,6 +169,10 @@ namespace TrackRadar
             this.DoubleTurnAlarmDistance = TimeSpan.FromSeconds(2);
             this.TurnAheadAlarmInterval = TimeSpan.FromSeconds(2);
             this.TurnAheadScreenTimeout = TimeSpan.FromSeconds(5);
+
+            this.DriftWarningDistance = Length.FromMeters(30);
+            this.DriftMovingAwayCountLimit = 10;
+            this.DriftComingCloserCountLimit = 5;
         }
 
 
@@ -177,6 +193,7 @@ namespace TrackRadar
                     editor.PutBoolean(Keys.GpsDump, data.GpsDump);
                     editor.PutInt(Keys.OffTrackAlarmInterval, (int)data.OffTrackAlarmInterval.TotalSeconds);
                     editor.PutInt(Keys.OffTrackAlarmDistance, (int)data.OffTrackAlarmDistance.Meters);
+                    editor.PutInt(Keys.OffTrackAlarmCountLimit, data.OffTrackAlarmCountLimit);
                     editor.PutInt(Keys.NoGpsAgainAlarmInterval, (int)data.NoGpsAlarmAgainInterval.TotalMinutes);
                     editor.PutInt(Keys.NoGpsFirstAlarmTimeout, (int)data.NoGpsAlarmFirstTimeout.TotalSeconds);
 
@@ -212,6 +229,11 @@ namespace TrackRadar
                     editor.PutInt(Keys.TurnAheadAlarmInterval, (int)data.TurnAheadAlarmInterval.TotalSeconds);
                     editor.PutInt(Keys.TurnAheadScreenTimeout, (int)data.TurnAheadScreenTimeout.TotalSeconds);
 
+
+                    editor.PutInt(Keys.DriftWarningDistance, (int)data.DriftWarningDistance.Meters);
+                    editor.PutInt(Keys.DriftMovingAwayCountLimit, (int)data.DriftMovingAwayCountLimit);
+                    editor.PutInt(Keys.DriftComingCloserCountLimit, (int)data.DriftComingCloserCountLimit);
+
                     editor.Commit();
                 }
             }
@@ -229,6 +251,7 @@ namespace TrackRadar
                 data.GpsFilter = prefs.GetBoolean(Keys.GpsFilter, data.GpsFilter);
                 data.GpsDump = prefs.GetBoolean(Keys.GpsDump, data.GpsDump);
                 data.OffTrackAlarmInterval = TimeSpan.FromSeconds(prefs.GetInt(Keys.OffTrackAlarmInterval, (int)data.OffTrackAlarmInterval.TotalSeconds));
+                data.OffTrackAlarmCountLimit = prefs.GetInt(Keys.OffTrackAlarmCountLimit, data.OffTrackAlarmCountLimit);
                 data.OffTrackAlarmDistance = Length.FromMeters(prefs.GetInt(Keys.OffTrackAlarmDistance, (int)data.OffTrackAlarmDistance.Meters));
                 data.NoGpsAlarmAgainInterval = TimeSpan.FromMinutes(prefs.GetInt(Keys.NoGpsAgainAlarmInterval, (int)data.NoGpsAlarmAgainInterval.TotalMinutes));
                 data.NoGpsAlarmFirstTimeout = TimeSpan.FromSeconds(prefs.GetInt(Keys.NoGpsFirstAlarmTimeout, (int)data.NoGpsAlarmFirstTimeout.TotalSeconds));
@@ -271,6 +294,10 @@ namespace TrackRadar
                 data.RidingDistance = Length.FromMeters(prefs.GetFloat(Keys.RidingDistance, 0));
                 data.TopSpeed = Speed.FromKilometersPerHour(prefs.GetFloat(Keys.TopSpeed, 0));
                 data.RidingTime = TimeSpan.FromSeconds(prefs.GetFloat(Keys.RidingTime, 0));
+
+                data.DriftWarningDistance = Length.FromMeters(prefs.GetInt(Keys.DriftWarningDistance, (int)data.DriftWarningDistance.Meters));
+                data.DriftMovingAwayCountLimit = prefs.GetInt(Keys.DriftMovingAwayCountLimit, data.DriftMovingAwayCountLimit);
+                data.DriftComingCloserCountLimit = prefs.GetInt(Keys.DriftComingCloserCountLimit, data.DriftComingCloserCountLimit);
 
                 return data;
             }

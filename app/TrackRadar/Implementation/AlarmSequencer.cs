@@ -15,6 +15,14 @@ namespace TrackRadar.Implementation
         private ulong failedMask;
         private Alarm? alarmPlayed;
 
+        public event AlarmHandler AlarmNotified;
+        public event AlarmHandler AlarmPlayed
+        {
+            add { this.master.AlarmPlayed += value; }
+            remove { this.master.AlarmPlayed -= value; }
+        }
+
+
         public TimeSpan MaxTurnDuration => this.master.MaxTurnDuration;
 
         public AlarmSequencer(ILogger logger, IAlarmMaster master)
@@ -30,6 +38,7 @@ namespace TrackRadar.Implementation
             // (because for example interval between alarms prevents it), so any other alarm should be played
             // also this influences already pending alarms
             this.notificationMask |= (1UL << alarmNotificationCategory(alarm));
+            this.AlarmNotified?.Invoke(this, alarm);
         }
 
         private int alarmNotificationCategory(Alarm alarm)

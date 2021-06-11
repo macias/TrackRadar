@@ -84,21 +84,21 @@ namespace TrackRadar.Tests.Implementation
         {
             return RideLogged(
 #if DEBUG
-                MetaLogger.None, 
+                MetaLogger.None,
 #endif
                 prefs, playDuration, planFilename, trackedFilename, speed, reverse);
         }
 
         public static RideStats RideLogged(
 #if DEBUG
-            MetaLogger DEBUG_logger, 
+            MetaLogger DEBUG_logger,
 #endif
             Preferences prefs, TimeSpan playDuration, string planFilename, string trackedFilename,
             Speed? speed, bool reverse = false)
         {
             LoadDataLogged(
 #if DEBUG
-                DEBUG_logger, 
+                DEBUG_logger,
 #endif
                 prefs, planFilename, trackedFilename,
                 out IPlanData plan_data, out List<GeoPoint> track_points);
@@ -109,19 +109,31 @@ namespace TrackRadar.Tests.Implementation
             if (reverse)
                 track_points.Reverse();
 
-            return Ride(prefs, playDuration, plan_data, track_points, out _, out _, out _, out _);
+            return Ride(
+                prefs, playDuration, plan_data, track_points, out _, out _, out _, out _);
 
         }
 
-        internal static void PrintAlarms(IReadOnlyList<(Alarm alarm, int index)> alarms)
+#if DEBUG
+        internal static void PrintAlarms(in RideStats stats)
         {
+            PrintAlarms(stats.Alarms, statsPrefix: true);
+        }
+
+        internal static void PrintAlarms(IReadOnlyList<(Alarm alarm, int index)> alarms, bool statsPrefix = false)
+        {
+            Console.WriteLine($"Assert.AreEqual({alarms.Count}, {(statsPrefix ? "stats.A" : "a")}larms.Count);");
+            Console.WriteLine("int a = 0;");
+            Console.WriteLine();
+
             foreach (var alarm in alarms)
             {
-                string line = $"Assert.AreEqual(({alarm.alarm.GetType().Name}.{alarm.alarm}, {alarm.index}), alarms[a++]);";
+                string line = $"Assert.AreEqual(({alarm.alarm.GetType().Name}.{alarm.alarm}, {alarm.index}), {(statsPrefix ? "stats.A" : "a")}larms[a++]);";
                 Console.WriteLine(line);
                 Debug.WriteLine(line);
             }
         }
+#endif
 
         public static void LoadData(Preferences prefs, string planFilename, string trackedFilename,
             out IPlanData planData, out List<GeoPoint> trackPoints)
@@ -135,14 +147,14 @@ namespace TrackRadar.Tests.Implementation
 
         public static void LoadDataLogged(
 #if DEBUG
-            MetaLogger DEBUG_logger, 
+            MetaLogger DEBUG_logger,
 #endif
             Preferences prefs, string planFilename, string trackedFilename,
     out IPlanData planData, out List<GeoPoint> trackPoints)
         {
             planData = LoadPlanLogged(
 #if DEBUG
-                DEBUG_logger, 
+                DEBUG_logger,
 #endif
                 prefs, planFilename);
             // we assume for reals rides GPS acquire interval was one second, thus we don't have to process timestamps
@@ -168,7 +180,7 @@ namespace TrackRadar.Tests.Implementation
 
         internal static IPlanData LoadPlanLogged(
 #if DEBUG
-            MetaLogger DEBUG_logger, 
+            MetaLogger DEBUG_logger,
 #endif
             Preferences prefs, string planFilename)
         {
@@ -183,7 +195,7 @@ namespace TrackRadar.Tests.Implementation
         {
             return LoadPlanLogged(
 #if DEBUG
-                MetaLogger.None, 
+                MetaLogger.None,
 #endif
                 prefs, planFilename);
         }
@@ -220,9 +232,10 @@ namespace TrackRadar.Tests.Implementation
             {
                 raw_alarm_master.PopulateAlarms(playDuration);
 
-                var counting_alarm_master = new CountingAlarmMaster(raw_alarm_master);
+                var service = new TrackRadar.Tests.Implementation.MockRadarService(prefs, clock);
+                ILogger logger = service;
+                var counting_alarm_master = new CountingAlarmMaster(logger, raw_alarm_master);
 
-                var service = new TrackRadar.Tests.Implementation.RadarService(prefs, clock);
                 AlarmSequencer sequencer = new AlarmSequencer(service, counting_alarm_master);
                 var core = new RadarCore(service, sequencer, clock, planData, Length.Zero, Length.Zero, TimeSpan.Zero, Speed.Zero);
                 lookout = core.Lookout;
@@ -234,16 +247,14 @@ namespace TrackRadar.Tests.Implementation
                 {
                     using (sequencer.OpenAlarmContext(gpsAcquired: false, hasGpsSignal: true))
                     {
-                        if (point_index == 29)
+                        if (point_index == 44)
                         {
                             ;
                         }
                         counting_alarm_master.SetPointIndex(point_index);
                         long start = Stopwatch.GetTimestamp();
                         core.UpdateLocation(pt, null, accuracy: null);
-#if DEBUG
-                        speeds.Add(core.DEBUG_CurrentSpeed);
-#endif
+                        speeds.Add(core.RidingSpeed);
                         long passed = Stopwatch.GetTimestamp() - start;
                         if (longest_update < passed)
                             longest_update = passed;
@@ -256,7 +267,7 @@ namespace TrackRadar.Tests.Implementation
                 alarms = counting_alarm_master.Alarms;
                 messages = counting_alarm_master.Messages;
 
-                return new RideStats(planData, speeds, longest_update * 1.0 / Stopwatch.Frequency,
+                return new RideStats(planData, trackPoints, speeds, longest_update * 1.0 / Stopwatch.Frequency,
                     (Stopwatch.GetTimestamp() - start_all - 0.0) / (Stopwatch.Frequency * trackPoints.Count),
                     trackPoints.Count,
                     alarmCounters, alarms, messages);
@@ -332,6 +343,12 @@ namespace TrackRadar.Tests.Implementation
         {
 #if DEBUG
             GpxToolbox.SaveGpxSegments(filename, segments);
+#endif
+        }
+        public static void SaveGpxAlarms(string filename, RideStats stats)
+        {
+#if DEBUG
+            GpxToolbox.SaveGpxWaypoints(filename, stats.Alarms.Select(a => (stats.TrackPoints[a.index],$"{a.index}. {a.alarm}")));
 #endif
         }
         public static void SaveGpxWaypoints(string filename, IEnumerable<GeoPoint> points)

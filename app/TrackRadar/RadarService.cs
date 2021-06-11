@@ -575,9 +575,15 @@ private long mLastTime;
             LogDebug(level, message);
         }
 
+        void ILogger.LogDebug(LogLevel level, string message)
+        {
+            throw new NotImplementedException();
+        }
+
         TimeSpan IRadarService.OffTrackAlarmInterval => this.prefs.OffTrackAlarmInterval;
         TimeSpan IRadarService.TurnAheadAlarmInterval => this.prefs.TurnAheadAlarmInterval;
         Length IRadarService.OffTrackAlarmDistance => this.prefs.OffTrackAlarmDistance;
+        int IRadarService.OffTrackAlarmCountLimit => this.prefs.OffTrackAlarmCountLimit;
         TimeSpan IRadarService.TurnAheadAlarmDistance => this.prefs.TurnAheadAlarmDistance;
         TimeSpan IRadarService.DoubleTurnAlarmDistance => this.prefs.DoubleTurnAlarmDistance;
         Speed IRadarService.RestSpeedThreshold => this.prefs.RestSpeedThreshold;
@@ -590,5 +596,9 @@ private long mLastTime;
 
         TimeSpan ISignalCheckerService.NoGpsFirstTimeout => this.prefs.NoGpsAlarmFirstTimeout;
         TimeSpan ISignalCheckerService.NoGpsAgainInterval => this.prefs.NoGpsAlarmAgainInterval;
+
+        Length IRadarService.DriftWarningDistance => this.prefs.DriftWarningDistance;
+        int IRadarService.DriftMovingAwayCountLimit => this.prefs.DriftMovingAwayCountLimit;
+        int IRadarService.DriftComingCloserCountLimit => this.prefs.DriftComingCloserCountLimit;
     }
 }

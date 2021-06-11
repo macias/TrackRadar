@@ -8,11 +8,14 @@ namespace TrackRadar.Tests.Implementation
 {
     internal sealed class CountingAlarmMaster : IAlarmMaster
     {
+        private readonly ILogger logger;
         private readonly IAlarmMaster master;
         private readonly Dictionary<Alarm, int> alarmCount;
         private readonly List<(Alarm alarm, int pointIndex)> alarms;
         private readonly List<(string message, int pointIndex)> messages;
         private int pointIndex;
+
+        public event AlarmHandler AlarmPlayed;
 
         public IReadOnlyDictionary<Alarm, int> AlarmCounters => this.alarmCount;
         public IReadOnlyList<(Alarm alarm, int index)> Alarms => alarms;
@@ -20,8 +23,9 @@ namespace TrackRadar.Tests.Implementation
 
         public TimeSpan MaxTurnDuration => master.MaxTurnDuration;
 
-        public CountingAlarmMaster(IAlarmMaster master)
+        public CountingAlarmMaster(ILogger logger, IAlarmMaster master)
         {
+            this.logger = logger;
             this.master = master;
             this.alarmCount = LinqExtension.GetEnums<Alarm>().ToDictionary(alarm => alarm, _ => 0);
             this.alarms = new List<(Alarm alarm, int pointIndex)>();
@@ -34,7 +38,8 @@ namespace TrackRadar.Tests.Implementation
 
             this.alarms.Add((alarm, pointIndex));
             ++alarmCount[alarm];
-            // Console.WriteLine($"ALARM {alarm}");
+            logger.Verbose($"ALARM {alarm}");
+            this.AlarmPlayed?.Invoke(this, alarm);
             return true;
         }
         public void PostMessage(string message)

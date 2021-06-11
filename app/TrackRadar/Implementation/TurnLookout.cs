@@ -151,9 +151,11 @@ namespace TrackRadar.Implementation
 
             }
             // if we stopped near turn point, clear its alarm after a while
-            else if (cx_index != -1 && timeStamper.GetSecondsSpan(now, this.crossroadLastAlarm[cx_index]) > service.TurnAheadAlarmDistance.TotalSeconds)
+            else if (cx_index != -1)
             {
-                ClearTurnCounters(cx_index);
+                double last_alarm_passed_s = timeStamper.GetSecondsSpan(now, this.crossroadLastAlarm[cx_index]);
+                if (last_alarm_passed_s > service.TurnAheadAlarmDistance.TotalSeconds)
+                    ClearTurnCounters(cx_index);
             }
 
             bool primary_keep_running = true;
@@ -472,9 +474,15 @@ namespace TrackRadar.Implementation
 
             if (played)
             {
+                var now = this.timeStamper.GetTimestamp();
+
                 ++this.crossroadAlarmCount[cx_index];
+                this.crossroadLastAlarm[cx_index] = now;
                 foreach (int idx in doubleTurnIndices)
+                {
                     ++this.crossroadAlarmCount[idx];
+                    this.crossroadLastAlarm[idx] = now;
+                }
             }
             else
                 service.LogDebug(LogLevel.Warning, $"Turn ahead alarm, couldn't play, reason {play_reason}");

@@ -62,7 +62,7 @@ namespace TrackRadar.Tests
             Assert.AreEqual((Alarm.Engaged, 273), alarms[a++]);
             Assert.AreEqual((Alarm.Crossroad, 399), alarms[a++]);
             Assert.AreEqual((Alarm.Crossroad, 401), alarms[a++]);
-            Assert.AreEqual((Alarm.Crossroad, 403), alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 405), alarms[a++]);
         }
 
         [TestMethod]
@@ -84,22 +84,27 @@ namespace TrackRadar.Tests
             Toolbox.PopulateTrackDensely(track_points);
             track_points.AddRange(track_points.AsEnumerable().Reverse());
 
-            Toolbox.Ride(prefs, gpx_data, track_points, out var alarm_counters, out var alarms, out var messages);
+            var stats = Toolbox.Ride(prefs, gpx_data, track_points, out var alarm_counters, out var alarms, out var messages);
 
-            Assert.AreEqual(6, alarms.Count());
-
+            Assert.AreEqual(10, stats.Alarms.Count);
             int a = 0;
-            Assert.AreEqual((Alarm.Engaged, 3), alarms[a++]);
 
-            Assert.AreEqual((Alarm.OffTrack, 37), alarms[a++]);
-            Assert.AreEqual((Alarm.OffTrack, 47), alarms[a++]);
-            Assert.AreEqual((Alarm.OffTrack, 57), alarms[a++]);
-            Assert.AreEqual((Alarm.Disengage, 67), alarms[a++]);
+            Assert.AreEqual((Alarm.Engaged, 3), stats.Alarms[a++]);
+
+            Assert.AreEqual((Alarm.OffTrack, 29), stats.Alarms[a++]); // quick off track alarm thanks to drifting check
+            Assert.AreEqual((Alarm.OffTrack, 39), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.OffTrack, 49), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Disengage, 59), stats.Alarms[a++]); // we alarmed user enough
+
+            Assert.AreEqual((Alarm.OffTrack, 515), stats.Alarms[a++]); // something to improve, program counts 180 deg turn as stopping, so it alarms about off-track again
+            Assert.AreEqual((Alarm.OffTrack, 525), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.OffTrack, 535), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Disengage, 545), stats.Alarms[a++]);
 
             // we don't have second disengage in the middle of riding (when turning back) because now TrackRadar checks
             // the state not the speed, and since multiple off-track causes disengage, the single alarm suffices
 
-            Assert.AreEqual((Alarm.BackOnTrack, 989), alarms[a++]);
+            Assert.AreEqual((Alarm.BackOnTrack, 989), stats.Alarms[a++]);
         }
 
         [TestMethod]
@@ -309,7 +314,7 @@ namespace TrackRadar.Tests
             {
                 raw_alarm_master.PopulateAlarms();
 
-                var service = new TrackRadar.Tests.Implementation.RadarService(prefs, clock);
+                var service = new TrackRadar.Tests.Implementation.MockRadarService(prefs, clock);
                 var core = new RadarCore(service, new AlarmSequencer(service, raw_alarm_master), clock, gpx_data, Length.Zero, Length.Zero, TimeSpan.Zero, Speed.Zero);
 
                 //clock.SetTime(DateTimeOffset.UtcNow);

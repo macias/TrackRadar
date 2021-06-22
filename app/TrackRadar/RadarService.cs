@@ -12,7 +12,7 @@ using System.Collections.Generic;
 
 namespace TrackRadar
 {
-    [Service]
+    [Service(Exported = false)]
     internal sealed partial class RadarService : Service, ILocationListener, IRadarService, ISignalCheckerService//, ISensorEventListener
     {
         private readonly object threadLock = new object();
@@ -128,7 +128,7 @@ private long mLastTime;
                     //this.TEST_timer.Change(TimeSpan.FromSeconds(25), System.Threading.Timeout.InfiniteTimeSpan);
                 }
 
-                this.core = new RadarCore(this, alarmSequencer, timeStamper, app.TrackData,
+                this.core = new RadarCore(this, alarmSequencer, timeStamper, app.GetTrackData(),
                     totalClimbs: app.Prefs.TotalClimbs, app.Prefs.RidingDistance, app.Prefs.RidingTime, app.Prefs.TopSpeed);
 
                 this.locationManager = (LocationManager)GetSystemService(Context.LocationService);

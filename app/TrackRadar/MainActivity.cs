@@ -51,7 +51,7 @@ namespace TrackRadar
         private TrackRadarApp app => (TrackRadarApp)Application;
 
         private bool isTrackLoading => app.TrackTag != this.loadTrackRequestTag;
-        private bool isTrackLoaded => app.TrackData != null && !isTrackLoading;
+        private bool isTrackLoaded => app.GetTrackData() != null && !isTrackLoading;
 
         private bool isUiRunning;
 
@@ -183,7 +183,7 @@ namespace TrackRadar
                 bool loader_running = this.isServiceRunning<LoaderService>();
                 if (loader_running)
                 {
-                    this.receiver.ProgressUpdate += Receiver_ProgressUpdate;
+                    this.receiver.ProgressUpdate += loadReceiver_ProgressUpdate;
                     LoaderReceiver.SendSubscribe(this);
                     LoaderReceiver.SendInfoRequest(this);
 
@@ -262,7 +262,7 @@ namespace TrackRadar
 
         private void unsubscribeFromLoader()
         {
-            this.receiver.ProgressUpdate -= Receiver_ProgressUpdate;
+            this.receiver.ProgressUpdate -= loadReceiver_ProgressUpdate;
             LoaderReceiver.SendUnsubscribe(this);
         }
 
@@ -433,9 +433,9 @@ namespace TrackRadar
                 //                logDebug(LogLevel.Verbose, $"gps provider enabled {gps_enabled}");
                 this.gpsInfoTextView.Visibility = gps_enabled ? ViewStates.Gone : ViewStates.Visible;
 
-                logDebug(LogLevel.Verbose, $"UI track: {(app.TrackData == null ? "null" : "loaded")} app tag {app.TrackTag} req tag {this.loadTrackRequestTag}");
+                logDebug(LogLevel.Verbose, $"UI track: {(app.GetTrackData() == null ? "null" : "loaded")} app tag {app.TrackTag} req tag {this.loadTrackRequestTag}");
 
-                this.navigationDisabledTextView.Visibility = isTrackLoaded && this.app.TrackData.Graph == null ? ViewStates.Visible : ViewStates.Gone;
+                this.navigationDisabledTextView.Visibility = isTrackLoaded && this.app.GetTrackData().Graph == null ? ViewStates.Visible : ViewStates.Gone;
 
                 if (isTrackLoaded)
                 {
@@ -650,9 +650,10 @@ namespace TrackRadar
 
                     case Resource.Id.TurnAheadMenuItem:
                         app.Prefs.SaveTrackFileName(this, null);
-                        app.TrackData = null;
+                        app.SetTrackData(null);
                         updateReadiness(out _);
                         //StartActivity(typeof(TurnAheadActivity));
+                        this.logDebug(LogLevel.Verbose, "Track file name cleared");
                         break;
 
                     case Resource.Id.ClearStatsMenuItem:
@@ -661,7 +662,6 @@ namespace TrackRadar
                         break;
                 }
 
-                //this.logDebug(LogLevel.Verbose, "Done OnOptionsItemSelected");
             }
             catch (Exception ex)
             {
@@ -680,7 +680,7 @@ namespace TrackRadar
                 return;
             }
 
-            app.TrackData = null;
+            app.SetTrackData(null);
 
             this.trackFileNameTextView.Text = "Loading...";
             //this.loadProgressTextView.Visibility = ViewStates.Visible;
@@ -697,7 +697,7 @@ namespace TrackRadar
             }
             else
             {
-                this.receiver.ProgressUpdate += Receiver_ProgressUpdate;
+                this.receiver.ProgressUpdate += loadReceiver_ProgressUpdate;
 
                 logDebug(LogLevel.Verbose, $"Starting load service {this.loadTrackRequestTag}");
                 LoaderReceiver.SetLoadRequestData(this.loaderServiceIntent, this.loadTrackRequestTag, track_path, app.Prefs.OffTrackAlarmDistance);
@@ -707,10 +707,12 @@ namespace TrackRadar
             updateReadiness(out _);
         }
 
-        private void Receiver_ProgressUpdate(object sender, ProgressEventArgs e)
+        private void loadReceiver_ProgressUpdate(object sender, ProgressEventArgs e)
         {
             if (e.Progress == 1)
             {
+                logDebug(LogLevel.Verbose, $"Received load progress = {e.Progress} with message {e.Message}.");
+
                 if (e.Message != null)
                     this.trackErrorTextView.Text = e.Message;
 
@@ -728,27 +730,27 @@ namespace TrackRadar
                 message = $"{prefix} {message}";
         }
 
-     /*   protected override void OnRestoreInstanceState(Bundle savedInstanceState)
-        {
-            base.OnRestoreInstanceState(savedInstanceState);
+        /*   protected override void OnRestoreInstanceState(Bundle savedInstanceState)
+           {
+               base.OnRestoreInstanceState(savedInstanceState);
 
-            this.logDebug(LogLevel.Info, $"OnRestoreInstanceState");
-            if (savedInstanceState != null)
-            {
-                loadTrackRequestTag = savedInstanceState.GetInt(nameof(this.loadTrackRequestTag), loadTrackRequestTag);
-                this.logDebug(LogLevel.Info, $"restoring loadTrackRequestTag {loadTrackRequestTag}");
-            }
-        }
+               this.logDebug(LogLevel.Info, $"OnRestoreInstanceState");
+               if (savedInstanceState != null)
+               {
+                   loadTrackRequestTag = savedInstanceState.GetInt(nameof(this.loadTrackRequestTag), loadTrackRequestTag);
+                   this.logDebug(LogLevel.Info, $"restoring loadTrackRequestTag {loadTrackRequestTag}");
+               }
+           }
 
-        protected override void OnSaveInstanceState(Bundle outState)
-        {
-            base.OnSaveInstanceState(outState);
+           protected override void OnSaveInstanceState(Bundle outState)
+           {
+               base.OnSaveInstanceState(outState);
 
-            this.logDebug(LogLevel.Info, $"OnSaveInstanceState");
-            outState.PutInt(nameof(this.loadTrackRequestTag), loadTrackRequestTag);
-            this.logDebug(LogLevel.Info, $"saving loadTrackRequestTag {loadTrackRequestTag}");
-        }
-        */
+               this.logDebug(LogLevel.Info, $"OnSaveInstanceState");
+               outState.PutInt(nameof(this.loadTrackRequestTag), loadTrackRequestTag);
+               this.logDebug(LogLevel.Info, $"saving loadTrackRequestTag {loadTrackRequestTag}");
+           }
+           */
 
     }
 }

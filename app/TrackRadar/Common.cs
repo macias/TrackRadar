@@ -1,11 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Threading;
 using Android.Content;
 using Android.Media;
-using Android.OS;
-using Gpx;
+using TrackRadar.Implementation;
 
 namespace TrackRadar
 {
@@ -13,14 +9,6 @@ namespace TrackRadar
     {
         private const string appTag = nameof(TrackRadar);
 
-        public static string FormatLongDateTime(DateTimeOffset dto)
-        {
-            return DateTimeOffset.Now.ToString("O");
-        }
-        public static string FormatShortDateTime(DateTimeOffset dto)
-        {
-            return DateTimeOffset.Now.ToString("dd_HH:mm:ss.fff");
-        }
         public static DateTimeOffset FromTimeStampMs(long timeStamp)
         {
             return new DateTimeOffset(1970, 1, 1, 0, 0, 0, TimeSpan.Zero) + TimeSpan.FromMilliseconds(timeStamp);
@@ -57,7 +45,7 @@ namespace TrackRadar
                     priority = Android.Util.LogPriority.Error;
                     break;
             }
-            Android.Util.Log.WriteLine(priority, Common.appTag, Common.FormatShortDateTime(DateTime.Now) + " " + message);
+            Android.Util.Log.WriteLine(priority, Common.appTag, Formatter.FormatShortDateTime(DateTime.Now) + " " + message);
         }
 
         internal static void VibrateAlarm(IAlarmVibrator vibrator)

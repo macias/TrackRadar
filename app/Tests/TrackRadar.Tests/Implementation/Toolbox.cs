@@ -431,7 +431,7 @@ namespace TrackRadar.Tests.Implementation
 #if DEBUG
             return GpxLoader.TryLoadGpx(filename, out tracks, out waypoints, onProgress, token);
 #else
-            throw new NotImplementedException();
+            throw new NotSupportedException();
 #endif
         }
 
@@ -442,7 +442,7 @@ namespace TrackRadar.Tests.Implementation
 #if DEBUG
             return GpxLoader.ProcessTrackData(MetaLogger.None, tracks, waypoints, endpoints, offTrackDistance, segmentLengthLimit, onProgress, token);
 #else
-            throw new NotImplementedException();
+            throw new NotSupportedException();
 #endif
         }
         public static IPlanData ProcessTrackData(IEnumerable<IEnumerable<GeoPoint>> tracks,

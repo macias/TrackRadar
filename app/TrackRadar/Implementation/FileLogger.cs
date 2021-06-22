@@ -17,7 +17,7 @@ namespace TrackRadar.Implementation
         {
             lock (this.threadLock)
             {
-                this.stream.WriteLine($"[{Common.FormatLongDateTime(DateTimeOffset.Now)}] {level}: {message}");
+                this.stream.WriteLine($"[{Formatter.ZuluFormat(DateTimeOffset.Now)}] {level}: {message}");
                 this.stream.Flush();
             }
         }

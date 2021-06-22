@@ -460,7 +460,7 @@ private long mLastTime;
 
         private string locationToString(Location location)
         {
-            return $"{(location.Latitude.ToString(RadarCore.GeoPointFormat))}, {(location.Longitude.ToString(RadarCore.GeoPointFormat))}, acc: {(location.HasAccuracy ? location.Accuracy.ToString("0.##") : "?")}, dt {Common.FormatShortDateTime(Common.FromTimeStampMs(location.Time))}, hw: {timeStamper.GetSecondsSpan(core.StartedAt)}s";
+            return $"{(location.Latitude.ToString(RadarCore.GeoPointFormat))}, {(location.Longitude.ToString(RadarCore.GeoPointFormat))}, acc: {(location.HasAccuracy ? location.Accuracy.ToString("0.##") : "?")}, dt {Formatter.FormatShortDateTime(Common.FromTimeStampMs(location.Time))}, hw: {timeStamper.GetSecondsSpan(core.StartedAt)}s";
         }
 
 
@@ -577,7 +577,14 @@ private long mLastTime;
 
         void ILogger.LogDebug(LogLevel level, string message)
         {
-            throw new NotImplementedException();
+            LogDebug(level, message);
+        }
+
+        void ISignalCheckerService.AcquireGps()
+        {
+            // maybe I am paranoid but it happened to many times that simply waiting for GPS update was waste of time
+            // but single OsmAnd request for current location triggered GPS acquisition, so... what harm can it do?
+            locationManager.GetLastKnownLocation(LocationManager.GpsProvider);
         }
 
         TimeSpan IRadarService.OffTrackAlarmInterval => this.prefs.OffTrackAlarmInterval;

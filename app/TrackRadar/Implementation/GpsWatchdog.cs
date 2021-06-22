@@ -4,6 +4,8 @@ namespace TrackRadar.Implementation
 {
     internal sealed class GpsWatchdog : IDisposable
     {
+        private const int stableGpsAcquirementCountLimit = 10;
+
         private readonly object threadLock = new object();
         private readonly ISignalCheckerService service;
         private readonly ITimeStamper timeStamper;
@@ -17,6 +19,9 @@ namespace TrackRadar.Implementation
         private ulong DEBUG_NO_GPS;
         private ulong DEBUG_ALARMS;
 
+        // when we have signal we check it rarely, but if we don't we check it every second
+        private TimeSpan nextCheckAfter;
+
         public bool HasGpsSignal => System.Threading.Interlocked.CompareExchange(ref this.lastNoGpsAlarmAtTicks, 0, 0) == timeStamper.GetBeforeTimeTimestamp();
 
         public GpsWatchdog(ISignalCheckerService service, ITimeStamper timeStamper)
@@ -24,19 +29,18 @@ namespace TrackRadar.Implementation
             this.service = service;
             this.timeStamper = timeStamper;
 
-            // initially we have no signal and we assume user starting the service pays attention 
-            // to initial message "no signal"
             this.startAt = this.timeStamper.GetTimestamp();
+            // initially we have no signal but we don't alarm user about it right away -- we assume user 
+            // when starting the service pays attention that we are at acquisition stage
             this.lastNoGpsAlarmAtTicks = startAt - (long)(service.NoGpsAgainInterval.TotalSeconds * this.timeStamper.Frequency);
             this.lastGpsPresentAtTicks = startAt;
 
             this.service.Log(LogLevel.Verbose, $"Starting watchdog with no-gps-interval {service.NoGpsAgainInterval.TotalSeconds}");
             this.timer = service.CreateTimer(check);
-            // we are setting it to timeout, not interval, because we could have such scenario
-            // quick update, and then no signal -- with interval we would have to wait long time
-            // with timeout the timer will be triggered sooner so we could correctly adjust the time of the alarm
-            // in other words -- DO NOT use period to set the timer
-            this.timer.Change(dueTime: TimeSpan.FromSeconds(1), period: System.Threading.Timeout.InfiniteTimeSpan);
+
+            // DO NOT use period to set the timer, even with fixed rate
+            this.nextCheckAfter = GpsInfo.WEAK_updateRate;
+            this.timer.Change(dueTime: nextCheckAfter, period: System.Threading.Timeout.InfiniteTimeSpan);
         }
 
         public void Dispose()
@@ -58,12 +62,12 @@ namespace TrackRadar.Implementation
             lock (this.threadLock)
             {
                 if (this.isDisposed)
-                {
                     return;
-                }
 
                 long now = this.timeStamper.GetTimestamp();
-                if (timeStamper.GetSecondsSpan(now, this.lastGpsPresentAtTicks) > service.NoGpsFirstTimeout.TotalSeconds)
+                // get double of the refresh rate to avoid minor slippage
+                double margin_for_gps_update = Math.Min(service.NoGpsFirstTimeout.TotalSeconds, 2 * GpsInfo.WEAK_updateRate.TotalSeconds);
+                if (timeStamper.GetSecondsSpan(now, this.lastGpsPresentAtTicks) > margin_for_gps_update)
                 {
                     ++this.DEBUG_NO_GPS;
 
@@ -72,10 +76,16 @@ namespace TrackRadar.Implementation
 
                     gpsSignalCounter = 0;
 
-                    if (timeStamper.GetSecondsSpan(now, this.lastNoGpsAlarmAtTicks) > service.NoGpsAgainInterval.TotalSeconds)
+                    service.AcquireGps();
+
+                    this.nextCheckAfter = GpsInfo.WEAK_updateRate;
+
+                    if (timeStamper.GetSecondsSpan(now, this.lastGpsPresentAtTicks) > service.NoGpsFirstTimeout.TotalSeconds
+                        && timeStamper.GetSecondsSpan(now, this.lastNoGpsAlarmAtTicks) > service.NoGpsAgainInterval.TotalSeconds)
                     {
                         try
                         {
+
                             service.GpsOffAlarm(stats(now));
                             ++this.DEBUG_ALARMS;
                         }
@@ -93,7 +103,7 @@ namespace TrackRadar.Implementation
 
                 ++this.DEBUG_CHECKS;
 
-                this.timer.Change(TimeSpan.FromSeconds(1), System.Threading.Timeout.InfiniteTimeSpan);
+                this.timer.Change(nextCheckAfter, System.Threading.Timeout.InfiniteTimeSpan);
             }
         }
 
@@ -102,18 +112,25 @@ namespace TrackRadar.Implementation
             return $"stats: {DEBUG_CHECKS}, {DEBUG_NO_GPS}, {DEBUG_ALARMS}; now {now}/{this.timeStamper.Frequency}; gps {this.lastGpsPresentAtTicks}, timeout {service.NoGpsFirstTimeout.TotalSeconds}s; no-gps {this.lastNoGpsAlarmAtTicks}, interval {service.NoGpsAgainInterval.TotalSeconds}s";
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns>true if signal was RE-acquired</returns>
         public bool UpdateGpsIsOn()
         {
             lock (this.threadLock)
             {
                 this.lastGpsPresentAtTicks = timeStamper.GetTimestamp();
 
-                if (++this.gpsSignalCounter < 10)
+                if (++this.gpsSignalCounter < stableGpsAcquirementCountLimit)
                 {
                     service.Log(LogLevel.Verbose, $"Fresh GPS signal received {this.lastGpsPresentAtTicks}, {service.NoGpsFirstTimeout.TotalSeconds}, freq. {this.timeStamper.Frequency}");
                     return false;
                 }
 
+                this.nextCheckAfter = service.NoGpsFirstTimeout;
+
+                // if we lost signal some time ago, but now it is back
                 if (this.lastNoGpsAlarmAtTicks != this.timeStamper.GetBeforeTimeTimestamp())
                 {
                     this.lastNoGpsAlarmAtTicks = this.timeStamper.GetBeforeTimeTimestamp();

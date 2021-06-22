@@ -1,11 +1,5 @@
-using Geo;
-using Gpx;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using TrackRadar.Implementation;
-using TrackRadar.Tests.Implementation;
 
 namespace TrackRadar.Tests.Implementation
 {
@@ -13,21 +7,18 @@ namespace TrackRadar.Tests.Implementation
     {
         public ManualTimer Timer { get; private set; }
 
-        public TimeSpan NoGpsFirstTimeout { get; }
-        public TimeSpan NoGpsAgainInterval { get; }
         public int GpsOnAlarmCounter { get; private set; }
         public int GpsOffAlarmCounter { get; private set; }
 
+        private readonly TimeSpan noGpsFirstTimeout;
+        TimeSpan ISignalCheckerService.NoGpsFirstTimeout => this.noGpsFirstTimeout;
+        private readonly TimeSpan noGpsAgainInterval;
+        TimeSpan ISignalCheckerService.NoGpsAgainInterval => this.noGpsAgainInterval;
+
         public ManualSignalService(TimeSpan noGpsFirstTimeout, TimeSpan noGpsAgainInterval)
         {
-            NoGpsFirstTimeout = noGpsFirstTimeout;
-            NoGpsAgainInterval = noGpsAgainInterval;
-        }
-
-        public ITimer CreateTimer(Action callback)
-        {
-            this.Timer = new ManualTimer(callback);
-            return Timer;
+            this.noGpsFirstTimeout = noGpsFirstTimeout;
+            this.noGpsAgainInterval = noGpsAgainInterval;
         }
 
         public void GpsOnAlarm()
@@ -35,14 +26,25 @@ namespace TrackRadar.Tests.Implementation
             ++GpsOnAlarmCounter;
         }
 
-        public void GpsOffAlarm(string _)
+        ITimer ISignalCheckerService.CreateTimer(Action callback)
+        {
+            this.Timer = new ManualTimer(callback);
+            return Timer;
+        }
+
+        void ISignalCheckerService.GpsOffAlarm(string message)
         {
             ++GpsOffAlarmCounter;
         }
 
-        public void Log(LogLevel level, string message)
+        void ISignalCheckerService.AcquireGps()
         {
-            ;
+            ; // do nothing
+        }
+
+        void ISignalCheckerService.Log(LogLevel level, string message)
+        {
+            ; // do nothing
         }
     }
 

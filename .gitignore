@@ -1,0 +1,8 @@
+*
+!.gitignore
+!app/**
+
+**/*.csproj.user
+app/.vs/
+app/packages/
+**/PublishProfiles

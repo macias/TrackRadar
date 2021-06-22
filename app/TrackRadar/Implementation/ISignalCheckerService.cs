@@ -9,6 +9,7 @@ namespace TrackRadar.Implementation
 
         ITimer CreateTimer(Action callback);
         void GpsOffAlarm(string message);
+        void AcquireGps();
         void Log(LogLevel level, string message);
     }
 }

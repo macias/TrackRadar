@@ -78,6 +78,7 @@
     <Compile Include="Implementation\MetaLogger.cs" />
     <Compile Include="Implementation\NoneGpxDirtyWriter.cs" />
     <Compile Include="Implementation\OnTrackStatus.cs" />
+    <Compile Include="Implementation\GpsInfo.cs" />
     <Compile Include="TimeStamperExtension.cs" />
     <Compile Include="NoneLogger.cs" />
     <Compile Include="Implementation\GpxLoader.Stage.cs" />

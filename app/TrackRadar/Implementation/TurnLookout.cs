@@ -13,8 +13,6 @@ namespace TrackRadar.Implementation
 
         private const int crossroadWarningLimit = 3;
 
-        private static readonly TimeSpan WEAK_updateRate = TimeSpan.FromSeconds(1);
-
         private static readonly (Length, int) crossroadInitDistance = (Length.MaxValue, -1);
 
 
@@ -115,7 +113,7 @@ namespace TrackRadar.Implementation
                 return false;
             }
 
-            Length leap_distance = currentSpeed * WEAK_updateRate;
+            Length leap_distance = currentSpeed * GpsInfo.WEAK_updateRate;
             // rider can accelerate, how much it is hard to say, so we add some slack by adding "1" to the number of alarms needed
             Length alarms_distance = alarmsNeededDistance(currentSpeed, crossroadWarningLimit + 1);
             Length turn_ahead_distance = currentSpeed * service.TurnAheadAlarmDistance;
@@ -398,7 +396,7 @@ namespace TrackRadar.Implementation
             if (cxDistance <= turnAheadDistance)
                 return true;
             // if at next update (assuming current speed) we will go through needed distance for all alarms it is better to start alarms right now
-            Length step = currentSpeed * WEAK_updateRate;
+            Length step = currentSpeed * GpsInfo.WEAK_updateRate;
             Length next_cxDistance = cxDistance - step;
             if (next_cxDistance <= alarmsDistance)
                 return true;

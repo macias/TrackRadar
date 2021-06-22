@@ -198,7 +198,7 @@ namespace TrackRadar
                     updateReadiness(out bool is_radar_running);
                     if (is_radar_running) // gps could be switched meanwhile
                     {
-                        showAlarm("running", Android.Graphics.Color.GreenYellow);
+                        showWaitingForGpsLabel();
                         RadarReceiver.SendInfoRequest(this);
                     }
                 }
@@ -210,6 +210,11 @@ namespace TrackRadar
                 this.logDebug(LogLevel.Error, $"OnResume {ex}");
             }
 
+        }
+
+        private void showWaitingForGpsLabel()
+        {
+            showAlarm("connecting", Android.Graphics.Color.Yellow);
         }
 
         private void SHORT_LIFECYCLE_OnPartialCreatePart()
@@ -539,7 +544,7 @@ namespace TrackRadar
 
                     this.receiver.DistanceUpdate += Receiver_DistanceUpdate;
 
-                    showAlarm("running", Android.Graphics.Color.GreenYellow);
+                    showWaitingForGpsLabel();
 
                     maxOutSystemVolume(Android.Media.VolumeNotificationFlags.PlaySound);
 

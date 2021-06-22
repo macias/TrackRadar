@@ -118,6 +118,7 @@ namespace TrackRadar.Tests
             var clone = prefs.Clone();
             Assert.AreEqual("foobar", clone.TrackName);
         }
+
         [TestMethod]
         public void TestSignalChecker()
         {
@@ -128,36 +129,36 @@ namespace TrackRadar.Tests
 
             var checker = new GpsWatchdog(service, stamper);
 
-            service.Timer.Trigger();
+            service.Timer.TriggerCallback();
             Assert.AreEqual(0, service.GpsOnAlarmCounter);
             Assert.AreEqual(0, service.GpsOffAlarmCounter);
 
-            stamper.Advance();// TimeSpan.FromSeconds(1));
-            service.Timer.Trigger();
+            stamper.Advance();
+            service.Timer.TriggerCallback();
             Assert.AreEqual(0, service.GpsOnAlarmCounter);
             Assert.AreEqual(0, service.GpsOffAlarmCounter);
 
-            stamper.Advance();// TimeSpan.FromSeconds(1));
-            service.Timer.Trigger();
+            stamper.Advance();
+            service.Timer.TriggerCallback();
             Assert.AreEqual(0, service.GpsOnAlarmCounter);
             Assert.AreEqual(1, service.GpsOffAlarmCounter);
 
-            stamper.Advance();// TimeSpan.FromSeconds(1));
-            service.Timer.Trigger();
+            stamper.Advance();
+            service.Timer.TriggerCallback();
             Assert.AreEqual(0, service.GpsOnAlarmCounter);
             Assert.AreEqual(1, service.GpsOffAlarmCounter);
 
-            stamper.Advance();// TimeSpan.FromSeconds(1));
-            service.Timer.Trigger();
+            stamper.Advance();
+            service.Timer.TriggerCallback();
             Assert.AreEqual(0, service.GpsOnAlarmCounter);
             Assert.AreEqual(1, service.GpsOffAlarmCounter);
 
-            stamper.Advance();// TimeSpan.FromSeconds(1));
-            service.Timer.Trigger();
+            stamper.Advance();
+            service.Timer.TriggerCallback();
             Assert.AreEqual(0, service.GpsOnAlarmCounter);
             Assert.AreEqual(2, service.GpsOffAlarmCounter);
 
-            stamper.Advance();// TimeSpan.FromSeconds(1));
+            stamper.Advance();
             foreach (var _ in Enumerable.Range(0, 9)) // it takes 10 updates to switch the state
                 Assert.IsFalse(checker.UpdateGpsIsOn());
 
@@ -166,7 +167,7 @@ namespace TrackRadar.Tests
             Assert.AreEqual(0, service.GpsOnAlarmCounter);
             Assert.AreEqual(2, service.GpsOffAlarmCounter);
 
-            service.Timer.Trigger();
+            service.Timer.TriggerCallback();
             Assert.AreEqual(0, service.GpsOnAlarmCounter);
             Assert.AreEqual(2, service.GpsOffAlarmCounter);
         }

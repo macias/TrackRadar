@@ -7,7 +7,6 @@ namespace TrackRadar.Tests.Implementation
     {
         public ManualTimer Timer { get; private set; }
 
-        public int GpsOnAlarmCounter { get; private set; }
         public int GpsOffAlarmCounter { get; private set; }
 
         private readonly TimeSpan noGpsFirstTimeout;
@@ -21,20 +20,16 @@ namespace TrackRadar.Tests.Implementation
             this.noGpsAgainInterval = noGpsAgainInterval;
         }
 
-        public void GpsOnAlarm()
-        {
-            ++GpsOnAlarmCounter;
-        }
-
         ITimer ISignalCheckerService.CreateTimer(Action callback)
         {
             this.Timer = new ManualTimer(callback);
             return Timer;
         }
 
-        void ISignalCheckerService.GpsOffAlarm(string message)
+        bool ISignalCheckerService.GpsOffAlarm(string message)
         {
             ++GpsOffAlarmCounter;
+            return true;
         }
 
         void ISignalCheckerService.AcquireGps()

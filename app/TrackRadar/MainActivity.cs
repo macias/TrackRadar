@@ -12,7 +12,10 @@ using System.Reflection;
 
 namespace TrackRadar
 {
-    [Activity(Label = "DevRadar", MainLauncher = true, Icon = "@drawable/icon")]
+    // https://docs.microsoft.com/en-us/xamarin/android/platform/android-manifest
+    // since we use two names it is easier to alter only one file (manifest)
+
+    //[Activity(Label = "DevRadar", MainLauncher = true, Icon = "@drawable/icon")]
     //[Activity(Label = "TrackRadar", MainLauncher = true, Icon = "@drawable/icon")]
     public sealed class MainActivity : ListActivity, GpsStatus.IListener
     {

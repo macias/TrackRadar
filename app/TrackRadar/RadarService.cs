@@ -560,14 +560,17 @@ private long mLastTime;
             return new WrapTimer(callback);
         }
 
-        void ISignalCheckerService.GpsOffAlarm(string message)
+        bool ISignalCheckerService.GpsOffAlarm(string message)
         {
             LogDebug(LogLevel.Warning, $"GPS OFF {message}");
             if (this.hasSubscribers)
                 MainReceiver.SendAlarm(this, Message.NoSignalText);
 
-            if (!alarmMaster.TryAlarm(Alarm.GpsLost, out string reason))
-                LogDebug(LogLevel.Error, $"GPS lost alarm didn't play, reason {reason}");
+            if (alarmMaster.TryAlarm(Alarm.GpsLost, out string reason))
+                return true;
+
+            LogDebug(LogLevel.Error, $"GPS lost alarm didn't play, reason {reason}");
+            return false;
         }
 
         void ISignalCheckerService.Log(LogLevel level, string message)

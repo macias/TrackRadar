@@ -33,7 +33,7 @@ namespace TrackRadar.Tests
             // logic a lot, and besides it would not communicate clearly with user. I prefer know by heart the state of the tracking
 
             // in short we need to improve speed calculation and smoothing
-        
+
             string filename = Toolbox.TestData("slowing-speeding.gpx");
 
             var prefs = Toolbox.CreatePreferences(); // regular thresholds for speed
@@ -80,7 +80,7 @@ namespace TrackRadar.Tests
             IPlanData gpx_data = Toolbox.CreateBasicTrackData(track: plan_points, waypoints: null, prefs.OffTrackAlarmDistance);
 
             // we simulate riding off track and getting back to it
-            var track_points = new[] { GeoPoint.FromDegrees(40.05,5), GeoPoint.FromDegrees(40.05,5.01) }.ToList();
+            var track_points = new[] { GeoPoint.FromDegrees(40.05, 5), GeoPoint.FromDegrees(40.05, 5.01) }.ToList();
             Toolbox.PopulateTrackDensely(track_points);
             track_points.AddRange(track_points.AsEnumerable().Reverse());
 
@@ -111,65 +111,12 @@ namespace TrackRadar.Tests
         public void PreferencesTrackNameTest()
         {
             var prefs = Toolbox.CreatePreferences();
-            prefs.TurnAheadAlarmDistance = TimeSpan.FromSeconds(13) ;
+            prefs.TurnAheadAlarmDistance = TimeSpan.FromSeconds(13);
             PropertyInfo property = prefs.GetType().GetProperty(nameof(Preferences.TrackName));
             property.SetValue(prefs, "foobar");
             Assert.AreEqual("foobar", prefs.TrackName);
             var clone = prefs.Clone();
             Assert.AreEqual("foobar", clone.TrackName);
-        }
-
-        [TestMethod]
-        public void TestSignalChecker()
-        {
-            //var stamper = new ClockStamper(DateTimeOffset.UtcNow);
-            var stamper = new SecondStamper();
-            var service = new ManualSignalService(noGpsFirstTimeout: TimeSpan.FromSeconds(1),
-                noGpsAgainInterval: TimeSpan.FromSeconds(2));
-
-            var checker = new GpsWatchdog(service, stamper);
-
-            service.Timer.TriggerCallback();
-            Assert.AreEqual(0, service.GpsOnAlarmCounter);
-            Assert.AreEqual(0, service.GpsOffAlarmCounter);
-
-            stamper.Advance();
-            service.Timer.TriggerCallback();
-            Assert.AreEqual(0, service.GpsOnAlarmCounter);
-            Assert.AreEqual(0, service.GpsOffAlarmCounter);
-
-            stamper.Advance();
-            service.Timer.TriggerCallback();
-            Assert.AreEqual(0, service.GpsOnAlarmCounter);
-            Assert.AreEqual(1, service.GpsOffAlarmCounter);
-
-            stamper.Advance();
-            service.Timer.TriggerCallback();
-            Assert.AreEqual(0, service.GpsOnAlarmCounter);
-            Assert.AreEqual(1, service.GpsOffAlarmCounter);
-
-            stamper.Advance();
-            service.Timer.TriggerCallback();
-            Assert.AreEqual(0, service.GpsOnAlarmCounter);
-            Assert.AreEqual(1, service.GpsOffAlarmCounter);
-
-            stamper.Advance();
-            service.Timer.TriggerCallback();
-            Assert.AreEqual(0, service.GpsOnAlarmCounter);
-            Assert.AreEqual(2, service.GpsOffAlarmCounter);
-
-            stamper.Advance();
-            foreach (var _ in Enumerable.Range(0, 9)) // it takes 10 updates to switch the state
-                Assert.IsFalse(checker.UpdateGpsIsOn());
-
-            Assert.IsTrue(checker.UpdateGpsIsOn());
-
-            Assert.AreEqual(0, service.GpsOnAlarmCounter);
-            Assert.AreEqual(2, service.GpsOffAlarmCounter);
-
-            service.Timer.TriggerCallback();
-            Assert.AreEqual(0, service.GpsOnAlarmCounter);
-            Assert.AreEqual(2, service.GpsOffAlarmCounter);
         }
 
         //private static readonly int off_track_distance_m = 70;
@@ -256,8 +203,8 @@ namespace TrackRadar.Tests
             int index = 0;
             foreach (var pt in trackPoints)
             {
-                bool exact_res = map.FindClosest(pt, prefs.OffTrackAlarmDistance, out ISegment _, out Length? exact_map_dist, 
-                    out  _);
+                bool exact_res = map.FindClosest(pt, prefs.OffTrackAlarmDistance, out ISegment _, out Length? exact_map_dist,
+                    out _);
                 bool approx_res = map.IsWithinLimit(pt, prefs.OffTrackAlarmDistance, out Length? approx_map_dist);
 
                 Assert.AreEqual(expected: approx_res, actual: exact_res);

@@ -8,7 +8,7 @@ namespace TrackRadar.Implementation
         TimeSpan NoGpsAgainInterval { get; }
 
         ITimer CreateTimer(Action callback);
-        void GpsOffAlarm(string message);
+        bool GpsOffAlarm(string message);
         void AcquireGps();
         void Log(LogLevel level, string message);
     }

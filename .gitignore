@@ -1,6 +1,7 @@
 *
-!.gitignore
 !app
+!app/**
+!.gitignore
 !README.md
 
 **/*.csproj.user

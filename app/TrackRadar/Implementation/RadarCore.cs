@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 namespace TrackRadar.Implementation
-{  
+{
     internal sealed class RadarCore
     {
         internal const string GeoPointFormat = "0.00000000000000";
@@ -191,15 +191,11 @@ namespace TrackRadar.Implementation
                         this.ridingStartedAt = timeStamper.GetBeforeTimeTimestamp();
                         this.isRidingWithSpeed = false;
                     }
-                    else
+                    else if (RidingSpeed > service.RidingSpeedThreshold)
                     {
-                        if (RidingSpeed > service.RidingSpeedThreshold)
-                        {
-                            if (this.ridingStartedAt == timeStamper.GetBeforeTimeTimestamp())
-                                this.ridingStartedAt = last_ts;
-                            this.isRidingWithSpeed = true;
-                        }
-
+                        if (this.ridingStartedAt == timeStamper.GetBeforeTimeTimestamp())
+                            this.ridingStartedAt = last_ts;
+                        this.isRidingWithSpeed = true;
                     }
 
                     if (this.isRidingWithSpeed)

@@ -171,7 +171,7 @@ namespace TrackRadar
             this.offTrackIntervalEditText.Text = ((int)prefs.OffTrackAlarmInterval.TotalSeconds).ToString();
             this.offTrackAlarmCountLimitEditText.Text = prefs.OffTrackAlarmCountLimit.ToString();
             this.noGpsIntervalEditText.Text = ((int)prefs.NoGpsAlarmAgainInterval.TotalMinutes).ToString();
-            this.noGpsTimeoutEditText.Text = ((int)prefs.NoGpsAlarmFirstTimeout.TotalSeconds).ToString();
+            this.noGpsTimeoutEditText.Text = ((int)prefs.GpsAcquisitionTimeout.TotalSeconds).ToString();
 
             this.offTrackDistanceSettings.Update(prefs.OffTrackAudioVolume, prefs.DistanceAudioFileName);
             this.gpsLostSettings.Update(prefs.GpsLostAudioVolume, prefs.GpsLostAudioFileName);
@@ -257,7 +257,7 @@ namespace TrackRadar
             tmp_prefs.OffTrackAlarmInterval = TimeSpan.FromSeconds(int.Parse(offTrackIntervalEditText.Text));
             tmp_prefs.OffTrackAlarmCountLimit = int.Parse(this.offTrackAlarmCountLimitEditText.Text);
             tmp_prefs.NoGpsAlarmAgainInterval = TimeSpan.FromMinutes(int.Parse(this.noGpsIntervalEditText.Text));
-            tmp_prefs.NoGpsAlarmFirstTimeout = TimeSpan.FromSeconds(int.Parse(this.noGpsTimeoutEditText.Text));
+            tmp_prefs.GpsAcquisitionTimeout = TimeSpan.FromSeconds(int.Parse(this.noGpsTimeoutEditText.Text));
 
             tmp_prefs.OffTrackAudioVolume = this.offTrackDistanceSettings.Volume;
             tmp_prefs.DistanceAudioFileName = this.offTrackDistanceSettings.AudioFileName;

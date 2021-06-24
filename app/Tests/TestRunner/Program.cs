@@ -19,7 +19,7 @@ namespace TestRunner
             //CheckLoading();            Measure();
 
             //CheckLoadingOne();
-            var test = new TrackRadar.Tests.GpsTest(); test.GpsWatchdogTest();
+            var test = new TrackRadar.Tests.GpsTest(); test.UnstableAcquisitionTest();
 
             //RunAllTests();
             Console.WriteLine("Hello World!");

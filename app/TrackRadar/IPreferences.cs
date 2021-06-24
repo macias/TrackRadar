@@ -29,7 +29,7 @@ namespace TrackRadar
         string DisengageAudioFileName { get; }
         int DisengageAudioVolume { get; }
         TimeSpan NoGpsAlarmAgainInterval { get; }
-        TimeSpan NoGpsAlarmFirstTimeout { get; }
+        TimeSpan GpsAcquisitionTimeout { get; }
         Length OffTrackAlarmDistance { get; }
         TimeSpan TurnAheadAlarmDistance { get; }
         TimeSpan DoubleTurnAlarmDistance { get; }

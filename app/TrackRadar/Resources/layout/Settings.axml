@@ -956,7 +956,7 @@
                 android:minEms="4" />
         </LinearLayout>
         <TextView
-            android:text="Alarm after given time without GPS signal [s]."
+            android:text="Stable GPS acquisition time [s]."
             android:textAppearance="?android:attr/textAppearanceSmall"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

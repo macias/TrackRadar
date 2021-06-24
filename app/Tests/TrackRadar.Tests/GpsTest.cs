@@ -19,39 +19,38 @@ namespace TrackRadar.Tests
         {
             //var stamper = new ClockStamper(DateTimeOffset.UtcNow);
             var stamper = new SecondStamper();
-            var service = new ManualSignalService(noGpsFirstTimeout: TimeSpan.FromSeconds(1),
-                noGpsAgainInterval: TimeSpan.FromSeconds(2));
+            const int bucket_size = 3;
+            var service = new ManualSignalService(noGpsFirstTimeout: TimeSpan.FromSeconds(bucket_size),
+                noGpsAgainInterval: TimeSpan.FromSeconds(bucket_size));
 
-            var checker = new GpsWatchdog(service, stamper);
+            var watchdog = new GpsWatchdog(service, stamper);
 
             service.Timer.TriggerCallback();
             Assert.AreEqual(0, service.GpsOffAlarmCounter);
 
-            stamper.Advance();
-            service.Timer.TriggerCallback();
-            Assert.AreEqual(0, service.GpsOffAlarmCounter);
+            for (int i = 0; i < bucket_size; ++i)
+            {
+                stamper.Advance();
+                service.Timer.TriggerCallback();
+                Assert.AreEqual(0, service.GpsOffAlarmCounter);
+            }
 
-            stamper.Advance();
-            service.Timer.TriggerCallback();
-            Assert.AreEqual(1, service.GpsOffAlarmCounter);
-
-            stamper.Advance();
-            service.Timer.TriggerCallback();
-            Assert.AreEqual(1, service.GpsOffAlarmCounter);
-
-            stamper.Advance();
-            service.Timer.TriggerCallback();
-            Assert.AreEqual(1, service.GpsOffAlarmCounter);
+            for (int i = 0; i < bucket_size+1; ++i)
+            {
+                stamper.Advance();
+                service.Timer.TriggerCallback();
+                Assert.AreEqual(1, service.GpsOffAlarmCounter);
+            }
 
             stamper.Advance();
             service.Timer.TriggerCallback();
             Assert.AreEqual(2, service.GpsOffAlarmCounter);
 
             stamper.Advance();
-            foreach (var _ in Enumerable.Range(0, GpsWatchdog.StableSignalAcquisitionCountLimit - 1))
-                Assert.IsFalse(checker.UpdateGpsIsOn());
+            for (int i= 0;i<bucket_size - 1;++i)
+                Assert.IsFalse(watchdog.UpdateGpsIsOn());
 
-            Assert.IsTrue(checker.UpdateGpsIsOn());
+            Assert.IsTrue(watchdog.UpdateGpsIsOn());
 
             Assert.AreEqual(2, service.GpsOffAlarmCounter);
 
@@ -65,66 +64,59 @@ namespace TrackRadar.Tests
             // originally if we got signal sporadically we didn't get any alarm, because
             // no-signal resetted info about signal, and getting signal resetted info about no-signal state
 
-            GpsWatchdog.StableSignalAcquisitionCountLimit = 2;
-
             var stamper = new SecondStamper();
-            var service = new ManualSignalService(noGpsFirstTimeout: TimeSpan.FromSeconds(4),
+            const int bucket_size = 4;
+            var service = new ManualSignalService(noGpsFirstTimeout: TimeSpan.FromSeconds(bucket_size),
                 noGpsAgainInterval: TimeSpan.FromSeconds(50));
 
-            var checker = new GpsWatchdog(service, stamper);
+            var watchdog = new GpsWatchdog(service, stamper);
 
             service.Timer.TriggerCallback();
             Assert.AreEqual(0, service.GpsOffAlarmCounter);
 
-            Assert.IsFalse(checker.UpdateGpsIsOn());
+            Assert.IsFalse(watchdog.UpdateGpsIsOn());
 
             // now we simulate it was signal "by accident"
 
-            stamper.Advance();
-            service.Timer.TriggerCallback();
-            Assert.AreEqual(0, service.GpsOffAlarmCounter);
-
-            stamper.Advance();
-            service.Timer.TriggerCallback();
-            Assert.AreEqual(0, service.GpsOffAlarmCounter);
-
-            stamper.Advance();
-            service.Timer.TriggerCallback();
-            Assert.AreEqual(0, service.GpsOffAlarmCounter);
+            for (int i = 0; i < bucket_size-2; ++i)
+            {
+                stamper.Advance();
+                service.Timer.TriggerCallback();
+                Assert.AreEqual(0, service.GpsOffAlarmCounter);
+            }
 
             // this signal should not reset no-gps state completely, because we had a huge gap in getting signal
 
-            Assert.IsFalse(checker.UpdateGpsIsOn());
+            Assert.IsFalse(watchdog.UpdateGpsIsOn());
+
+            for (int i = 0; i < bucket_size - 2; ++i)
+            {
+                stamper.Advance();
+                service.Timer.TriggerCallback();
+                Assert.AreEqual(0, service.GpsOffAlarmCounter);
+            }
 
             stamper.Advance();
             service.Timer.TriggerCallback();
-            Assert.AreEqual(0, service.GpsOffAlarmCounter);
-
-            stamper.Advance();
-            service.Timer.TriggerCallback();
-            Assert.AreEqual(0, service.GpsOffAlarmCounter);
-
-            stamper.Advance();
-            service.Timer.TriggerCallback();
-            // here originally we would not get alarm, but now we have it -- from last signal it is 3 seconds (so less
-            // than timeout), but from the last STABLE one is more than timeout, thus alarm
             Assert.AreEqual(1, service.GpsOffAlarmCounter);
 
             // now we simulate getting stable signal
 
-            Assert.IsFalse(checker.UpdateGpsIsOn());
+            for (int i = 0; i < bucket_size - 1; ++i)
+            {
+                Assert.IsFalse(watchdog.UpdateGpsIsOn());
 
-            stamper.Advance();
-            service.Timer.TriggerCallback();
-            Assert.AreEqual(1, service.GpsOffAlarmCounter);
+                stamper.Advance();
+                service.Timer.TriggerCallback();
+                Assert.AreEqual(1, service.GpsOffAlarmCounter);
+            }
 
             // at this point the signal is stable, so we should acquisition = true
-            Assert.IsTrue(checker.UpdateGpsIsOn());
+            Assert.IsTrue(watchdog.UpdateGpsIsOn());
 
             stamper.Advance();
             service.Timer.TriggerCallback();
             Assert.AreEqual(1, service.GpsOffAlarmCounter);
-
         }
     }
 }

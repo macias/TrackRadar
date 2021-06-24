@@ -4,6 +4,9 @@
 !.gitignore
 !README.md
 
+**/bin/**
+**/obj/**
+
 **/*.csproj.user
 app/.vs/
 app/packages/

@@ -604,7 +604,7 @@ private long mLastTime;
         }*/
 
 
-        TimeSpan ISignalCheckerService.NoGpsFirstTimeout => this.prefs.GpsAcquisitionTimeout;
+        TimeSpan ISignalCheckerService.GpsAcquisitionTimeout => this.prefs.GpsAcquisitionTimeout;
         TimeSpan ISignalCheckerService.NoGpsAgainInterval => this.prefs.NoGpsAlarmAgainInterval;
 
         Length IRadarService.DriftWarningDistance => this.prefs.DriftWarningDistance;

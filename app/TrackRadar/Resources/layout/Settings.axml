@@ -18,21 +18,7 @@
             android:id="@+id/linearLayout1"
             android:minWidth="25px"
             android:minHeight="25px" />
-        <CheckBox
-            android:text="DEBUG-Show turn ahead"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:id="@+id/ShowTurnAheadCheckBox" />
-        <CheckBox
-            android:text="DEBUG-GPS dump"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:id="@+id/GpsDumpCheckBox" />
-        <CheckBox
-            android:text="DEBUG-GPS filter"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:id="@+id/GpsFilterCheckBox" />
+
         <CheckBox
             android:text="Vibrate"
             android:layout_width="match_parent"
@@ -1157,6 +1143,22 @@
             android:paddingRight="4sp"
             android:paddingTop="2sp" />
 
+        <CheckBox
+            android:text="DEBUG-Show turn ahead"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/ShowTurnAheadCheckBox" />
+        <CheckBox
+            android:text="DEBUG-GPS dump"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/GpsDumpCheckBox" />
+        <CheckBox
+            android:text="DEBUG-GPS filter"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/GpsFilterCheckBox" />
+		
 		<LinearLayout
             android:orientation="horizontal"
             android:layout_width="fill_parent"
@@ -1165,7 +1167,7 @@
             android:layout_height="wrap_content"
             android:id="@+id/linearLayout11517">
             <TextView
-                android:text="Screen timeout"
+                android:text="DEBUG Screen timeout"
                 android:textAppearance="?android:attr/textAppearanceMedium"
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
@@ -1186,6 +1188,7 @@
                 android:minEms="4"
                 android:maxEms="4" />
         </LinearLayout>
+		
         <TextView
             android:text="Show turn ahead screen for given period [s]."
             android:textAppearance="?android:attr/textAppearanceSmall"
@@ -1197,6 +1200,7 @@
             android:paddingLeft="4sp"
             android:paddingRight="4sp"
             android:paddingTop="2sp" />
+
 
     </LinearLayout>
 </ScrollView>

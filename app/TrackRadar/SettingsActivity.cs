@@ -293,7 +293,7 @@ namespace TrackRadar
             tmp_prefs.DriftMovingAwayCountLimit = int.Parse(driftMovingAwayThresholdEditText.Text);
             tmp_prefs.DriftComingCloserCountLimit = int.Parse(driftComingCloserThresholdEditText.Text);
 
-            app.Prefs = Preferences.SaveBehaviors(this, tmp_prefs);
+            app.Prefs = tmp_prefs.SaveAll(this);
 
             this.gpsLostSettings.Destroy();
             this.offTrackDistanceSettings.Destroy();

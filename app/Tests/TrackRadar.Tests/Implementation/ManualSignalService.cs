@@ -9,14 +9,14 @@ namespace TrackRadar.Tests.Implementation
 
         public int GpsOffAlarmCounter { get; private set; }
 
-        private readonly TimeSpan noGpsFirstTimeout;
-        TimeSpan ISignalCheckerService.NoGpsFirstTimeout => this.noGpsFirstTimeout;
+        private readonly TimeSpan gpsAcquisitionTimeout;
+        TimeSpan ISignalCheckerService.GpsAcquisitionTimeout => this.gpsAcquisitionTimeout;
         private readonly TimeSpan noGpsAgainInterval;
         TimeSpan ISignalCheckerService.NoGpsAgainInterval => this.noGpsAgainInterval;
 
         public ManualSignalService(TimeSpan noGpsFirstTimeout, TimeSpan noGpsAgainInterval)
         {
-            this.noGpsFirstTimeout = noGpsFirstTimeout;
+            this.gpsAcquisitionTimeout = noGpsFirstTimeout;
             this.noGpsAgainInterval = noGpsAgainInterval;
         }
 

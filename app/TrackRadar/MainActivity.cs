@@ -651,7 +651,7 @@ namespace TrackRadar
                         StartActivity(typeof(SettingsActivity));
                         break;
 
-                    case Resource.Id.TurnAheadMenuItem:
+                    case Resource.Id.ClearTrackMenuItem:
                         app.Prefs.SaveTrackFileName(this, null);
                         app.SetTrackData(null);
                         updateReadiness(out _);

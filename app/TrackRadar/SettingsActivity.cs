@@ -19,7 +19,8 @@ namespace TrackRadar
         EditText offTrackIntervalEditText;
         EditText offTrackAlarmCountLimitEditText;
         EditText noGpsIntervalEditText;
-        EditText noGpsTimeoutEditText;
+        EditText gpsAcquisitionTimeoutEditText;
+        EditText gpsLossTimeoutEditText;
         private EditText turnAheadIntervalEditText;
         private EditText turnAheadScreenTimeoutEditText;
         EditText restSpeedThresholdEditText;
@@ -138,7 +139,8 @@ namespace TrackRadar
             this.offTrackIntervalEditText = FindViewById<EditText>(Resource.Id.OffTrackIntervalEditText);
             this.offTrackAlarmCountLimitEditText = FindViewById<EditText>(Resource.Id.OffTrackAlarmCountLimitEditText);
             this.noGpsIntervalEditText = FindViewById<EditText>(Resource.Id.NoGpsIntervalEditText);
-            this.noGpsTimeoutEditText = FindViewById<EditText>(Resource.Id.NoGpsTimeoutEditText);
+            this.gpsAcquisitionTimeoutEditText = FindViewById<EditText>(Resource.Id.GpsAcquisitionTimeoutEditText);
+            this.gpsLossTimeoutEditText = FindViewById<EditText>(Resource.Id.GpsLossTimeoutEditText);
 
             this.restSpeedThresholdEditText = FindViewById<EditText>(Resource.Id.RestThresholdEditText);
             this.ridingSpeedThresholdEditText = FindViewById<EditText>(Resource.Id.RidingThresholdEditText);
@@ -171,7 +173,8 @@ namespace TrackRadar
             this.offTrackIntervalEditText.Text = ((int)prefs.OffTrackAlarmInterval.TotalSeconds).ToString();
             this.offTrackAlarmCountLimitEditText.Text = prefs.OffTrackAlarmCountLimit.ToString();
             this.noGpsIntervalEditText.Text = ((int)prefs.NoGpsAlarmAgainInterval.TotalMinutes).ToString();
-            this.noGpsTimeoutEditText.Text = ((int)prefs.GpsAcquisitionTimeout.TotalSeconds).ToString();
+            this.gpsAcquisitionTimeoutEditText.Text = ((int)prefs.GpsAcquisitionTimeout.TotalSeconds).ToString();
+            this.gpsLossTimeoutEditText.Text = ((int)prefs.GpsLossTimeout.TotalSeconds).ToString();
 
             this.offTrackDistanceSettings.Update(prefs.OffTrackAudioVolume, prefs.DistanceAudioFileName);
             this.gpsLostSettings.Update(prefs.GpsLostAudioVolume, prefs.GpsLostAudioFileName);
@@ -257,7 +260,8 @@ namespace TrackRadar
             tmp_prefs.OffTrackAlarmInterval = TimeSpan.FromSeconds(int.Parse(offTrackIntervalEditText.Text));
             tmp_prefs.OffTrackAlarmCountLimit = int.Parse(this.offTrackAlarmCountLimitEditText.Text);
             tmp_prefs.NoGpsAlarmAgainInterval = TimeSpan.FromMinutes(int.Parse(this.noGpsIntervalEditText.Text));
-            tmp_prefs.GpsAcquisitionTimeout = TimeSpan.FromSeconds(int.Parse(this.noGpsTimeoutEditText.Text));
+            tmp_prefs.GpsAcquisitionTimeout = TimeSpan.FromSeconds(int.Parse(this.gpsAcquisitionTimeoutEditText.Text));
+            tmp_prefs.GpsLossTimeout = TimeSpan.FromSeconds(int.Parse(this.gpsLossTimeoutEditText.Text));
 
             tmp_prefs.OffTrackAudioVolume = this.offTrackDistanceSettings.Volume;
             tmp_prefs.DistanceAudioFileName = this.offTrackDistanceSettings.AudioFileName;

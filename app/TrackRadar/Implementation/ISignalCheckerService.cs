@@ -4,9 +4,6 @@ namespace TrackRadar.Implementation
 {
     internal interface ISignalCheckerService
     {
-        TimeSpan GpsAcquisitionTimeout { get; }
-        TimeSpan NoGpsAgainInterval { get; }
-
         ITimer CreateTimer(Action callback);
         bool GpsOffAlarm(string message);
         void AcquireGps();

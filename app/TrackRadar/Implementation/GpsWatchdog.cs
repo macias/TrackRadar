@@ -4,19 +4,26 @@ namespace TrackRadar.Implementation
 {
     internal sealed class GpsWatchdog : IDisposable
     {
-        // https://en.wikipedia.org/wiki/Leaky_bucket
-        private const double signalBucketLowLevelFraction = 0.5;
+        private enum State
+        {
+            Created,
+            Started,
+            Disposed,
+        }
 
-        // setter is for unit tests
-        //internal static int StableSignalAcquisitionCountLimit { get; set; } = 10;
+        private const double slippageMargin = 0.5;
+
+        // https://en.wikipedia.org/wiki/Leaky_bucket
 
         private readonly object threadLock = new object();
         private readonly ISignalCheckerService service;
         private readonly ITimeStamper timeStamper;
-        private readonly long startAt;
-        private bool isDisposed;
+        private readonly TimeSpan gpsAcquisitionTimeout;
+        private readonly TimeSpan gpsLossTimeout;
+        private readonly TimeSpan noGpsAgainInterval;
+        private long startAt;
+        private State state;
         private long lastSignalAtTicks;
-        //private long lastStableSignalAtTicks;
         private long lastNoSignalAlarmAtTicks;
         private readonly ITimer timer;
         private double gpsSignalCounter;
@@ -30,49 +37,69 @@ namespace TrackRadar.Implementation
 
         public bool HasGpsSignal { get { lock (this.threadLock) return this.hasStableSignal; } }
 
-        public GpsWatchdog(ISignalCheckerService service, ITimeStamper timeStamper)
+        public GpsWatchdog(ISignalCheckerService service, ITimeStamper timeStamper, TimeSpan gpsAcquisitionTimeout,
+            TimeSpan gpsLossTimeout, TimeSpan noGpsAgainInterval)
         {
             this.service = service;
             this.timeStamper = timeStamper;
 
-            this.startAt = this.timeStamper.GetTimestamp();
-            // initially we have no signal but we don't alarm user about it right away -- we assume user 
-            // when starting the service pays attention that we are at acquisition stage
-            this.lastNoSignalAlarmAtTicks = timeStamper.GetBeforeTimeTimestamp();// startAt - (long)(service.NoGpsAgainInterval.TotalSeconds * this.timeStamper.Frequency);
-            this.lastSignalAtTicks = startAt;
-            //this.lastStableSignalAtTicks = startAt;
+            this.gpsAcquisitionTimeout = gpsAcquisitionTimeout;
+            this.gpsLossTimeout = gpsLossTimeout.Min(gpsAcquisitionTimeout);
+            this.noGpsAgainInterval = noGpsAgainInterval;
 
-            this.service.Log(LogLevel.Verbose, $"Starting watchdog with no-gps-interval {service.NoGpsAgainInterval.TotalSeconds}");
+            this.state = State.Created;
+
+            this.service.Log(LogLevel.Verbose, $"Starting watchdog with no-gps-interval {noGpsAgainInterval.TotalSeconds}");
             this.timer = service.CreateTimer(check);
-
-            // DO NOT use period to set the timer, even with fixed rate
-            this.nextCheckAfter = GpsInfo.WEAK_updateRate;
-            this.timer.Change(dueTime: nextCheckAfter, period: System.Threading.Timeout.InfiniteTimeSpan);
         }
 
         public void Dispose()
         {
             lock (this.threadLock)
             {
-                this.service.Log(LogLevel.Info, $"Watchdog disposing {stats(this.timeStamper.GetTimestamp())}");
-
-                if (this.isDisposed)
+                if (this.state == State.Disposed)
                     return;
-                this.isDisposed = true;
+                this.state = State.Disposed;
             }
 
             this.timer.Dispose();
+        }
+
+        public void Start()
+        {
+            lock (this.threadLock)
+            {
+                if (this.state != State.Created)
+                    return;
+
+                this.startAt = this.timeStamper.GetTimestamp();
+                // initially we have no signal but we don't alarm user about it right away -- we assume user 
+                // when starting the service pays attention that we are at acquisition stage
+                this.lastNoSignalAlarmAtTicks = timeStamper.GetBeforeTimeTimestamp();// startAt - (long)(service.NoGpsAgainInterval.TotalSeconds * this.timeStamper.Frequency);
+                this.lastSignalAtTicks = startAt;
+
+                // DO NOT use period to set the timer, even with fixed rate
+                this.nextCheckAfter = GpsInfo.WEAK_updateRate;
+                this.timer.Change(dueTime: nextCheckAfter, period: System.Threading.Timeout.InfiniteTimeSpan);
+
+                this.state = State.Started;
+            }
+        }
+
+        private string stats(long now,double counter)
+        {
+            return $"stats: {DEBUG_CHECKS}, {DEBUG_NO_GPS}, {DEBUG_ALARMS}; now {now}/{this.timeStamper.Frequency}; seen {this.lastSignalAtTicks}, alarm {this.lastNoSignalAlarmAtTicks}, stable {hasStableSignal}, counter {(counter.ToString("0.#"))}";
         }
 
         private void check()
         {
             lock (this.threadLock)
             {
-                if (this.isDisposed)
+                if (this.state != State.Started)
                     return;
 
                 long now = this.timeStamper.GetTimestamp();
-                bool initiated = timeStamper.GetSecondsSpan(now, startAt) > service.GpsAcquisitionTimeout.TotalSeconds;
+                bool warmed_up = timeStamper.GetSecondsSpan(now, startAt) > this.gpsLossTimeout.TotalSeconds;
 
                 if (detectedUpdatesLoss(receivedSignal: false, out double signal_counter))
                 {
@@ -82,22 +109,28 @@ namespace TrackRadar.Implementation
 
                     this.nextCheckAfter = GpsInfo.WEAK_updateRate;
 
-                    if (initiated && signal_counter < service.GpsAcquisitionTimeout.TotalSeconds * signalBucketLowLevelFraction)
+                    if (warmed_up && signal_counter <= (this.gpsAcquisitionTimeout - this.gpsLossTimeout).TotalSeconds)
                     {
+                        this.service.Log(LogLevel.Verbose, $"Watchdog: we lost GPS signal. Stats {stats(now,signal_counter)}");
+
+                        // if we had stable signal and now it dropped below threshold kill it entirely so we have to reacquire
+                        // it completely, think about case: acquisition time timeout 20 second, loss timeout 4
+                        // we have counter 15, so to be sure we have the signal and to avoid ping-pong effect
+                        // we reset it to 0, so now we have to get it 20 times (not just 5) before stating we have it back for sure
+                        if (this.hasStableSignal)
+                            this.gpsSignalCounter = 0;
+
                         this.hasStableSignal = false;
-                        this.service.Log(LogLevel.Verbose, $"Watchdog: we lost GPS signal. Stats {stats(now)}");
                     }
                 }
 
-
-                //double stable_signal_passed = timeStamper.GetSecondsSpan(now, this.lastStableSignalAtTicks);
                 double last_alarm_passed = timeStamper.GetSecondsSpan(now, this.lastNoSignalAlarmAtTicks);
 
-                if (initiated && !hasStableSignal && last_alarm_passed > service.NoGpsAgainInterval.TotalSeconds)
+                if (warmed_up && !hasStableSignal && last_alarm_passed > noGpsAgainInterval.TotalSeconds)
                 {
                     try
                     {
-                        if (service.GpsOffAlarm(stats(now)))
+                        if (service.GpsOffAlarm(stats(now, this.gpsSignalCounter)))
                             this.lastNoSignalAlarmAtTicks = now;
                         ++this.DEBUG_ALARMS;
                     }
@@ -110,7 +143,7 @@ namespace TrackRadar.Implementation
 
 
                 if (this.DEBUG_CHECKS % 300 == 0) // every 5 minutes
-                    this.service.Log(LogLevel.Verbose, $"Gps watchdog stats {stats(now)}");
+                    this.service.Log(LogLevel.Verbose, $"Gps watchdog stats {stats(now, this.gpsSignalCounter)}");
 
                 ++this.DEBUG_CHECKS;
 
@@ -122,23 +155,19 @@ namespace TrackRadar.Implementation
         {
             long now = this.timeStamper.GetTimestamp();
             // it like fence counting, if last was 0, and now is 2, 2-0 means there is one piece missing (not two)
+            int current_counted = (receivedSignal ? 1 : 0);
             double lost_updates = timeStamper.GetSecondsSpan(now, this.lastSignalAtTicks) / GpsInfo.WEAK_updateRate.TotalSeconds
-                - (receivedSignal ? 1 : 0);
+                - current_counted;
 
             // give us some slack to avoid minor processing slippage
-            bool is_real_loss = lost_updates > 0.5;
+            bool is_real_loss = lost_updates > slippageMargin;
 
             // make sense only for real loss in updates
             // btw. we cannot update instance counter directly, because this method could be called in absence
             // of gps signal and in such case we cannot change counter and time when we get signal (because we didn't)
-            signalCounter = Math.Max(0, this.gpsSignalCounter - lost_updates);
+            signalCounter = Math.Max(0, this.gpsSignalCounter - lost_updates + current_counted);
 
             return is_real_loss;
-        }
-
-        private string stats(long now)
-        {
-            return $"stats: {DEBUG_CHECKS}, {DEBUG_NO_GPS}, {DEBUG_ALARMS}; now {now}/{this.timeStamper.Frequency}; gps {this.lastSignalAtTicks}, timeout {service.GpsAcquisitionTimeout.TotalSeconds}s; no-gps {this.lastNoSignalAlarmAtTicks}, interval {service.NoGpsAgainInterval.TotalSeconds}s";
         }
 
         /// <summary>
@@ -149,31 +178,31 @@ namespace TrackRadar.Implementation
         {
             lock (this.threadLock)
             {
+                if (this.state != State.Started)
+                    return false;
+
                 if (detectedUpdatesLoss(receivedSignal: true, out double signal_counter))
                     this.gpsSignalCounter = signal_counter;
                 else
-                    this.gpsSignalCounter = Math.Min(service.GpsAcquisitionTimeout.TotalSeconds, this.gpsSignalCounter + 1);
+                    this.gpsSignalCounter = Math.Min(this.gpsAcquisitionTimeout.TotalSeconds, this.gpsSignalCounter + 1);
 
                 this.lastSignalAtTicks = timeStamper.GetTimestamp();
 
                 bool prev_stable = this.hasStableSignal;
 
-                if (this.gpsSignalCounter >= service.GpsAcquisitionTimeout.TotalSeconds - 1)
+                if (this.gpsSignalCounter >= this.gpsAcquisitionTimeout.TotalSeconds - slippageMargin)
                 {
-                    this.nextCheckAfter = service.GpsAcquisitionTimeout;
+                    this.nextCheckAfter = this.gpsLossTimeout;
                     this.hasStableSignal = true;
                 }
 
-                // this.lastStableSignalAtTicks = this.lastSignalAtTicks;
-
                 if (!this.hasStableSignal)
                 {
-                    service.Log(LogLevel.Verbose, $"Fresh GPS signal received {this.lastSignalAtTicks}, {service.GpsAcquisitionTimeout.TotalSeconds}, freq. {this.timeStamper.Frequency}");
+                    service.Log(LogLevel.Verbose, $"Fresh GPS signal received {this.lastSignalAtTicks}, {gpsAcquisitionTimeout.TotalSeconds}, freq. {this.timeStamper.Frequency}");
                     return false;
                 }
                 // if we lost signal some time ago, but now it is back
                 else if (!prev_stable)
-                //if (this.lastNoSignalAlarmAtTicks != this.timeStamper.GetBeforeTimeTimestamp())
                 {
                     this.lastNoSignalAlarmAtTicks = this.timeStamper.GetBeforeTimeTimestamp();
 
@@ -185,6 +214,5 @@ namespace TrackRadar.Implementation
                 return false;
             }
         }
-
     }
 }

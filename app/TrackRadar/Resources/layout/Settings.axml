@@ -911,7 +911,8 @@
             android:textStyle="bold" />
         <View
             style="@style/Divider" />
-        <LinearLayout
+        
+		<LinearLayout
             android:orientation="horizontal"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
@@ -919,7 +920,7 @@
             android:paddingRight="4sp"
             android:id="@+id/linearLayout46">
             <TextView
-                android:text="Timeout"
+                android:text="Acquisition timeout"
                 android:textAppearance="?android:attr/textAppearanceMedium"
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
@@ -933,7 +934,7 @@
                 android:layout_width="wrap_content"
                 android:layout_weight="0"
                 android:layout_height="wrap_content"
-                android:id="@+id/NoGpsTimeoutEditText"
+                android:id="@+id/GpsAcquisitionTimeoutEditText"
                 android:text="testing"
                 android:singleLine="true"
                 android:paddingLeft="10sp"
@@ -942,7 +943,7 @@
                 android:minEms="4" />
         </LinearLayout>
         <TextView
-            android:text="Stable GPS acquisition time [s]."
+            android:text="GPS signal acquisition time [s]."
             android:textAppearance="?android:attr/textAppearanceSmall"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -952,8 +953,54 @@
             android:paddingLeft="4sp"
             android:paddingRight="4sp"
             android:paddingTop="2sp" />
-        <View
+		<View
             style="@style/Divider" />
+
+
+
+		<LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:paddingLeft="4sp"
+            android:paddingRight="4sp">
+            <TextView
+                android:text="Loss timeout"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:gravity="center_vertical"
+                android:paddingTop="4sp"
+                android:paddingBottom="2sp"
+                android:layout_weight="1" />
+            <EditText
+                android:inputType="number"
+                android:layout_width="wrap_content"
+                android:layout_weight="0"
+                android:layout_height="wrap_content"
+                android:id="@+id/GpsLossTimeoutEditText"
+                android:text="testing"
+                android:singleLine="true"
+                android:paddingLeft="10sp"
+                android:paddingRight="10sp"
+                android:maxEms="4"
+                android:minEms="4" />
+        </LinearLayout>
+        <TextView
+            android:text="GPS signal loss time [s]."
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#87CEEB"
+            android:paddingBottom="2sp"
+            android:paddingLeft="4sp"
+            android:paddingRight="4sp"
+            android:paddingTop="2sp" />
+		<View
+            style="@style/Divider" />
+
+
+
         <LinearLayout
             android:orientation="horizontal"
             android:layout_width="fill_parent"
@@ -984,7 +1031,11 @@
                 android:maxEms="4"
                 android:minEms="4" />
         </LinearLayout>
-        <TextView
+        
+		
+		
+		
+		<TextView
             android:text="Repeat alarm again without GPS signal [m]."
             android:textAppearance="?android:attr/textAppearanceSmall"
             android:layout_width="match_parent"

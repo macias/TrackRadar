@@ -26,7 +26,8 @@ namespace TrackRadar
             public const string OffTrackAlarmCountLimit = "OffTrackAlarmCountLimit";
 
             public const string NoGpsAgainAlarmInterval = "NoGpsAlarmInterval";
-            public const string GpsAcquisitionTimeout = "NoGpsAlarmTimeout";
+            public const string NoGpsAlarmTimeout = "NoGpsAlarmTimeout";
+            public const string GpsLossTimeout = "GpsLossTimeout";
 
             public const string DistanceAudioVolume = "DistanceAudioVolume";
             public const string DistanceAudioFileName = "DistanceAudioFileName";
@@ -120,8 +121,10 @@ namespace TrackRadar
         public TimeSpan OffTrackAlarmInterval { get; set; } // seconds
         public int OffTrackAlarmCountLimit { get; set; }
         public Length OffTrackAlarmDistance { get; set; } // in meters
-        // max timeout for which it is accepted to have no signal
+        // time needed for getting stable gps signal
         public TimeSpan GpsAcquisitionTimeout { get; set; } // seconds
+        // time "needed" to lose the signal
+        public TimeSpan GpsLossTimeout { get; set; } // seconds
         // amount of time to REPEAT the alarm
         public TimeSpan NoGpsAlarmAgainInterval { get; set; } // minutes
 
@@ -162,6 +165,7 @@ namespace TrackRadar
 
             // please note that we won't make better than one update per second
             this.GpsAcquisitionTimeout = TimeSpan.FromSeconds(5);
+            this.GpsLossTimeout = TimeSpan.FromSeconds(3);
             this.NoGpsAlarmAgainInterval = TimeSpan.FromMinutes(3);
 
             this.TurnAheadAlarmDistance = TimeSpan.FromSeconds(16);
@@ -202,7 +206,8 @@ namespace TrackRadar
                     editor.PutInt(Keys.OffTrackAlarmDistance, (int)this.OffTrackAlarmDistance.Meters);
                     editor.PutInt(Keys.OffTrackAlarmCountLimit, this.OffTrackAlarmCountLimit);
                     editor.PutInt(Keys.NoGpsAgainAlarmInterval, (int)this.NoGpsAlarmAgainInterval.TotalMinutes);
-                    editor.PutInt(Keys.GpsAcquisitionTimeout, (int)this.GpsAcquisitionTimeout.TotalSeconds);
+                    editor.PutInt(Keys.NoGpsAlarmTimeout, (int)this.GpsAcquisitionTimeout.TotalSeconds);
+                    editor.PutInt(Keys.GpsLossTimeout, (int)this.GpsLossTimeout.TotalSeconds);
 
                     editor.PutInt(Keys.DistanceAudioVolume, this.OffTrackAudioVolume);
                     editor.PutString(Keys.DistanceAudioFileName, this.DistanceAudioFileName);
@@ -262,7 +267,8 @@ namespace TrackRadar
                 data.OffTrackAlarmCountLimit = prefs.GetInt(Keys.OffTrackAlarmCountLimit, data.OffTrackAlarmCountLimit);
                 data.OffTrackAlarmDistance = Length.FromMeters(prefs.GetInt(Keys.OffTrackAlarmDistance, (int)data.OffTrackAlarmDistance.Meters));
                 data.NoGpsAlarmAgainInterval = TimeSpan.FromMinutes(prefs.GetInt(Keys.NoGpsAgainAlarmInterval, (int)data.NoGpsAlarmAgainInterval.TotalMinutes));
-                data.GpsAcquisitionTimeout = TimeSpan.FromSeconds(prefs.GetInt(Keys.GpsAcquisitionTimeout, (int)data.GpsAcquisitionTimeout.TotalSeconds));
+                data.GpsAcquisitionTimeout = TimeSpan.FromSeconds(prefs.GetInt(Keys.NoGpsAlarmTimeout, (int)data.GpsAcquisitionTimeout.TotalSeconds));
+                data.GpsLossTimeout = TimeSpan.FromSeconds(prefs.GetInt(Keys.GpsLossTimeout, (int)data.GpsLossTimeout.TotalSeconds));
 
                 data.DisengageAudioVolume = prefs.GetInt(Keys.DisengageAudioVolume, data.DisengageAudioVolume);
                 data.DisengageAudioFileName = prefs.GetString(Keys.DisengageAudioFileName, data.DisengageAudioFileName);

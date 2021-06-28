@@ -19,23 +19,26 @@ namespace TrackRadar.Tests
         {
             //var stamper = new ClockStamper(DateTimeOffset.UtcNow);
             var stamper = new SecondStamper();
-            const int bucket_size = 3;
-            var service = new ManualSignalService(noGpsFirstTimeout: TimeSpan.FromSeconds(bucket_size),
-                noGpsAgainInterval: TimeSpan.FromSeconds(bucket_size));
+            const int acquisision = 3;
+            const int loss = 2;
+            var service = new ManualSignalService();
 
-            var watchdog = new GpsWatchdog(service, stamper);
+            var watchdog = new GpsWatchdog(service, stamper, TimeSpan.FromSeconds(acquisision),
+                TimeSpan.FromSeconds(loss),
+                noGpsAgainInterval: TimeSpan.FromSeconds(loss));
+            watchdog.Start();
 
             service.Timer.TriggerCallback();
             Assert.AreEqual(0, service.GpsOffAlarmCounter);
 
-            for (int i = 0; i < bucket_size; ++i)
+            for (int i = 0; i < loss; ++i)
             {
                 stamper.Advance();
                 service.Timer.TriggerCallback();
                 Assert.AreEqual(0, service.GpsOffAlarmCounter);
             }
 
-            for (int i = 0; i < bucket_size+1; ++i)
+            for (int i = 0; i < loss + 1; ++i)
             {
                 stamper.Advance();
                 service.Timer.TriggerCallback();
@@ -46,14 +49,17 @@ namespace TrackRadar.Tests
             service.Timer.TriggerCallback();
             Assert.AreEqual(2, service.GpsOffAlarmCounter);
 
-            stamper.Advance();
-            for (int i= 0;i<bucket_size - 1;++i)
+            for (int i = 0; i < acquisision; ++i) // first update basically sets the start of acquisition, all next increase counter
+            {
+                stamper.Advance();
                 Assert.IsFalse(watchdog.UpdateGpsIsOn());
+            }
 
+            stamper.Advance();
             Assert.IsTrue(watchdog.UpdateGpsIsOn());
-
             Assert.AreEqual(2, service.GpsOffAlarmCounter);
 
+            stamper.Advance();
             service.Timer.TriggerCallback();
             Assert.AreEqual(2, service.GpsOffAlarmCounter);
         }
@@ -65,31 +71,24 @@ namespace TrackRadar.Tests
             // no-signal resetted info about signal, and getting signal resetted info about no-signal state
 
             var stamper = new SecondStamper();
-            const int bucket_size = 4;
-            var service = new ManualSignalService(noGpsFirstTimeout: TimeSpan.FromSeconds(bucket_size),
-                noGpsAgainInterval: TimeSpan.FromSeconds(50));
+            const int acquisition = 4;
+            const int loss = 2;
+            var service = new ManualSignalService();
 
-            var watchdog = new GpsWatchdog(service, stamper);
+            var watchdog = new GpsWatchdog(service, stamper, TimeSpan.FromSeconds(acquisition),
+                TimeSpan.FromSeconds(loss),
+                noGpsAgainInterval: TimeSpan.FromSeconds(50));
+            watchdog.Start();
 
             service.Timer.TriggerCallback();
             Assert.AreEqual(0, service.GpsOffAlarmCounter);
 
+            stamper.Advance();
             Assert.IsFalse(watchdog.UpdateGpsIsOn());
 
             // now we simulate it was signal "by accident"
 
-            for (int i = 0; i < bucket_size-2; ++i)
-            {
-                stamper.Advance();
-                service.Timer.TriggerCallback();
-                Assert.AreEqual(0, service.GpsOffAlarmCounter);
-            }
-
-            // this signal should not reset no-gps state completely, because we had a huge gap in getting signal
-
-            Assert.IsFalse(watchdog.UpdateGpsIsOn());
-
-            for (int i = 0; i < bucket_size - 2; ++i)
+            for (int i = 0; i < loss - 1; ++i)
             {
                 stamper.Advance();
                 service.Timer.TriggerCallback();
@@ -97,24 +96,28 @@ namespace TrackRadar.Tests
             }
 
             stamper.Advance();
+            Assert.IsFalse(watchdog.UpdateGpsIsOn());
+
+            stamper.Advance();
             service.Timer.TriggerCallback();
+            // the gap was not lost by gps update, so finally we triggered gps-off alarm
             Assert.AreEqual(1, service.GpsOffAlarmCounter);
 
             // now we simulate getting stable signal
 
-            for (int i = 0; i < bucket_size - 1; ++i)
+            for (int i = 0; i < acquisition - 1; ++i)
             {
+                stamper.Advance();
                 Assert.IsFalse(watchdog.UpdateGpsIsOn());
 
-                stamper.Advance();
                 service.Timer.TriggerCallback();
                 Assert.AreEqual(1, service.GpsOffAlarmCounter);
             }
 
             // at this point the signal is stable, so we should acquisition = true
+            stamper.Advance();
             Assert.IsTrue(watchdog.UpdateGpsIsOn());
 
-            stamper.Advance();
             service.Timer.TriggerCallback();
             Assert.AreEqual(1, service.GpsOffAlarmCounter);
         }

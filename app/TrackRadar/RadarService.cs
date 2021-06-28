@@ -133,7 +133,7 @@ private long mLastTime;
 
                 this.locationManager = (LocationManager)GetSystemService(Context.LocationService);
 
-                this.gpsWatchdog = new GpsWatchdog(this, this.timeStamper);
+                setupGpsWatchdog();
 
                 { // start tracking
 
@@ -175,6 +175,17 @@ private long mLastTime;
                 LogDebug(LogLevel.Error, $"Error on start {ex}");
             }
             return StartCommandResult.Sticky;
+        }
+
+        private void setupGpsWatchdog()
+        {
+            GpsWatchdog watchdog = new GpsWatchdog(this, this.timeStamper,
+                                gpsAcquisitionTimeout: prefs.GpsAcquisitionTimeout,
+                                gpsLossTimeout:prefs.GpsLossTimeout,
+                                noGpsAgainInterval: prefs.NoGpsAlarmAgainInterval);
+            var old_watchdog = Interlocked.Exchange(ref this.gpsWatchdog, watchdog);
+            old_watchdog?.Dispose();
+            watchdog.Start();
         }
 
         private void showTurnAhead()
@@ -308,6 +319,8 @@ private long mLastTime;
 
                 LogDebug(LogLevel.Verbose, "updating prefs");
                 loadPreferences();
+
+                setupGpsWatchdog();
             }
         }
 
@@ -603,9 +616,6 @@ private long mLastTime;
             return this.alarms.TryGetLatestTurnAheadAlarmAt(out timeStamp);
         }*/
 
-
-        TimeSpan ISignalCheckerService.GpsAcquisitionTimeout => this.prefs.GpsAcquisitionTimeout;
-        TimeSpan ISignalCheckerService.NoGpsAgainInterval => this.prefs.NoGpsAlarmAgainInterval;
 
         Length IRadarService.DriftWarningDistance => this.prefs.DriftWarningDistance;
         int IRadarService.DriftMovingAwayCountLimit => this.prefs.DriftMovingAwayCountLimit;

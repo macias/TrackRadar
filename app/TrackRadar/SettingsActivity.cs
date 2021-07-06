@@ -17,14 +17,20 @@ namespace TrackRadar
         CheckBox gpsDumpCheckBox;
         EditText offTrackDistanceEditText;
         EditText offTrackIntervalEditText;
+        EditText offTrackAlarmCountLimitEditText;
         EditText noGpsIntervalEditText;
-        EditText noGpsTimeoutEditText;
+        EditText gpsAcquisitionTimeoutEditText;
+        EditText gpsLossTimeoutEditText;
         private EditText turnAheadIntervalEditText;
         private EditText turnAheadScreenTimeoutEditText;
         EditText restSpeedThresholdEditText;
         EditText ridingSpeedThresholdEditText;
         private EditText turnAheadDistanceEditText;
         private EditText doubleTurnDistanceEditText;
+
+        private EditText driftWarningDistanceEditText;
+        private EditText driftMovingAwayThresholdEditText;
+        private EditText driftComingCloserThresholdEditText;
 
         AudioRichSettings offTrackDistanceSettings;
         AudioRichSettings gpsLostSettings;
@@ -131,8 +137,10 @@ namespace TrackRadar
             this.gpsDumpCheckBox = FindViewById<CheckBox>(Resource.Id.GpsDumpCheckBox);
             this.offTrackDistanceEditText = FindViewById<EditText>(Resource.Id.OffTrackDistanceEditText);
             this.offTrackIntervalEditText = FindViewById<EditText>(Resource.Id.OffTrackIntervalEditText);
+            this.offTrackAlarmCountLimitEditText = FindViewById<EditText>(Resource.Id.OffTrackAlarmCountLimitEditText);
             this.noGpsIntervalEditText = FindViewById<EditText>(Resource.Id.NoGpsIntervalEditText);
-            this.noGpsTimeoutEditText = FindViewById<EditText>(Resource.Id.NoGpsTimeoutEditText);
+            this.gpsAcquisitionTimeoutEditText = FindViewById<EditText>(Resource.Id.GpsAcquisitionTimeoutEditText);
+            this.gpsLossTimeoutEditText = FindViewById<EditText>(Resource.Id.GpsLossTimeoutEditText);
 
             this.restSpeedThresholdEditText = FindViewById<EditText>(Resource.Id.RestThresholdEditText);
             this.ridingSpeedThresholdEditText = FindViewById<EditText>(Resource.Id.RidingThresholdEditText);
@@ -141,6 +149,11 @@ namespace TrackRadar
             this.doubleTurnDistanceEditText = FindViewById<EditText>(Resource.Id.DoubleTurnDistanceEditText);
             this.turnAheadIntervalEditText = FindViewById<EditText>(Resource.Id.TurnAheadIntervalEditText);
             this.turnAheadScreenTimeoutEditText = FindViewById<EditText>(Resource.Id.TurnAheadScreenTimeoutEditText);
+
+
+            this.driftWarningDistanceEditText = FindViewById<EditText>(Resource.Id.DriftWarningDistanceEditText);
+            this.driftMovingAwayThresholdEditText = FindViewById<EditText>(Resource.Id.DriftMovingAwayThresholdEditText);
+            this.driftComingCloserThresholdEditText = FindViewById<EditText>(Resource.Id.DriftComingCloserThresholdEditText);
 
             this.vibrateCheckBox.CheckedChange += VibrateCheckBox_CheckedChange;
 
@@ -158,8 +171,10 @@ namespace TrackRadar
             this.showTurnAheadCheckBox.Checked = prefs.ShowTurnAhead;
             this.offTrackDistanceEditText.Text = ((int)prefs.OffTrackAlarmDistance.Meters).ToString();
             this.offTrackIntervalEditText.Text = ((int)prefs.OffTrackAlarmInterval.TotalSeconds).ToString();
+            this.offTrackAlarmCountLimitEditText.Text = prefs.OffTrackAlarmCountLimit.ToString();
             this.noGpsIntervalEditText.Text = ((int)prefs.NoGpsAlarmAgainInterval.TotalMinutes).ToString();
-            this.noGpsTimeoutEditText.Text = ((int)prefs.NoGpsAlarmFirstTimeout.TotalSeconds).ToString();
+            this.gpsAcquisitionTimeoutEditText.Text = ((int)prefs.GpsAcquisitionTimeout.TotalSeconds).ToString();
+            this.gpsLossTimeoutEditText.Text = ((int)prefs.GpsLossTimeout.TotalSeconds).ToString();
 
             this.offTrackDistanceSettings.Update(prefs.OffTrackAudioVolume, prefs.DistanceAudioFileName);
             this.gpsLostSettings.Update(prefs.GpsLostAudioVolume, prefs.GpsLostAudioFileName);
@@ -183,6 +198,10 @@ namespace TrackRadar
             this.doubleTurnDistanceEditText.Text = ((int)prefs.DoubleTurnAlarmDistance.TotalSeconds).ToString();
             this.turnAheadIntervalEditText.Text = ((int)prefs.TurnAheadAlarmInterval.TotalSeconds).ToString();
             this.turnAheadScreenTimeoutEditText.Text = ((int)prefs.TurnAheadScreenTimeout.TotalSeconds).ToString();
+
+            this.driftWarningDistanceEditText.Text = ((int)prefs.DriftWarningDistance.Meters).ToString();
+            this.driftMovingAwayThresholdEditText.Text = prefs.DriftMovingAwayCountLimit.ToString();
+            this.driftComingCloserThresholdEditText.Text = prefs.DriftComingCloserCountLimit.ToString();
 
             this.playbackInitialized = true;
         }
@@ -231,48 +250,54 @@ namespace TrackRadar
 
         public override void OnBackPressed()
         {
-            Preferences p = app.Prefs.Clone();
+            Preferences tmp_prefs = app.Prefs.Clone();
 
-            p.ShowTurnAhead = showTurnAheadCheckBox.Checked;
-            p.UseVibration = vibrateCheckBox.Checked;
-            p.GpsDump = gpsDumpCheckBox.Checked;
-            p.GpsFilter = gpsFilterCheckBox.Checked;
-            p.OffTrackAlarmDistance = Length.FromMeters(int.Parse(offTrackDistanceEditText.Text));
-            p.OffTrackAlarmInterval = TimeSpan.FromSeconds(int.Parse(offTrackIntervalEditText.Text));
-            p.NoGpsAlarmAgainInterval = TimeSpan.FromMinutes(int.Parse(this.noGpsIntervalEditText.Text));
-            p.NoGpsAlarmFirstTimeout = TimeSpan.FromSeconds(int.Parse(this.noGpsTimeoutEditText.Text));
+            tmp_prefs.ShowTurnAhead = showTurnAheadCheckBox.Checked;
+            tmp_prefs.UseVibration = vibrateCheckBox.Checked;
+            tmp_prefs.GpsDump = gpsDumpCheckBox.Checked;
+            tmp_prefs.GpsFilter = gpsFilterCheckBox.Checked;
+            tmp_prefs.OffTrackAlarmDistance = Length.FromMeters(int.Parse(offTrackDistanceEditText.Text));
+            tmp_prefs.OffTrackAlarmInterval = TimeSpan.FromSeconds(int.Parse(offTrackIntervalEditText.Text));
+            tmp_prefs.OffTrackAlarmCountLimit = int.Parse(this.offTrackAlarmCountLimitEditText.Text);
+            tmp_prefs.NoGpsAlarmAgainInterval = TimeSpan.FromMinutes(int.Parse(this.noGpsIntervalEditText.Text));
+            tmp_prefs.GpsAcquisitionTimeout = TimeSpan.FromSeconds(int.Parse(this.gpsAcquisitionTimeoutEditText.Text));
+            tmp_prefs.GpsLossTimeout = TimeSpan.FromSeconds(int.Parse(this.gpsLossTimeoutEditText.Text));
 
-            p.OffTrackAudioVolume = this.offTrackDistanceSettings.Volume;
-            p.DistanceAudioFileName = this.offTrackDistanceSettings.AudioFileName;
-            p.GpsLostAudioVolume = this.gpsLostSettings.Volume;
-            p.GpsLostAudioFileName = this.gpsLostSettings.AudioFileName;
-            p.AcknowledgementAudioVolume = this.gpsOnSettings.Volume;
-            p.GpsOnAudioFileName = this.gpsOnSettings.AudioFileName;
+            tmp_prefs.OffTrackAudioVolume = this.offTrackDistanceSettings.Volume;
+            tmp_prefs.DistanceAudioFileName = this.offTrackDistanceSettings.AudioFileName;
+            tmp_prefs.GpsLostAudioVolume = this.gpsLostSettings.Volume;
+            tmp_prefs.GpsLostAudioFileName = this.gpsLostSettings.AudioFileName;
+            tmp_prefs.AcknowledgementAudioVolume = this.gpsOnSettings.Volume;
+            tmp_prefs.GpsOnAudioFileName = this.gpsOnSettings.AudioFileName;
 
-            p.DisengageAudioVolume = this.disengageSettings.Volume;
-            p.DisengageAudioFileName = this.disengageSettings.AudioFileName;
+            tmp_prefs.DisengageAudioVolume = this.disengageSettings.Volume;
+            tmp_prefs.DisengageAudioFileName = this.disengageSettings.AudioFileName;
 
-            p.TurnAheadAudioVolume = this.turnAheadSettings.Volume;
-            p.TurnAheadAudioFileName = this.turnAheadSettings.AudioFileName;
+            tmp_prefs.TurnAheadAudioVolume = this.turnAheadSettings.Volume;
+            tmp_prefs.TurnAheadAudioFileName = this.turnAheadSettings.AudioFileName;
 
-            p.GoAheadAudioFileName = this.goAheadSettings.AudioFileName;
-            p.LeftEasyAudioFileName = this.leftEasySettings.AudioFileName;
-            p.LeftCrossAudioFileName = this.leftCrossSettings.AudioFileName;
-            p.LeftSharpAudioFileName = this.leftSharpSettings.AudioFileName;
-            p.RightEasyAudioFileName = this.rightEasySettings.AudioFileName;
-            p.RightCrossAudioFileName = this.rightCrossSettings.AudioFileName;
-            p.RightSharpAudioFileName = this.rightSharpSettings.AudioFileName;
-            p.DoubleTurnAudioFileName = this.doubleTurnSettings.AudioFileName;
+            tmp_prefs.GoAheadAudioFileName = this.goAheadSettings.AudioFileName;
+            tmp_prefs.LeftEasyAudioFileName = this.leftEasySettings.AudioFileName;
+            tmp_prefs.LeftCrossAudioFileName = this.leftCrossSettings.AudioFileName;
+            tmp_prefs.LeftSharpAudioFileName = this.leftSharpSettings.AudioFileName;
+            tmp_prefs.RightEasyAudioFileName = this.rightEasySettings.AudioFileName;
+            tmp_prefs.RightCrossAudioFileName = this.rightCrossSettings.AudioFileName;
+            tmp_prefs.RightSharpAudioFileName = this.rightSharpSettings.AudioFileName;
+            tmp_prefs.DoubleTurnAudioFileName = this.doubleTurnSettings.AudioFileName;
 
-            p.RestSpeedThreshold = Speed.FromKilometersPerHour(int.Parse(restSpeedThresholdEditText.Text));
-            p.RidingSpeedThreshold = Speed.FromKilometersPerHour(int.Parse(ridingSpeedThresholdEditText.Text));
+            tmp_prefs.RestSpeedThreshold = Speed.FromKilometersPerHour(int.Parse(restSpeedThresholdEditText.Text));
+            tmp_prefs.RidingSpeedThreshold = Speed.FromKilometersPerHour(int.Parse(ridingSpeedThresholdEditText.Text));
 
-            p.TurnAheadAlarmDistance = TimeSpan.FromSeconds(int.Parse(turnAheadDistanceEditText.Text));
-            p.DoubleTurnAlarmDistance = TimeSpan.FromSeconds(int.Parse(doubleTurnDistanceEditText.Text));
-            p.TurnAheadAlarmInterval = TimeSpan.FromSeconds(int.Parse(turnAheadIntervalEditText.Text));
-            p.TurnAheadScreenTimeout = TimeSpan.FromSeconds(int.Parse(turnAheadScreenTimeoutEditText.Text));
+            tmp_prefs.TurnAheadAlarmDistance = TimeSpan.FromSeconds(int.Parse(turnAheadDistanceEditText.Text));
+            tmp_prefs.DoubleTurnAlarmDistance = TimeSpan.FromSeconds(int.Parse(doubleTurnDistanceEditText.Text));
+            tmp_prefs.TurnAheadAlarmInterval = TimeSpan.FromSeconds(int.Parse(turnAheadIntervalEditText.Text));
+            tmp_prefs.TurnAheadScreenTimeout = TimeSpan.FromSeconds(int.Parse(turnAheadScreenTimeoutEditText.Text));
 
-            app.Prefs = Preferences.SaveBehaviors(this, p);
+            tmp_prefs.DriftWarningDistance = Length.FromMeters(int.Parse(driftWarningDistanceEditText.Text));
+            tmp_prefs.DriftMovingAwayCountLimit = int.Parse(driftMovingAwayThresholdEditText.Text);
+            tmp_prefs.DriftComingCloserCountLimit = int.Parse(driftComingCloserThresholdEditText.Text);
+
+            app.Prefs = tmp_prefs.SaveAll(this);
 
             this.gpsLostSettings.Destroy();
             this.offTrackDistanceSettings.Destroy();

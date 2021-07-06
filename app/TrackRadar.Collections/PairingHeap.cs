@@ -174,7 +174,7 @@ namespace TrackRadar.Collections
             else if (this.previous.rightSibling == this)
                 this.previous.rightSibling = this.rightSibling;
             else
-                throw new NotImplementedException("Not possible");
+                throw new InvalidOperationException("Not possible");
 
             if (this.rightSibling != null)
                 this.rightSibling.previous = this.previous;

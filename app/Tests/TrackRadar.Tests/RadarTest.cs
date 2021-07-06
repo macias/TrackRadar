@@ -33,7 +33,7 @@ namespace TrackRadar.Tests
             // logic a lot, and besides it would not communicate clearly with user. I prefer know by heart the state of the tracking
 
             // in short we need to improve speed calculation and smoothing
-        
+
             string filename = Toolbox.TestData("slowing-speeding.gpx");
 
             var prefs = Toolbox.CreatePreferences(); // regular thresholds for speed
@@ -62,7 +62,7 @@ namespace TrackRadar.Tests
             Assert.AreEqual((Alarm.Engaged, 273), alarms[a++]);
             Assert.AreEqual((Alarm.Crossroad, 399), alarms[a++]);
             Assert.AreEqual((Alarm.Crossroad, 401), alarms[a++]);
-            Assert.AreEqual((Alarm.Crossroad, 403), alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 405), alarms[a++]);
         }
 
         [TestMethod]
@@ -80,90 +80,43 @@ namespace TrackRadar.Tests
             IPlanData gpx_data = Toolbox.CreateBasicTrackData(track: plan_points, waypoints: null, prefs.OffTrackAlarmDistance);
 
             // we simulate riding off track and getting back to it
-            var track_points = new[] { GeoPoint.FromDegrees(40.05,5), GeoPoint.FromDegrees(40.05,5.01) }.ToList();
+            var track_points = new[] { GeoPoint.FromDegrees(40.05, 5), GeoPoint.FromDegrees(40.05, 5.01) }.ToList();
             Toolbox.PopulateTrackDensely(track_points);
             track_points.AddRange(track_points.AsEnumerable().Reverse());
 
-            Toolbox.Ride(prefs, gpx_data, track_points, out var alarm_counters, out var alarms, out var messages);
+            var stats = Toolbox.Ride(prefs, gpx_data, track_points, out var alarm_counters, out var alarms, out var messages);
 
-            Assert.AreEqual(6, alarms.Count());
-
+            Assert.AreEqual(10, stats.Alarms.Count);
             int a = 0;
-            Assert.AreEqual((Alarm.Engaged, 3), alarms[a++]);
 
-            Assert.AreEqual((Alarm.OffTrack, 37), alarms[a++]);
-            Assert.AreEqual((Alarm.OffTrack, 47), alarms[a++]);
-            Assert.AreEqual((Alarm.OffTrack, 57), alarms[a++]);
-            Assert.AreEqual((Alarm.Disengage, 67), alarms[a++]);
+            Assert.AreEqual((Alarm.Engaged, 3), stats.Alarms[a++]);
+
+            Assert.AreEqual((Alarm.OffTrack, 29), stats.Alarms[a++]); // quick off track alarm thanks to drifting check
+            Assert.AreEqual((Alarm.OffTrack, 39), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.OffTrack, 49), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Disengage, 59), stats.Alarms[a++]); // we alarmed user enough
+
+            Assert.AreEqual((Alarm.OffTrack, 515), stats.Alarms[a++]); // something to improve, program counts 180 deg turn as stopping, so it alarms about off-track again
+            Assert.AreEqual((Alarm.OffTrack, 525), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.OffTrack, 535), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Disengage, 545), stats.Alarms[a++]);
 
             // we don't have second disengage in the middle of riding (when turning back) because now TrackRadar checks
             // the state not the speed, and since multiple off-track causes disengage, the single alarm suffices
 
-            Assert.AreEqual((Alarm.BackOnTrack, 989), alarms[a++]);
+            Assert.AreEqual((Alarm.BackOnTrack, 989), stats.Alarms[a++]);
         }
 
         [TestMethod]
         public void PreferencesTrackNameTest()
         {
             var prefs = Toolbox.CreatePreferences();
-            prefs.TurnAheadAlarmDistance = TimeSpan.FromSeconds(13) ;
+            prefs.TurnAheadAlarmDistance = TimeSpan.FromSeconds(13);
             PropertyInfo property = prefs.GetType().GetProperty(nameof(Preferences.TrackName));
             property.SetValue(prefs, "foobar");
             Assert.AreEqual("foobar", prefs.TrackName);
             var clone = prefs.Clone();
             Assert.AreEqual("foobar", clone.TrackName);
-        }
-        [TestMethod]
-        public void TestSignalChecker()
-        {
-            //var stamper = new ClockStamper(DateTimeOffset.UtcNow);
-            var stamper = new SecondStamper();
-            var service = new ManualSignalService(noGpsFirstTimeout: TimeSpan.FromSeconds(1),
-                noGpsAgainInterval: TimeSpan.FromSeconds(2));
-
-            var checker = new GpsWatchdog(service, stamper);
-
-            service.Timer.Trigger();
-            Assert.AreEqual(0, service.GpsOnAlarmCounter);
-            Assert.AreEqual(0, service.GpsOffAlarmCounter);
-
-            stamper.Advance();// TimeSpan.FromSeconds(1));
-            service.Timer.Trigger();
-            Assert.AreEqual(0, service.GpsOnAlarmCounter);
-            Assert.AreEqual(0, service.GpsOffAlarmCounter);
-
-            stamper.Advance();// TimeSpan.FromSeconds(1));
-            service.Timer.Trigger();
-            Assert.AreEqual(0, service.GpsOnAlarmCounter);
-            Assert.AreEqual(1, service.GpsOffAlarmCounter);
-
-            stamper.Advance();// TimeSpan.FromSeconds(1));
-            service.Timer.Trigger();
-            Assert.AreEqual(0, service.GpsOnAlarmCounter);
-            Assert.AreEqual(1, service.GpsOffAlarmCounter);
-
-            stamper.Advance();// TimeSpan.FromSeconds(1));
-            service.Timer.Trigger();
-            Assert.AreEqual(0, service.GpsOnAlarmCounter);
-            Assert.AreEqual(1, service.GpsOffAlarmCounter);
-
-            stamper.Advance();// TimeSpan.FromSeconds(1));
-            service.Timer.Trigger();
-            Assert.AreEqual(0, service.GpsOnAlarmCounter);
-            Assert.AreEqual(2, service.GpsOffAlarmCounter);
-
-            stamper.Advance();// TimeSpan.FromSeconds(1));
-            foreach (var _ in Enumerable.Range(0, 9)) // it takes 10 updates to switch the state
-                Assert.IsFalse(checker.UpdateGpsIsOn());
-
-            Assert.IsTrue(checker.UpdateGpsIsOn());
-
-            Assert.AreEqual(0, service.GpsOnAlarmCounter);
-            Assert.AreEqual(2, service.GpsOffAlarmCounter);
-
-            service.Timer.Trigger();
-            Assert.AreEqual(0, service.GpsOnAlarmCounter);
-            Assert.AreEqual(2, service.GpsOffAlarmCounter);
         }
 
         //private static readonly int off_track_distance_m = 70;
@@ -250,8 +203,8 @@ namespace TrackRadar.Tests
             int index = 0;
             foreach (var pt in trackPoints)
             {
-                bool exact_res = map.FindClosest(pt, prefs.OffTrackAlarmDistance, out ISegment _, out Length? exact_map_dist, 
-                    out  _);
+                bool exact_res = map.FindClosest(pt, prefs.OffTrackAlarmDistance, out ISegment _, out Length? exact_map_dist,
+                    out _);
                 bool approx_res = map.IsWithinLimit(pt, prefs.OffTrackAlarmDistance, out Length? approx_map_dist);
 
                 Assert.AreEqual(expected: approx_res, actual: exact_res);
@@ -309,7 +262,7 @@ namespace TrackRadar.Tests
             {
                 raw_alarm_master.PopulateAlarms();
 
-                var service = new TrackRadar.Tests.Implementation.RadarService(prefs, clock);
+                var service = new TrackRadar.Tests.Implementation.MockRadarService(prefs, clock);
                 var core = new RadarCore(service, new AlarmSequencer(service, raw_alarm_master), clock, gpx_data, Length.Zero, Length.Zero, TimeSpan.Zero, Speed.Zero);
 
                 //clock.SetTime(DateTimeOffset.UtcNow);

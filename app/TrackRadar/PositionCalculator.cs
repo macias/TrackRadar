@@ -52,18 +52,18 @@ namespace TrackRadar
         }
         */
         internal static bool IsOnTrack(in GeoPoint point, IGeoMap map, Length offTrackDistance, 
-            out ISegment segment, out double fenceDistance,out ArcSegmentIntersection crosspointInfo)
+            out ISegment segment, out Length fenceDistance,out ArcSegmentIntersection crosspointInfo)
         {
             crosspointInfo = default;
             segment = default;
             //bool res = map.IsWithinLimit(point, offTrackDistance, out Length? map_dist);
             bool res = map.FindClosest(point, offTrackDistance, out segment, out Length? map_dist, out crosspointInfo);
             if (res)
-                fenceDistance = -map_dist.Value.Meters;
+                fenceDistance = -map_dist.Value;
             else if (map_dist.HasValue)
-                fenceDistance = map_dist.Value.Meters;
+                fenceDistance = map_dist.Value;
             else
-                fenceDistance = double.PositiveInfinity;
+                fenceDistance = Length.PositiveInfinity;
 
             return res;
         }

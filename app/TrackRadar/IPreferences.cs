@@ -29,17 +29,24 @@ namespace TrackRadar
         string DisengageAudioFileName { get; }
         int DisengageAudioVolume { get; }
         TimeSpan NoGpsAlarmAgainInterval { get; }
-        TimeSpan NoGpsAlarmFirstTimeout { get; }
+        TimeSpan GpsAcquisitionTimeout { get; }
+        TimeSpan GpsLossTimeout { get; }
         Length OffTrackAlarmDistance { get; }
         TimeSpan TurnAheadAlarmDistance { get; }
         TimeSpan DoubleTurnAlarmDistance { get; }
         TimeSpan TurnAheadAlarmInterval { get; }
         TimeSpan TurnAheadScreenTimeout { get; }
         TimeSpan OffTrackAlarmInterval { get; }
+        int OffTrackAlarmCountLimit { get; }
         bool UseVibration { get; }
         bool GpsFilter { get; }
         bool GpsDump { get; }
         bool ShowTurnAhead { get; }
+
+        Length DriftWarningDistance { get;  } 
+        int DriftMovingAwayCountLimit { get;  } 
+        int DriftComingCloserCountLimit { get; } 
+
 
         string TrackName { get; }
 

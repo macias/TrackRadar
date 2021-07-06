@@ -10,12 +10,10 @@ namespace TrackRadar
     [Application]
     public sealed class TrackRadarApp : Application
     {
+        private readonly object threadLock = new object();
+
         private IPlanData trackData;
-        public IPlanData TrackData
-        {
-            get { return Interlocked.CompareExchange(ref trackData, null, null); }
-            set { Interlocked.Exchange(ref trackData, value); }
-        }
+
         private int trackTag;
         public int TrackTag
         {
@@ -34,6 +32,16 @@ namespace TrackRadar
         public TrackRadarApp(IntPtr javaReference, Android.Runtime.JniHandleOwnership transfer)
             : base(javaReference, transfer)
         {
+        }
+
+        public IPlanData GetTrackData()
+        {
+            return Interlocked.CompareExchange(ref trackData, null, null);
+        }
+
+        public void SetTrackData(IPlanData value)
+        {
+            Interlocked.Exchange(ref trackData, value);
         }
 
         public override void OnCreate()

@@ -396,11 +396,6 @@ namespace TrackRadar.Implementation
             return true;
         }
 
-        private static void tryAddEndpoint(TrackNode head, List<Crossroad> crossroads, Length length)
-        {
-            throw new NotImplementedException();
-        }
-
         /*        public static void WriteGpxPoints(string path, IEnumerable<GeoPoint> points)
                 {
                     using (var file = new GpxDirtyWriter(path))
@@ -509,7 +504,7 @@ namespace TrackRadar.Implementation
                             else if (a.Kind == GpxLoader.CrossroadKind.PassingBy && b.Kind == GpxLoader.CrossroadKind.PassingBy)
                                 kind = GpxLoader.CrossroadKind.PassingBy;
                             //else
-                            //  throw new NotImplementedException($"This case is not possible, right? {a.Kind}, {b.Kind}");
+                            //  throw new ($"This case is not possible, right? {a.Kind}, {b.Kind}");
                         }
 
                         crossroads[i] = outcome ?? GpxLoader.Crossroad.AverageCrossroads(a, b, kind, same_tracks ? a.SourceIndex : null);
@@ -551,7 +546,7 @@ namespace TrackRadar.Implementation
                 return true;
             }
             //else
-            //  throw new NotImplementedException($"Cannot decide which intersection to pick.");
+            //  throw new ($"Cannot decide which intersection to pick.");
 
         }
 

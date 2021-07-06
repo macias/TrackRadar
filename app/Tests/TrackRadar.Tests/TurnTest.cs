@@ -18,6 +18,58 @@ namespace TrackRadar.Tests
         private const double precision = 0.00000001;
 
         [TestMethod]
+        public void ConfusingCrossroadTest()
+        {
+            string plan_filename = Toolbox.TestData("confusing-crossroad.plan.gpx");
+            string tracked_filename = Toolbox.TestData("confusing-crossroad.tracked.gpx");
+
+            var prefs = Toolbox.CreatePreferences(); // regular thresholds for speed
+            RideStats stats;
+            stats = Toolbox.Ride(prefs, playDuration: TimeSpan.FromSeconds(2.229), plan_filename, tracked_filename, null);
+
+            Assert.AreEqual(11, stats.Alarms.Count);
+            int a = 0;
+
+            Assert.AreEqual((Alarm.Engaged, 3), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 34), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.GoAhead, 36), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.GoAhead, 38), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Disengage, 42), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Engaged, 53), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.OffTrack, 68), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.OffTrack, 78), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.BackOnTrack, 80), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 92), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 94), stats.Alarms[a++]);
+        }
+
+        [TestMethod]
+        public void ForkOffTest()
+        {
+            // the original program simply detected off-track when riding at too much distance from planned track
+            // so we added improvement -- drift detection, if the rider moves away consistently we trigger off-track alarm
+
+            string plan_filename = Toolbox.TestData("fork-off.plan.gpx");
+            string tracked_filename = Toolbox.TestData("fork-off.tracked.gpx");
+
+            var prefs = Toolbox.CreatePreferences(); // regular thresholds for speed
+            RideStats stats;
+            stats = Toolbox.Ride(prefs, playDuration: TimeSpan.FromSeconds(2.229), plan_filename, tracked_filename, null);
+
+            Assert.AreEqual(8, stats.Alarms.Count);
+            int a = 0;
+
+            Assert.AreEqual((Alarm.Engaged, 3), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 17), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.RightEasy, 19), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.RightEasy, 21), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.OffTrack, 33), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.OffTrack, 43), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.OffTrack, 53), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Disengage, 63), stats.Alarms[a++]);
+        }
+
+        [TestMethod]
         public void FarIsCloserTest()
         {
             // the original problem was program checked distance to two turn points and decided the far one is closer
@@ -95,7 +147,6 @@ namespace TrackRadar.Tests
             Toolbox.Ride(prefs, plan_filename, tracked_filename, null,
                 out var alarmCounters, out var alarms, out var messages);
 
-            Toolbox.PrintAlarms(alarms);
             Assert.AreEqual(5, alarms.Count);
             int a = 0;
 
@@ -771,7 +822,7 @@ namespace TrackRadar.Tests
 
             Toolbox.PopulateTrackDensely(track_points, riding_speed);
 
-            Toolbox.Ride(prefs, playDuration: null, plan_data, track_points,
+            var stats = Toolbox.Ride(prefs, playDuration: null, plan_data, track_points,
                 out var alarm_counters, out var alarms, out var messages,
                 out TurnLookout lookout);
 
@@ -779,7 +830,7 @@ namespace TrackRadar.Tests
             Length double_turn_limit = lookout.GetDoubleTurnLengthLimit(riding_speed);
             TestHelper.IsGreaterThan(double_turn_limit, GeoCalculator.GetDistance(waypoints[0], waypoints[1]));
 
-            Assert.AreEqual(4, alarms.Count());
+            Assert.AreEqual(4, alarms.Count);
 
             Assert.AreEqual((Alarm.Engaged, 11), alarms[0]);
 
@@ -803,7 +854,7 @@ namespace TrackRadar.Tests
 
             Assert.AreEqual(3, gpx_data.Segments.Select(it => it.SectionId).Distinct().Count());
 
-            Toolbox.Ride(prefs, gpx_data, track_points, out var alarm_counters, out var alarms, out var messages);
+            var stats = Toolbox.Ride(prefs, gpx_data, track_points, out var alarm_counters, out var alarms, out var messages);
 
             Assert.AreEqual(7, alarms.Count());
 
@@ -1013,8 +1064,8 @@ namespace TrackRadar.Tests
             using (var raw_alarm_master = new AlarmMaster(clock))
             {
                 raw_alarm_master.PopulateAlarms();
-                var counting_alarm_master = new CountingAlarmMaster(raw_alarm_master);
-                var service = new Implementation.RadarService(prefs, clock);
+                var counting_alarm_master = new CountingAlarmMaster(NoneLogger.Instance, raw_alarm_master);
+                var service = new Implementation.MockRadarService(prefs, clock);
                 var sequencer = new AlarmSequencer(service, counting_alarm_master);
                 IGeoMap map = RadarCore.CreateTrackMap(gpx_data.Segments);
                 var lookout = new TurnLookout(service, sequencer, clock, gpx_data, map);
@@ -1076,8 +1127,8 @@ namespace TrackRadar.Tests
             using (var raw_alarm_master = new AlarmMaster(clock))
             {
                 raw_alarm_master.PopulateAlarms();
-                var counting_alarm_master = new CountingAlarmMaster(raw_alarm_master);
-                var service = new Implementation.RadarService(prefs, clock);
+                var counting_alarm_master = new CountingAlarmMaster(NoneLogger.Instance, raw_alarm_master);
+                var service = new Implementation.MockRadarService(prefs, clock);
                 var sequencer = new AlarmSequencer(service, counting_alarm_master);
                 IGeoMap map = RadarCore.CreateTrackMap(gpx_data.Segments);
                 var lookout = new TurnLookout(service, sequencer, clock, gpx_data, map);

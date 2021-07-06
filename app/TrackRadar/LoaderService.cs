@@ -11,7 +11,7 @@ using System.Diagnostics;
 
 namespace TrackRadar
 {
-    [Service]
+    [Service(Exported =false)]
     internal sealed partial class LoaderService : Service
     {
         private readonly object threadLock = new object();
@@ -196,9 +196,9 @@ namespace TrackRadar
                 failure = "Error while loading GPX";
             }
 
-            logDebug( LogLevel.Verbose, $"Finished loading {(data==null?"null":"ok")} in {(((Stopwatch.GetTimestamp()-start-0.0)/Stopwatch.Frequency).ToString("0.###"))}s {failure} req: {tagRequest}");
+            logDebug( LogLevel.Verbose, $"Finished loading {(data==null?"null":"ok")} with fail {(failure==null?"no":failure)} in {(((Stopwatch.GetTimestamp()-start-0.0)/Stopwatch.Frequency).ToString("0.###"))}s {failure} req: {tagRequest}");
 
-            app.TrackData = data; // null on fail, non-null on success
+            app.SetTrackData(data); // null on fail, non-null on success
             app.TrackTag = tagRequest;
 
             SendProgress(tagRequest, failure, 1);

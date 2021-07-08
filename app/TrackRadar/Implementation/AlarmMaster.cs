@@ -178,7 +178,7 @@ namespace TrackRadar.Implementation
             }
         }
 
-        public bool TryAlarm(Alarm alarm, out string reason)
+        public bool TryAlarm(Alarm alarm,  out string reason)
         {
             lock (this.threadLock)
             {

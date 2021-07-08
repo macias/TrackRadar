@@ -62,7 +62,7 @@ namespace TrackRadar.Implementation
             }
         }
 
-        public bool TryAlarm(Alarm alarm, out string reason)
+        public bool TryAlarm(Alarm alarm, bool store, out string reason)
         {
             if (this.alarmPlayed.HasValue)
             {
@@ -74,7 +74,8 @@ namespace TrackRadar.Implementation
                 else
                 {
                     reason = $"Single alarm per cycle, {this.alarmPlayed} played";
-                    this.failedMask |= (1UL << (int)alarm);
+                    if (store)
+                        this.failedMask |= (1UL << (int)alarm);
                     return false;
                 }
             }
@@ -83,12 +84,13 @@ namespace TrackRadar.Implementation
                 if ((notificationMask & (1UL << alarmNotificationCategory(alarm))) == notificationMask) // notification only about this alarm
                 {
                     this.notificationMask = 0;
-                    return TryAlarm(alarm, out reason);
+                    return TryAlarm(alarm, store, out reason);
                 }
                 else
                 {
                     reason = $"We are notified about alarm {this.notificationMask}";
-                    this.failedMask |= (1UL << (int)alarm);
+                    if (store)
+                        this.failedMask |= (1UL << (int)alarm);
                     return false;
                 }
             }
@@ -99,7 +101,8 @@ namespace TrackRadar.Implementation
             }
             else
             {
-                this.failedMask |= (1UL << (int)alarm);
+                if (store)
+                    this.failedMask |= (1UL << (int)alarm);
                 return false;
             }
         }
@@ -132,6 +135,8 @@ namespace TrackRadar.Implementation
 
         private void closeContext()
         {
+            // todo: simplify this mess!!!
+
             if (!alarmPlayed.HasValue
                 // we might have other failures but we have to save for futre only dis/engage
                 && (this.failedMask & (disengageMask | engagedMask)) != 0

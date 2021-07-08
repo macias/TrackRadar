@@ -40,6 +40,8 @@ namespace TrackRadar.Tests
             var stats = Toolbox.Ride(prefs, playDuration: TimeSpan.FromSeconds(2.229), filename, filename, null,
                 out var alarmCounters, out var alarms, out var messages);
 
+            Toolbox.PrintAlarms(stats);
+
             Assert.AreEqual(20, alarms.Count);
             int a = 0;
 
@@ -263,7 +265,11 @@ namespace TrackRadar.Tests
                 raw_alarm_master.PopulateAlarms();
 
                 var service = new TrackRadar.Tests.Implementation.MockRadarService(prefs, clock);
-                var core = new RadarCore(service, new AlarmSequencer(service, raw_alarm_master), clock, gpx_data, Length.Zero, Length.Zero, TimeSpan.Zero, Speed.Zero);
+                var signal_service = new ManualSignalService(clock);
+                AlarmSequencer alarm_sequencer = new AlarmSequencer(service, raw_alarm_master);
+                var core = new RadarCore(service, signal_service, new GpsAlarm(alarm_sequencer), alarm_sequencer, clock, gpx_data,
+                    Length.Zero, Length.Zero, TimeSpan.Zero, Speed.Zero);
+                core.SetupGpsWatchdog(prefs);
 
                 //clock.SetTime(DateTimeOffset.UtcNow);
                 //service.SetPointIndex(0);

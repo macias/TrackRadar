@@ -209,6 +209,15 @@ namespace TrackRadar.Tests.Implementation
             return Ride(prefs, playDuration: null, planData, trackPoints, out alarmCounters, out alarms, out messages, out _);
         }
 
+        public static RideStats Ride(Preferences prefs, IPlanData planData,
+    IReadOnlyList<GeoPoint?> trackPoints,
+    out IReadOnlyDictionary<Alarm, int> alarmCounters,
+    out IReadOnlyList<(Alarm alarm, int index)> alarms,
+    out IReadOnlyList<(string message, int index)> messages)
+        {
+            return RideWithGps(prefs, playDuration: null, planData, trackPoints, out alarmCounters, out alarms, out messages, out _);
+        }
+
         public static RideStats Ride(Preferences prefs, TimeSpan? playDuration, IPlanData planData,
             IReadOnlyList<GeoPoint> trackPoints,
             out IReadOnlyDictionary<Alarm, int> alarmCounters,
@@ -226,6 +235,25 @@ namespace TrackRadar.Tests.Implementation
             out IReadOnlyList<(string message, int index)> messages,
             out TurnLookout lookout)
         {
+            return RideWithGps(prefs, playDuration,
+                planData,
+                trackPoints.Select(it => (GeoPoint?)it).ToList(),
+                out alarmCounters,
+                out alarms,
+                out messages,
+                out lookout);
+        }
+
+        internal static RideStats RideWithGps(Preferences prefs, TimeSpan? playDuration,
+            IPlanData planData,
+            IReadOnlyList<GeoPoint?> trackPoints,
+            out IReadOnlyDictionary<Alarm, int> alarmCounters,
+            out IReadOnlyList<(Alarm alarm, int index)> alarms,
+            out IReadOnlyList<(string message, int index)> messages,
+            out TurnLookout lookout)
+        {
+
+
             var speeds = new List<Speed>();
             var clock = new SecondStamper();
             using (var raw_alarm_master = new AlarmMaster(clock))
@@ -233,45 +261,62 @@ namespace TrackRadar.Tests.Implementation
                 raw_alarm_master.PopulateAlarms(playDuration);
 
                 var service = new TrackRadar.Tests.Implementation.MockRadarService(prefs, clock);
+                var signal_service = new ManualSignalService(clock);
+
+                // using (var watchdog = new GpsWatchdog(signal_service, clock, prefs.GpsAcquisitionTimeout,
+                //   prefs.GpsLossTimeout, noGpsAgainInterval: prefs.NoGpsAlarmAgainInterval))
+
+                // watchdog.Start();
+
                 ILogger logger = service;
                 var counting_alarm_master = new CountingAlarmMaster(logger, raw_alarm_master);
 
                 AlarmSequencer sequencer = new AlarmSequencer(service, counting_alarm_master);
-                var core = new RadarCore(service, sequencer, clock, planData, Length.Zero, Length.Zero, TimeSpan.Zero, Speed.Zero);
-                lookout = core.Lookout;
-
-                int point_index = 0;
-                long longest_update = 0;
-                long start_all = Stopwatch.GetTimestamp();
-                foreach (GeoPoint pt in trackPoints)
+                using (var core = new RadarCore(service, signal_service,new GpsAlarm(sequencer), sequencer, clock, planData, Length.Zero, Length.Zero, TimeSpan.Zero, Speed.Zero))
                 {
-                    using (sequencer.OpenAlarmContext(gpsAcquired: false, hasGpsSignal: true))
+                    core.SetupGpsWatchdog(prefs);
+
+                    lookout = core.Lookout;
+
+                    int point_index = 0;
+                    long longest_update = 0;
+                    long start_all = Stopwatch.GetTimestamp();
+                    foreach (GeoPoint? pt in trackPoints)
                     {
-                        if (point_index == 44)
+                        using (sequencer.OpenAlarmContext(gpsAcquired: false, hasGpsSignal: true))
                         {
-                            ;
+                            if (point_index == 44)
+                            {
+                                ;
+                            }
+                            counting_alarm_master.SetPointIndex(point_index);
+                            long start = Stopwatch.GetTimestamp();
+                            if (pt.HasValue)
+                                core.UpdateLocation(pt.Value, null, accuracy: null);
+                            speeds.Add(core.RidingSpeed);
+                            long passed = Stopwatch.GetTimestamp() - start;
+                            if (longest_update < passed)
+                                longest_update = passed;
+                            clock.Advance();
+
+                            //  signal_service.Timer.TriggerCallback();
+
+                            ++point_index;
                         }
-                        counting_alarm_master.SetPointIndex(point_index);
-                        long start = Stopwatch.GetTimestamp();
-                        core.UpdateLocation(pt, null, accuracy: null);
-                        speeds.Add(core.RidingSpeed);
-                        long passed = Stopwatch.GetTimestamp() - start;
-                        if (longest_update < passed)
-                            longest_update = passed;
-                        clock.Advance();
-                        ++point_index;
                     }
+
+
+                    alarmCounters = counting_alarm_master.AlarmCounters;
+                    alarms = counting_alarm_master.Alarms;
+                    messages = counting_alarm_master.Messages;
+
+                    return new RideStats(planData, trackPoints, speeds, longest_update * 1.0 / Stopwatch.Frequency,
+                        (Stopwatch.GetTimestamp() - start_all - 0.0) / (Stopwatch.Frequency * trackPoints.Count),
+                        trackPoints.Count,
+                        alarmCounters, alarms, messages);
                 }
-
-                alarmCounters = counting_alarm_master.AlarmCounters;
-                alarms = counting_alarm_master.Alarms;
-                messages = counting_alarm_master.Messages;
-
-                return new RideStats(planData, trackPoints, speeds, longest_update * 1.0 / Stopwatch.Frequency,
-                    (Stopwatch.GetTimestamp() - start_all - 0.0) / (Stopwatch.Frequency * trackPoints.Count),
-                    trackPoints.Count,
-                    alarmCounters, alarms, messages);
             }
+
         }
 
         public static void PrintSpeeds(IEnumerable<Speed> speeds)
@@ -348,7 +393,9 @@ namespace TrackRadar.Tests.Implementation
         public static void SaveGpxAlarms(string filename, RideStats stats)
         {
 #if DEBUG
-            GpxToolbox.SaveGpxWaypoints(filename, stats.Alarms.Select(a => (stats.TrackPoints[a.index],$"{a.index}. {a.alarm}")));
+            GpxToolbox.SaveGpxWaypoints(filename, stats.Alarms
+                .Where(a => stats.TrackPoints[a.index].HasValue)
+                .Select(a => (stats.TrackPoints[a.index].Value, $"{a.index}. {a.alarm}")));
 #endif
         }
         public static void SaveGpxWaypoints(string filename, IEnumerable<GeoPoint> points)
@@ -376,18 +423,25 @@ namespace TrackRadar.Tests.Implementation
                 doubleTurn: new TestAlarmPlayer(AlarmSound.DoubleTurn, duration));
         }
 
-        public static void PopulateTrackDensely(List<GeoPoint> trackPoints)
+        public static List<GeoPoint> PopulateTrackDensely(List<GeoPoint> trackPoints)
         {
-            PopulateTrackDensely(trackPoints, Speed.FromMetersPerSecond(3));
+            return PopulateTrackDensely(trackPoints, Speed.FromMetersPerSecond(3));
         }
 
-        public static void PopulateTrackDensely(List<GeoPoint> trackPoints, Speed speed)
+        public static List<GeoPoint> PopulateTrackDensely(GeoPoint[] trackPoints)
+        {
+            return PopulateTrackDensely(trackPoints.ToList());
+        }
+
+        public static List<GeoPoint> PopulateTrackDensely(List<GeoPoint> trackPoints, Speed speed)
         {
             for (int i = 0; i < trackPoints.Count - 1; ++i)
             {
                 while (GeoCalculator.GetDistance(trackPoints[i], trackPoints[i + 1]).Meters > speed.MetersPerSecond)
                     trackPoints.Insert(i + 1, GeoCalculator.GetMidPoint(trackPoints[i], trackPoints[i + 1]));
             }
+
+            return trackPoints;
         }
 
         public static IEnumerable<GpxTrackPoint> ReadTrackGpxPoints(string rideFilename)

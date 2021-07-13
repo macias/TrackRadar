@@ -17,7 +17,8 @@ namespace TrackRadar
 
     //[Activity(Label = "DevRadar", MainLauncher = true, Icon = "@drawable/icon")]
     //[Activity(Label = "TrackRadar", MainLauncher = true, Icon = "@drawable/icon")]
-    public sealed class MainActivity : ListActivity, GpsStatus.IListener
+    public sealed class MainActivity : ListActivity,ILocationListener
+        //  GpsStatus.IListener
     {
         private const int SelectTrackCode = 1;
 
@@ -38,7 +39,6 @@ namespace TrackRadar
         private bool debugMode;
         //private LogFile log_writer;
         private GpsEvent lastGpsEvent_debug;
-
         private Intent radarServiceIntent;
         private Intent loaderServiceIntent;
         private MainReceiver receiver;
@@ -97,7 +97,7 @@ namespace TrackRadar
                 SetContentView(Resource.Layout.Main);
 
 #if DEBUG
-                this.Title = $"{nameof(TrackRadar)} DEBUG";
+                this.Title += " DEBUG";
 #endif
 
                 this.enableButton = FindViewById<Button>(Resource.Id.EnableButton);
@@ -171,8 +171,10 @@ namespace TrackRadar
 
                 lastGpsEvent_debug = GpsEvent.Stopped;
 
-                LocationManager lm = (LocationManager)GetSystemService(Context.LocationService);
-                lm.AddGpsStatusListener(this);
+                LocationManager locationManager = (LocationManager)GetSystemService(Context.LocationService);
+                // SICK, https://stackoverflow.com/questions/18497340/ongpsstatuschanged-not-firing-for-gpsstatus-listener
+                //locationManager.AddGpsStatusListener(this);
+                locationManager.RequestLocationUpdates(LocationManager.GpsProvider, 0, 0, this);
 
                 this.receiver.AlarmUpdate += Receiver_AlarmUpdate;
                 this.receiver.DebugUpdate += Receiver_DebugUpdate;
@@ -259,8 +261,9 @@ namespace TrackRadar
             this.receiver.DebugUpdate -= Receiver_DebugUpdate;
 
             //    logDebug(LogLevel.Verbose, "app paused");
-            LocationManager lm = (LocationManager)GetSystemService(Context.LocationService);
-            lm.RemoveGpsStatusListener(this);
+            LocationManager locationManager = (LocationManager)GetSystemService(Context.LocationService);
+//            lm.RemoveGpsStatusListener(this);
+            locationManager.RemoveUpdates(this);
         }
 
         private void unsubscribeFromLoader()
@@ -576,19 +579,19 @@ namespace TrackRadar
               flags);
         }
 
-        public void OnGpsStatusChanged([GeneratedEnum] GpsEvent e)
+        /*public void OnGpsStatusChanged([GeneratedEnum] GpsEvent e)
         {
             if (e == GpsEvent.Started || e == GpsEvent.Stopped)
             {
-                //logDebug(LogLevel.Info, $"MA gps changed to {e}");
+                logDebug(LogLevel.Info, $"MA gps changed to {e}");
                 updateReadiness(out _);
             }
             else if (e != lastGpsEvent_debug) // prevents polluting log with SatelliteStatus value
             {
-                //                logDebug(LogLevel.Verbose, $"MA minor status gps changed to {e}");
+                logDebug(LogLevel.Verbose, $"MA minor status gps changed to {e}");
                 this.lastGpsEvent_debug = e;
             }
-        }
+        }*/
 
         private bool isServiceRunning<TService>()
             where TService : Service
@@ -731,6 +734,25 @@ namespace TrackRadar
             const string prefix = nameof(MainActivity);
             if (!message.StartsWith(prefix))
                 message = $"{prefix} {message}";
+        }
+
+        void ILocationListener.OnLocationChanged(Location location)
+        {
+        }
+
+        void ILocationListener.OnProviderDisabled(string provider)
+        {
+            updateReadiness(out _);
+        }
+
+        void ILocationListener.OnProviderEnabled(string provider)
+        {
+            updateReadiness(out _);
+        }
+
+        void ILocationListener.OnStatusChanged(string provider, Availability status, Bundle extras)
+        {
+            updateReadiness(out _);
         }
 
         /*   protected override void OnRestoreInstanceState(Bundle savedInstanceState)

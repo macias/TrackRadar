@@ -367,7 +367,7 @@ namespace TrackRadar.Implementation
 
                         // it should be easier to make a GPX file out of it (we don't create it here because service crashes too often)
                         service.WriteOffTrack(latitudeDegrees: currentPoint.Latitude.Degrees, longitudeDegrees: currentPoint.Longitude.Degrees,
-                            $"speed {this.RidingSpeed}, rest {service.RestSpeedThreshold}, ride {service.RidingSpeedThreshold}");
+                            name: $"{isOnTrack} at speed {(this.RidingSpeed.KilometersPerHour.ToString("0.##"))}");
                     }
                 }
             }

@@ -40,8 +40,6 @@ namespace TrackRadar.Tests
             var stats = Toolbox.Ride(prefs, playDuration: TimeSpan.FromSeconds(2.229), filename, filename, null,
                 out var alarmCounters, out var alarms, out var messages);
 
-            Toolbox.PrintAlarms(stats);
-
             Assert.AreEqual(20, alarms.Count);
             int a = 0;
 

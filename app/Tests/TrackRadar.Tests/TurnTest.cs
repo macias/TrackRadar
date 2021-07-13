@@ -33,8 +33,6 @@ namespace TrackRadar.Tests
             RideStats stats;
             stats = Toolbox.Ride(prefs, playDuration: TimeSpan.FromSeconds(2.229), plan_filename, tracked_filename, null);
 
-            Toolbox.PrintAlarms(stats);
-
             Assert.AreEqual(11, stats.Alarms.Count);
             int a = 0;
 

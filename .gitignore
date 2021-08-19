@@ -1,5 +1,6 @@
 *
 !.gitignore
+!.gitattributes
 !app/**
 
 **/*.csproj.user

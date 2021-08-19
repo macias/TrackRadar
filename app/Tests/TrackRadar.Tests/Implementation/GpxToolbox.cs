@@ -79,12 +79,16 @@ namespace TrackRadar.Tests.Implementation
         }
         public static void SaveGpxWaypoints(string filename, IEnumerable<GeoPoint> points)
         {
+            SaveGpxWaypoints(filename, points.Zip(Enumerable.Range(0,int.MaxValue),(p,i) => (p, i.ToString())));
+        }
+        public static void SaveGpxWaypoints(string filename, IEnumerable<(GeoPoint pt,string name)> points)
+        {
             using (GpxDirtyWriter.Create(filename, out IGpxDirtyWriter writer))
             {
                 int idx = 0;
-                foreach (GeoPoint pt in points)
+                foreach ((GeoPoint pt,string name) in points)
                 {
-                    writer.WritePoint(pt, $"{idx}");
+                    writer.WritePoint(pt, name);
                     ++idx;
                 }
             }

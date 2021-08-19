@@ -1,7 +1,12 @@
 *
+!app
+!app/**
 !.gitignore
 !.gitattributes
-!app/**
+!README.md
+
+**/bin/**
+**/obj/**
 
 **/*.csproj.user
 app/.vs/

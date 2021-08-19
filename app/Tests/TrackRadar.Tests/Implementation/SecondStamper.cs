@@ -5,7 +5,7 @@ namespace TrackRadar.Tests.Implementation
 {
     // here we have stamper which goes in 1 seconds interval, so single increase of the time equal 1 second
     // the choice of such relation is for easier GPS ticking
-    internal sealed class SecondStamper : ITimeStamper
+    internal sealed class SecondStamper : TrackRadar.ITimeStamper
     {
         private long time;
 

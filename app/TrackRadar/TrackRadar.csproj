@@ -59,8 +59,8 @@
     <Reference Include="Gpx, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\Gpx.1.0.0\lib\netstandard2.0\Gpx.dll</HintPath>
     </Reference>
-    <Reference Include="MathUnit, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\MathUnit.1.0.0\lib\netstandard2.0\MathUnit.dll</HintPath>
+    <Reference Include="MathUnit, Version=2.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\MathUnit.2.0.0\lib\netstandard2.0\MathUnit.dll</HintPath>
     </Reference>
     <Reference Include="Mono.Android" />
     <Reference Include="mscorlib" />
@@ -77,6 +77,9 @@
     <Compile Include="Implementation\GpxLoader.WayPointInfo.cs" />
     <Compile Include="Implementation\MetaLogger.cs" />
     <Compile Include="Implementation\NoneGpxDirtyWriter.cs" />
+    <Compile Include="Implementation\OnTrackStatus.cs" />
+    <Compile Include="Implementation\GpsInfo.cs" />
+    <Compile Include="TimeStamperExtension.cs" />
     <Compile Include="NoneLogger.cs" />
     <Compile Include="Implementation\GpxLoader.Stage.cs" />
     <Compile Include="Implementation\GpxLoader.TurnNodeInfo.cs" />

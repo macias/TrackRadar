@@ -23,8 +23,11 @@ namespace TrackRadar
 
             public const string OffTrackAlarmInterval = "OffTrackAlarmInterval";
             public const string OffTrackAlarmDistance = "OffTrackAlarmDistance";
+            public const string OffTrackAlarmCountLimit = "OffTrackAlarmCountLimit";
+
             public const string NoGpsAgainAlarmInterval = "NoGpsAlarmInterval";
-            public const string NoGpsFirstAlarmTimeout = "NoGpsAlarmTimeout";
+            public const string NoGpsAlarmTimeout = "NoGpsAlarmTimeout";
+            public const string GpsLossTimeout = "GpsLossTimeout";
 
             public const string DistanceAudioVolume = "DistanceAudioVolume";
             public const string DistanceAudioFileName = "DistanceAudioFileName";
@@ -57,6 +60,10 @@ namespace TrackRadar
             public const string DoubleTurnDistance = "DoubleTurnDistance";
             public const string TurnAheadAlarmInterval = "TurnAheadAlarmInterval";
             public const string TurnAheadScreenTimeout = "TurnAheadScreenTimeout";
+
+            public const string DriftWarningDistance = "DriftWarningDistance";
+            public const string DriftMovingAwayCountLimit = "DriftMovingAwayCountLimit";
+            public const string DriftComingCloserCountLimit = "DriftComingCloserCountLimit";
         }
 
         public const int OffTrackDefaultAudioId = Resource.Raw.sonar_ping;
@@ -112,9 +119,12 @@ namespace TrackRadar
         // and then alarm is repeated by given interval
 
         public TimeSpan OffTrackAlarmInterval { get; set; } // seconds
+        public int OffTrackAlarmCountLimit { get; set; }
         public Length OffTrackAlarmDistance { get; set; } // in meters
-        // max timeout for which it is accepted to have no signal
-        public TimeSpan NoGpsAlarmFirstTimeout { get; set; } // seconds
+        // time needed for getting stable gps signal
+        public TimeSpan GpsAcquisitionTimeout { get; set; } // seconds
+        // time "needed" to lose the signal
+        public TimeSpan GpsLossTimeout { get; set; } // seconds
         // amount of time to REPEAT the alarm
         public TimeSpan NoGpsAlarmAgainInterval { get; set; } // minutes
 
@@ -126,6 +136,10 @@ namespace TrackRadar
         public Length RidingDistance { get; set; }
         public TimeSpan RidingTime { get; set; }
         public Speed TopSpeed { get; set; }
+
+        public Length DriftWarningDistance { get; set; } // in meters
+        public int DriftMovingAwayCountLimit { get; set; } // count
+        public int DriftComingCloserCountLimit { get; set; } // count
 
         private string trackName;
         public string TrackName
@@ -144,12 +158,14 @@ namespace TrackRadar
 
             this.OffTrackAlarmDistance = DefaultOffTrackAlarmDistance;
             this.OffTrackAlarmInterval = TimeSpan.FromSeconds(10);
+            this.OffTrackAlarmCountLimit = 3;
 
             this.RestSpeedThreshold = Speed.FromKilometersPerHour(5); // average walking speed: https://en.wikipedia.org/wiki/Walking
             this.RidingSpeedThreshold = Speed.FromKilometersPerHour(10); // erderly person: https://en.wikipedia.org/wiki/Bicycle_performance
 
             // please note that we won't make better than one update per second
-            this.NoGpsAlarmFirstTimeout = TimeSpan.FromSeconds(5);
+            this.GpsAcquisitionTimeout = TimeSpan.FromSeconds(5);
+            this.GpsLossTimeout = TimeSpan.FromSeconds(3);
             this.NoGpsAlarmAgainInterval = TimeSpan.FromMinutes(3);
 
             this.TurnAheadAlarmDistance = TimeSpan.FromSeconds(16);
@@ -157,6 +173,10 @@ namespace TrackRadar
             this.DoubleTurnAlarmDistance = TimeSpan.FromSeconds(2);
             this.TurnAheadAlarmInterval = TimeSpan.FromSeconds(2);
             this.TurnAheadScreenTimeout = TimeSpan.FromSeconds(5);
+
+            this.DriftWarningDistance = Length.FromMeters(30);
+            this.DriftMovingAwayCountLimit = 10;
+            this.DriftComingCloserCountLimit = 5;
         }
 
 
@@ -165,58 +185,72 @@ namespace TrackRadar
             return (Preferences)MemberwiseClone();
         }
 
-        public static IPreferences SaveBehaviors(Context context, IPreferences data)
+        public Preferences SaveAll(Context context)
         {
             using (ISharedPreferences prefs = PreferenceManager.GetDefaultSharedPreferences(context))
             {
                 using (ISharedPreferencesEditor editor = prefs.Edit())
                 {
-                    editor.PutBoolean(Keys.ShowTurnAhead, data.ShowTurnAhead);
-                    editor.PutBoolean(Keys.UseVibration, data.UseVibration);
-                    editor.PutBoolean(Keys.GpsFilter, data.GpsFilter);
-                    editor.PutBoolean(Keys.GpsDump, data.GpsDump);
-                    editor.PutInt(Keys.OffTrackAlarmInterval, (int)data.OffTrackAlarmInterval.TotalSeconds);
-                    editor.PutInt(Keys.OffTrackAlarmDistance, (int)data.OffTrackAlarmDistance.Meters);
-                    editor.PutInt(Keys.NoGpsAgainAlarmInterval, (int)data.NoGpsAlarmAgainInterval.TotalMinutes);
-                    editor.PutInt(Keys.NoGpsFirstAlarmTimeout, (int)data.NoGpsAlarmFirstTimeout.TotalSeconds);
+                    // clear everything first -- this way we get rid of some obsolete entries
+                    editor.Clear();
+                    editor.Commit();
 
-                    editor.PutInt(Keys.DistanceAudioVolume, data.OffTrackAudioVolume);
-                    editor.PutString(Keys.DistanceAudioFileName, data.DistanceAudioFileName);
+                    storeStatistics(editor);
+                    storeTrackInfo(editor);
 
-                    editor.PutInt(Keys.GpsLostAudioVolume, data.GpsLostAudioVolume);
-                    editor.PutString(Keys.GpsLostAudioFileName, data.GpsLostAudioFileName);
+                    editor.PutBoolean(Keys.ShowTurnAhead, this.ShowTurnAhead);
+                    editor.PutBoolean(Keys.UseVibration, this.UseVibration);
+                    editor.PutBoolean(Keys.GpsFilter, this.GpsFilter);
+                    editor.PutBoolean(Keys.GpsDump, this.GpsDump);
+                    editor.PutInt(Keys.OffTrackAlarmInterval, (int)this.OffTrackAlarmInterval.TotalSeconds);
+                    editor.PutInt(Keys.OffTrackAlarmDistance, (int)this.OffTrackAlarmDistance.Meters);
+                    editor.PutInt(Keys.OffTrackAlarmCountLimit, this.OffTrackAlarmCountLimit);
+                    editor.PutInt(Keys.NoGpsAgainAlarmInterval, (int)this.NoGpsAlarmAgainInterval.TotalMinutes);
+                    editor.PutInt(Keys.NoGpsAlarmTimeout, (int)this.GpsAcquisitionTimeout.TotalSeconds);
+                    editor.PutInt(Keys.GpsLossTimeout, (int)this.GpsLossTimeout.TotalSeconds);
 
-                    editor.PutInt(Keys.DisengageAudioVolume, data.DisengageAudioVolume);
-                    editor.PutString(Keys.DisengageAudioFileName, data.DisengageAudioFileName);
+                    editor.PutInt(Keys.DistanceAudioVolume, this.OffTrackAudioVolume);
+                    editor.PutString(Keys.DistanceAudioFileName, this.DistanceAudioFileName);
 
-                    editor.PutInt(Keys.GpsOnAudioVolume, data.AcknowledgementAudioVolume);
-                    editor.PutString(Keys.GpsOnAudioFileName, data.GpsOnAudioFileName);
+                    editor.PutInt(Keys.GpsLostAudioVolume, this.GpsLostAudioVolume);
+                    editor.PutString(Keys.GpsLostAudioFileName, this.GpsLostAudioFileName);
 
-                    editor.PutInt(Keys.TurnAheadAudioVolume, data.TurnAheadAudioVolume);
-                    editor.PutString(Keys.TurnAheadAudioFileName, data.TurnAheadAudioFileName);
+                    editor.PutInt(Keys.DisengageAudioVolume, this.DisengageAudioVolume);
+                    editor.PutString(Keys.DisengageAudioFileName, this.DisengageAudioFileName);
 
-                    editor.PutString(Keys.GoAheadAudioFileName, data.GoAheadAudioFileName);
-                    editor.PutString(Keys.LeftEasyAudioFileName, data.LeftEasyAudioFileName);
-                    editor.PutString(Keys.LeftCrossAudioFileName, data.LeftCrossAudioFileName);
-                    editor.PutString(Keys.LeftSharpAudioFileName, data.LeftSharpAudioFileName);
-                    editor.PutString(Keys.RightEasyAudioFileName, data.RightEasyAudioFileName);
-                    editor.PutString(Keys.RightCrossAudioFileName, data.RightCrossAudioFileName);
-                    editor.PutString(Keys.RightSharpAudioFileName, data.RightSharpAudioFileName);
-                    editor.PutString(Keys.DoubleTurnAudioFileName, data.DoubleTurnAudioFileName);
+                    editor.PutInt(Keys.GpsOnAudioVolume, this.AcknowledgementAudioVolume);
+                    editor.PutString(Keys.GpsOnAudioFileName, this.GpsOnAudioFileName);
 
-                    editor.PutInt(Keys.RestSpeedThreshold, (int)data.RestSpeedThreshold.KilometersPerHour);
-                    editor.PutInt(Keys.RidingSpeedThreshold, (int)data.RidingSpeedThreshold.KilometersPerHour);
+                    editor.PutInt(Keys.TurnAheadAudioVolume, this.TurnAheadAudioVolume);
+                    editor.PutString(Keys.TurnAheadAudioFileName, this.TurnAheadAudioFileName);
 
-                    editor.PutInt(Keys.TurnAheadDistance, (int)data.TurnAheadAlarmDistance.TotalSeconds);
-                    editor.PutInt(Keys.DoubleTurnDistance, (int)data.DoubleTurnAlarmDistance.TotalSeconds);
-                    editor.PutInt(Keys.TurnAheadAlarmInterval, (int)data.TurnAheadAlarmInterval.TotalSeconds);
-                    editor.PutInt(Keys.TurnAheadScreenTimeout, (int)data.TurnAheadScreenTimeout.TotalSeconds);
+                    editor.PutString(Keys.GoAheadAudioFileName, this.GoAheadAudioFileName);
+                    editor.PutString(Keys.LeftEasyAudioFileName, this.LeftEasyAudioFileName);
+                    editor.PutString(Keys.LeftCrossAudioFileName, this.LeftCrossAudioFileName);
+                    editor.PutString(Keys.LeftSharpAudioFileName, this.LeftSharpAudioFileName);
+                    editor.PutString(Keys.RightEasyAudioFileName, this.RightEasyAudioFileName);
+                    editor.PutString(Keys.RightCrossAudioFileName, this.RightCrossAudioFileName);
+                    editor.PutString(Keys.RightSharpAudioFileName, this.RightSharpAudioFileName);
+                    editor.PutString(Keys.DoubleTurnAudioFileName, this.DoubleTurnAudioFileName);
+
+                    editor.PutInt(Keys.RestSpeedThreshold, (int)this.RestSpeedThreshold.KilometersPerHour);
+                    editor.PutInt(Keys.RidingSpeedThreshold, (int)this.RidingSpeedThreshold.KilometersPerHour);
+
+                    editor.PutInt(Keys.TurnAheadDistance, (int)this.TurnAheadAlarmDistance.TotalSeconds);
+                    editor.PutInt(Keys.DoubleTurnDistance, (int)this.DoubleTurnAlarmDistance.TotalSeconds);
+                    editor.PutInt(Keys.TurnAheadAlarmInterval, (int)this.TurnAheadAlarmInterval.TotalSeconds);
+                    editor.PutInt(Keys.TurnAheadScreenTimeout, (int)this.TurnAheadScreenTimeout.TotalSeconds);
+
+
+                    editor.PutInt(Keys.DriftWarningDistance, (int)this.DriftWarningDistance.Meters);
+                    editor.PutInt(Keys.DriftMovingAwayCountLimit, (int)this.DriftMovingAwayCountLimit);
+                    editor.PutInt(Keys.DriftComingCloserCountLimit, (int)this.DriftComingCloserCountLimit);
 
                     editor.Commit();
                 }
             }
 
-            return data;
+            return this;
         }
 
         public static IPreferences LoadAll(Context context)
@@ -224,14 +258,17 @@ namespace TrackRadar
             using (ISharedPreferences prefs = PreferenceManager.GetDefaultSharedPreferences(context))
             {
                 var data = new Preferences();
+
                 data.ShowTurnAhead = prefs.GetBoolean(Keys.ShowTurnAhead, data.ShowTurnAhead);
                 data.UseVibration = prefs.GetBoolean(Keys.UseVibration, data.UseVibration);
                 data.GpsFilter = prefs.GetBoolean(Keys.GpsFilter, data.GpsFilter);
                 data.GpsDump = prefs.GetBoolean(Keys.GpsDump, data.GpsDump);
                 data.OffTrackAlarmInterval = TimeSpan.FromSeconds(prefs.GetInt(Keys.OffTrackAlarmInterval, (int)data.OffTrackAlarmInterval.TotalSeconds));
+                data.OffTrackAlarmCountLimit = prefs.GetInt(Keys.OffTrackAlarmCountLimit, data.OffTrackAlarmCountLimit);
                 data.OffTrackAlarmDistance = Length.FromMeters(prefs.GetInt(Keys.OffTrackAlarmDistance, (int)data.OffTrackAlarmDistance.Meters));
                 data.NoGpsAlarmAgainInterval = TimeSpan.FromMinutes(prefs.GetInt(Keys.NoGpsAgainAlarmInterval, (int)data.NoGpsAlarmAgainInterval.TotalMinutes));
-                data.NoGpsAlarmFirstTimeout = TimeSpan.FromSeconds(prefs.GetInt(Keys.NoGpsFirstAlarmTimeout, (int)data.NoGpsAlarmFirstTimeout.TotalSeconds));
+                data.GpsAcquisitionTimeout = TimeSpan.FromSeconds(prefs.GetInt(Keys.NoGpsAlarmTimeout, (int)data.GpsAcquisitionTimeout.TotalSeconds));
+                data.GpsLossTimeout = TimeSpan.FromSeconds(prefs.GetInt(Keys.GpsLossTimeout, (int)data.GpsLossTimeout.TotalSeconds));
 
                 data.DisengageAudioVolume = prefs.GetInt(Keys.DisengageAudioVolume, data.DisengageAudioVolume);
                 data.DisengageAudioFileName = prefs.GetString(Keys.DisengageAudioFileName, data.DisengageAudioFileName);
@@ -272,45 +309,58 @@ namespace TrackRadar
                 data.TopSpeed = Speed.FromKilometersPerHour(prefs.GetFloat(Keys.TopSpeed, 0));
                 data.RidingTime = TimeSpan.FromSeconds(prefs.GetFloat(Keys.RidingTime, 0));
 
+                data.DriftWarningDistance = Length.FromMeters(prefs.GetInt(Keys.DriftWarningDistance, (int)data.DriftWarningDistance.Meters));
+                data.DriftMovingAwayCountLimit = prefs.GetInt(Keys.DriftMovingAwayCountLimit, data.DriftMovingAwayCountLimit);
+                data.DriftComingCloserCountLimit = prefs.GetInt(Keys.DriftComingCloserCountLimit, data.DriftComingCloserCountLimit);
+
                 return data;
             }
         }
 
         public void SaveTrackFileName(Context context, string trackPath)
         {
+            this.TrackName = trackPath;
+
             using (ISharedPreferences prefs = PreferenceManager.GetDefaultSharedPreferences(context))
             {
                 using (ISharedPreferencesEditor editor = prefs.Edit())
                 {
-                    editor.PutString(Keys.TrackFileName, trackPath);
+                    storeTrackInfo(editor);
 
                     editor.Commit();
                 }
             }
+        }
 
-            this.TrackName = trackPath;
+        private void storeTrackInfo(ISharedPreferencesEditor editor)
+        {
+            editor.PutString(Keys.TrackFileName, this.TrackName);
         }
 
         public void SaveRideStatistics(Context context, Length totalClimbs, Length ridingDistance, TimeSpan ridingTime, Speed topSpeed)
         {
-            using (ISharedPreferences prefs = PreferenceManager.GetDefaultSharedPreferences(context))
-            {
-                using (ISharedPreferencesEditor editor = prefs.Edit())
-                {
-                    editor.PutFloat(Keys.TotalClimbs, (float)totalClimbs.Meters);
-                    editor.PutFloat(Keys.RidingDistance, (float)ridingDistance.Meters);
-                    editor.PutFloat(Keys.RidingTime, (float)ridingTime.TotalSeconds);
-                    editor.PutFloat(Keys.TopSpeed, (float)topSpeed.KilometersPerHour);
-
-                    editor.Commit();
-                }
-            }
-
             this.TotalClimbs = totalClimbs;
             this.RidingDistance = ridingDistance;
             this.RidingTime = ridingTime;
             this.TopSpeed = topSpeed;
+
+            using (ISharedPreferences prefs = PreferenceManager.GetDefaultSharedPreferences(context))
+            {
+                using (ISharedPreferencesEditor editor = prefs.Edit())
+                {
+                    storeStatistics(editor);
+
+                    editor.Commit();
+                }
+            }
         }
 
+        private void storeStatistics(ISharedPreferencesEditor editor)
+        {
+            editor.PutFloat(Keys.TotalClimbs, (float)this.TotalClimbs.Meters);
+            editor.PutFloat(Keys.RidingDistance, (float)this.RidingDistance.Meters);
+            editor.PutFloat(Keys.RidingTime, (float)this.RidingTime.TotalSeconds);
+            editor.PutFloat(Keys.TopSpeed, (float)this.TopSpeed.KilometersPerHour);
+        }
     }
 }

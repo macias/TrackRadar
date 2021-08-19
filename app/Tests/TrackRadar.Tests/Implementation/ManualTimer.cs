@@ -19,10 +19,10 @@ namespace TrackRadar.Tests.Implementation
         public void Change(TimeSpan dueTime, TimeSpan period)
         {
             if (period != System.Threading.Timeout.InfiniteTimeSpan)
-                throw new NotImplementedException();
+                throw new NotSupportedException();
         }
 
-        public void Trigger()
+        public void TriggerCallback()
         {
             callback();
         }

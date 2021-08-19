@@ -7,9 +7,9 @@ namespace TrackRadar
 {
     // the file will be located in directory 
     // Android/data/TrackRadar.TrackRadar/
-    public static class LogFactory 
+    public static class LogFactory
     {
-        public static IDisposable CreateFileLogger(ContextWrapper ctx, string filename, DateTime expires, out ILogger logger)
+        public static IDisposable CreateFileLogger(ContextWrapper ctx, string filename, DateTimeOffset expires, out ILogger logger)
         {
             var stream = LogFactory.createStreamWriter(ctx, filename, expires, out _);
             logger = new FileLogger(stream);
@@ -17,7 +17,7 @@ namespace TrackRadar
         }
 
 
-        public static IDisposable CreateGpxLogger(ContextWrapper ctx, string filename, DateTime expires, out IGpxDirtyWriter writer)
+        public static IDisposable CreateGpxLogger(ContextWrapper ctx, string filename, DateTimeOffset expires, out IGpxDirtyWriter writer)
         {
             var stream_writer = LogFactory.createStreamWriter(ctx, filename, expires, out bool appended);
             var gpx_writer = new GpxDirtyWriter(stream_writer);
@@ -32,7 +32,7 @@ namespace TrackRadar
             return stream_writer;
         }
 
-        private static StreamWriter createStreamWriter(ContextWrapper ctx, string filename, DateTime expires, out bool appended)
+        private static StreamWriter createStreamWriter(ContextWrapper ctx, string filename, DateTimeOffset expires, out bool appended)
         {
             string path;
 
@@ -40,9 +40,8 @@ namespace TrackRadar
             //            using (var file = ctx.GetFileStreamPath(log_filename))
             {
                 path = file.AbsolutePath;
-                appended = file != null && file.Exists()
-                    // check if last modification to file was after experition
-                    && Common.FromTimeStampMs(file.LastModified()) > expires;
+                // if the file exists and it is fresh, append instead of creating anew
+                appended = file.Exists() && Common.FromTimeStampMs(file.LastModified()) > expires;
             }
 
             return new StreamWriter(path, appended);

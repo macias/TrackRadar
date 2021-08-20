@@ -254,12 +254,12 @@ namespace TrackRadar.Implementation
 
             this.lastPoints.Enqueue((currentPoint, altitude, now));
 
-            this.lastOnTrack = handleAlarm(currentPoint, segment, crosspointInfo, on_track, DEBUG_prevSpeed, now);
+            this.lastOnTrack = handleAlarm(currentPoint, accuracy, segment, crosspointInfo, on_track, DEBUG_prevSpeed, now);
 
             return fence_dist.Meters;
         }
 
-        private OnTrackStatus handleAlarm(in GeoPoint currentPoint,
+        private OnTrackStatus handleAlarm(in GeoPoint currentPoint,Length? accuracy,
             ISegment segment, in ArcSegmentIntersection crosspointInfo,
             OnTrackStatus isOnTrack, Speed DEBUG_prevSpeed, long now)
         {
@@ -289,11 +289,13 @@ namespace TrackRadar.Implementation
                     //this.postponeSpeedDisengage = true;
                     //if (false)
                     {
-                        bool played = alarmSequencer.TryAlarm(Alarm.Disengage, false, out string reason);
+                        const Alarm alarm = Alarm.Disengage;
+                        bool played = alarmSequencer.TryAlarm(alarm, false, out string reason);
                         service.LogDebug(LogLevel.Verbose, $"Disengage played {played}, reason {reason}, stopped, previous speed {DEBUG_prevSpeed.KilometersPerHour} km/h");
 
                         if (played)
                         {
+                            service.WriteDebug(currentPoint.Latitude.Degrees, currentPoint.Longitude.Degrees, alarm.ToString(), $"acc: {accuracy}");
                             engagedState = false;
                             //  this.postponeSpeedDisengage = false;
                         }
@@ -314,6 +316,7 @@ namespace TrackRadar.Implementation
 
                     if (played)
                     {
+                        service.WriteDebug(currentPoint.Latitude.Degrees, currentPoint.Longitude.Degrees, alarm.ToString(), $"acc: {accuracy}");
                         this.lastOnTrackAlarmAt = now;
                         engagedState = true;
                         // this.postponeSpeedDisengage = false;
@@ -366,8 +369,9 @@ namespace TrackRadar.Implementation
                             service.LogDebug(LogLevel.Warning, $"Off-track alarm, couldn't play, reason {reason}");
 
                         // it should be easier to make a GPX file out of it (we don't create it here because service crashes too often)
-                        service.WriteOffTrack(latitudeDegrees: currentPoint.Latitude.Degrees, longitudeDegrees: currentPoint.Longitude.Degrees,
-                            name: $"{isOnTrack} at speed {(this.RidingSpeed.KilometersPerHour.ToString("0.##"))}");
+                        service.WriteOffTrack(latitudeDegrees: currentPoint.Latitude.Degrees, 
+                            longitudeDegrees: currentPoint.Longitude.Degrees,
+                            name: $"{isOnTrack} {offTrackAlarmsCount} at speed {(this.RidingSpeed.KilometersPerHour.ToString("0.##"))}");
                     }
                 }
             }

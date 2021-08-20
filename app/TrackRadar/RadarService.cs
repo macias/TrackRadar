@@ -469,7 +469,7 @@ private long mLastTime;
 
                 Common.Log(level, message);
                 //if (level > LogLevel.Verbose)
-                //  this.serviceLog?.WriteLine(level, message);
+                  //this.serviceLog?.WriteLine(level, message);
             }
             catch (Exception ex)
             {

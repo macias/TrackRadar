@@ -3,10 +3,11 @@ using MathUnit;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 
 namespace TrackRadar.Implementation
 {
-    internal sealed class RadarCore
+    internal sealed class RadarCore : IDisposable
     {
         internal const string GeoPointFormat = "0.00000000000000";
 
@@ -18,6 +19,8 @@ namespace TrackRadar.Implementation
         private bool engagedState;
         private bool wasOffTrackPreviously => this.lastOnTrackAlarmAt < this.lastOffTrackAlarmAt;
         private readonly IRadarService service;
+        private readonly ISignalCheckerService signalService;
+        private readonly IGpsAlarm gpsAlarm;
         private readonly IAlarmSequencer alarmSequencer;
         private readonly ITimeStamper timeStamper;
 
@@ -44,6 +47,7 @@ namespace TrackRadar.Implementation
         private int movingOutCount;
         private int movingInCount;
         private OnTrackStatus lastOnTrack;
+        private GpsWatchdog gpsWatchdog;
 
         //private bool postponeSpeedDisengage;
 
@@ -75,7 +79,11 @@ namespace TrackRadar.Implementation
         public Speed TopSpeedReadout => this.topSpeed;
         public Length TotalClimbsReadout => this.totalClimbs;
 
-        public RadarCore(IRadarService service, IAlarmSequencer alarmSequencer, ITimeStamper timeStamper, IPlanData planData,
+        public bool HasGpsSignal => this.gpsWatchdog.HasGpsSignal;
+
+        public RadarCore(IRadarService service, ISignalCheckerService signalService, IGpsAlarm gpsAlarm,
+            IAlarmSequencer alarmSequencer, ITimeStamper timeStamper,
+            IPlanData planData,
             Length totalClimbs, Length startRidingDistance, TimeSpan ridingTime, Speed topSpeed)
         {
             // keeping window of 3 points seems like a good balance for measuring travelled distance (and speed)
@@ -84,6 +92,8 @@ namespace TrackRadar.Implementation
             this.lastPoints = new RoundQueue<(GeoPoint point, Length? altitude, long timestamp)>(capacity: 3);
             this.lastAbsDistance = Length.PositiveInfinity;
             this.service = service;
+            this.signalService = signalService;
+            this.gpsAlarm = gpsAlarm;
             this.alarmSequencer = alarmSequencer;
             this.timeStamper = timeStamper;
             this.totalClimbs = totalClimbs;
@@ -103,6 +113,22 @@ namespace TrackRadar.Implementation
             this.alarmSequencer.AlarmPlayed += AlarmSequencer_AlarmPlayed;
 
             service.LogDebug(LogLevel.Info, $"{trackMap.Segments.Count()} segments in {timeStamper.GetSecondsSpan(StartedAt)}s");
+        }
+
+        public void Dispose()
+        {
+            this.gpsWatchdog?.Dispose();
+        }
+
+        public void SetupGpsWatchdog(IPreferences prefs)
+        {
+            GpsWatchdog watchdog = new GpsWatchdog(signalService, gpsAlarm, this.timeStamper,
+                                gpsAcquisitionTimeout: prefs.GpsAcquisitionTimeout,
+                                gpsLossTimeout: prefs.GpsLossTimeout,
+                                noGpsAgainInterval: prefs.NoGpsAlarmAgainInterval);
+            var old_watchdog = Interlocked.Exchange(ref this.gpsWatchdog, watchdog);
+            old_watchdog?.Dispose();
+            watchdog.Start();
         }
 
         private void AlarmSequencer_AlarmPlayed(object sender, Alarm alarm)
@@ -128,8 +154,18 @@ namespace TrackRadar.Implementation
             return GeoMapFactory.CreateGrid(segments);
         }
 
-        /// <returns>negative value means on track</returns>
         public double UpdateLocation(in GeoPoint currentPoint, Length? altitude, Length? accuracy)
+        {
+            bool gps_acquired = this.gpsWatchdog.UpdateGpsIsOn();
+            using (this.alarmSequencer.OpenAlarmContext(gpsAcquired: engagedState ? false : gps_acquired,
+                hasGpsSignal: gpsWatchdog.HasGpsSignal))
+            {
+                return internalUpdateLocation(currentPoint, altitude, accuracy);
+            }
+
+        }
+        /// <returns>negative value means on track</returns>
+        private double internalUpdateLocation(in GeoPoint currentPoint, Length? altitude, Length? accuracy)
         {
             Length fence_dist;
             long now = timeStamper.GetTimestamp();
@@ -253,7 +289,7 @@ namespace TrackRadar.Implementation
                     //this.postponeSpeedDisengage = true;
                     //if (false)
                     {
-                        bool played = alarmSequencer.TryAlarm(Alarm.Disengage, out string reason);
+                        bool played = alarmSequencer.TryAlarm(Alarm.Disengage, false, out string reason);
                         service.LogDebug(LogLevel.Verbose, $"Disengage played {played}, reason {reason}, stopped, previous speed {DEBUG_prevSpeed.KilometersPerHour} km/h");
 
                         if (played)
@@ -273,7 +309,7 @@ namespace TrackRadar.Implementation
                 {
                     //var alarm = prevRiding == Speed.Zero ? Alarm.Engaged : Alarm.BackOnTrack;
                     var alarm = wasOffTrackPreviously ? Alarm.BackOnTrack : Alarm.Engaged;
-                    var played = alarmSequencer.TryAlarm(alarm, out string reason);//? AlarmState.Played : AlarmState.Failed;
+                    var played = alarmSequencer.TryAlarm(alarm, false, out string reason);
                     service.LogDebug(LogLevel.Verbose, $"{alarm} played {played}, reason: {reason}, speed {this.RidingSpeed.KilometersPerHour} km/h");
 
                     if (played)
@@ -318,20 +354,20 @@ namespace TrackRadar.Implementation
                         // to take a shortcut, we don't see a thing
 
                         Alarm alarm = offTrackAlarmsCount == this.service.OffTrackAlarmCountLimit ? Alarm.Disengage : Alarm.OffTrack;
-                        var played = alarmSequencer.TryAlarm(alarm, out string reason);
+                        var played = alarmSequencer.TryAlarm(alarm, false, out string reason);
                         if (played)
                         {
                             this.lastOffTrackAlarmAt = now;
                             ++this.offTrackAlarmsCount;
-                            if (alarm == Alarm.Disengage)
-                                engagedState = false;
+                            // it might happen, that off-track is the very first alarm, thus engaging 
+                            engagedState = alarm == Alarm.OffTrack;
                         }
                         else
                             service.LogDebug(LogLevel.Warning, $"Off-track alarm, couldn't play, reason {reason}");
 
                         // it should be easier to make a GPX file out of it (we don't create it here because service crashes too often)
                         service.WriteOffTrack(latitudeDegrees: currentPoint.Latitude.Degrees, longitudeDegrees: currentPoint.Longitude.Degrees,
-                            $"speed {this.RidingSpeed}, rest {service.RestSpeedThreshold}, ride {service.RidingSpeedThreshold}");
+                            name: $"{isOnTrack} at speed {(this.RidingSpeed.KilometersPerHour.ToString("0.##"))}");
                     }
                 }
             }

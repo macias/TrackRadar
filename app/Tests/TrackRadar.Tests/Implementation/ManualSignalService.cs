@@ -3,26 +3,42 @@ using TrackRadar.Implementation;
 
 namespace TrackRadar.Tests.Implementation
 {
-    internal sealed class ManualSignalService : TrackRadar.Implementation.ISignalCheckerService
+    internal sealed class GpsAlarm : IGpsAlarm
     {
-        public ManualTimer Timer { get; private set; }
+        private readonly IAlarmSequencer alarmSequencer;
 
         public int GpsOffAlarmCounter { get; private set; }
 
-        public ManualSignalService()
+        public GpsAlarm(IAlarmSequencer alarmSequencer)
         {
+            this.alarmSequencer = alarmSequencer;
+        }
+
+        bool IGpsAlarm.GpsOffAlarm(string message)
+        {
+            if (alarmSequencer != null && !alarmSequencer.TryAlarm(Alarm.GpsLost, false, out _))
+                return false;
+
+            ++GpsOffAlarmCounter;
+            return true;
+        }
+    }
+
+    internal sealed class ManualSignalService : TrackRadar.Implementation.ISignalCheckerService
+    {
+        private readonly SecondStamper stamper;
+
+        public ManualTimer Timer { get; private set; }
+
+        public ManualSignalService(SecondStamper stamper)
+        {
+            this.stamper = stamper;
         }
 
         ITimer ISignalCheckerService.CreateTimer(Action callback)
         {
-            this.Timer = new ManualTimer(callback);
+            this.Timer = new ManualTimer(callback, stamper);
             return Timer;
-        }
-
-        bool ISignalCheckerService.GpsOffAlarm(string message)
-        {
-            ++GpsOffAlarmCounter;
-            return true;
         }
 
         void ISignalCheckerService.AcquireGps()

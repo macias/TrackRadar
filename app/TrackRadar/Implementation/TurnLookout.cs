@@ -468,7 +468,7 @@ namespace TrackRadar.Implementation
             bool played;
             string play_reason;
 
-            played = alarmSequencer.TryAlarm(alarm, out play_reason);
+            played = alarmSequencer.TryAlarm(alarm,false, out play_reason);
 
             if (played)
             {

@@ -230,7 +230,7 @@ namespace TrackRadar.Implementation
                                 else
                                 {
                                     GeoPoint pt = GpxHelper.FromGpx(reader.WayPoint);
-                                    waypoints.Add((pt, name.StartsWith("end") ? WayPointKind.Endpoint : WayPointKind.Regular));
+                                    waypoints.Add((pt, (name.StartsWith("end") || name.StartsWith("exit") ) ? WayPointKind.Endpoint : WayPointKind.Regular));
                                 }
                                 break;
                             }

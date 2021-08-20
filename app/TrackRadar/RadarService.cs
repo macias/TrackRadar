@@ -13,7 +13,7 @@ using System.Collections.Generic;
 namespace TrackRadar
 {
     [Service(Exported = false)]
-    internal sealed partial class RadarService : Service, ILocationListener, IRadarService, ISignalCheckerService//, ISensorEventListener
+    internal sealed partial class RadarService : Service, ILocationListener, IGpsAlarm, IRadarService, ISignalCheckerService//, ISensorEventListener
     {
         private readonly object threadLock = new object();
 
@@ -23,7 +23,6 @@ namespace TrackRadar
         private AlarmSequencer alarmSequencer;
         private readonly ThreadSafe<IPreferences> __prefs;
         private IPreferences prefs => __prefs.Value;
-        private GpsWatchdog gpsWatchdog;
         private LocationManager locationManager;
         private TimeStamper timeStamper;
         // private WrapTimer TEST_timer;
@@ -128,12 +127,12 @@ private long mLastTime;
                     //this.TEST_timer.Change(TimeSpan.FromSeconds(25), System.Threading.Timeout.InfiniteTimeSpan);
                 }
 
-                this.core = new RadarCore(this, alarmSequencer, timeStamper, app.GetTrackData(),
+                this.core = new RadarCore(this, this, this, alarmSequencer, timeStamper, app.GetTrackData(),
                     totalClimbs: app.Prefs.TotalClimbs, app.Prefs.RidingDistance, app.Prefs.RidingTime, app.Prefs.TopSpeed);
 
                 this.locationManager = (LocationManager)GetSystemService(Context.LocationService);
 
-                setupGpsWatchdog();
+                this.core.SetupGpsWatchdog(prefs);
 
                 { // start tracking
 
@@ -175,17 +174,6 @@ private long mLastTime;
                 LogDebug(LogLevel.Error, $"Error on start {ex}");
             }
             return StartCommandResult.Sticky;
-        }
-
-        private void setupGpsWatchdog()
-        {
-            GpsWatchdog watchdog = new GpsWatchdog(this, this.timeStamper,
-                                gpsAcquisitionTimeout: prefs.GpsAcquisitionTimeout,
-                                gpsLossTimeout:prefs.GpsLossTimeout,
-                                noGpsAgainInterval: prefs.NoGpsAlarmAgainInterval);
-            var old_watchdog = Interlocked.Exchange(ref this.gpsWatchdog, watchdog);
-            old_watchdog?.Dispose();
-            watchdog.Start();
         }
 
         private void showTurnAhead()
@@ -275,7 +263,7 @@ private long mLastTime;
                     return;
 
                 logLocal(LogLevel.Verbose, "Received info request");
-                if (this.gpsWatchdog.HasGpsSignal)
+                if (this.core.HasGpsSignal)
                 {
                     lock (this.threadLock)
                     {
@@ -320,7 +308,7 @@ private long mLastTime;
                 LogDebug(LogLevel.Verbose, "updating prefs");
                 loadPreferences();
 
-                setupGpsWatchdog();
+                core.SetupGpsWatchdog(prefs);
             }
         }
 
@@ -346,7 +334,7 @@ private long mLastTime;
                 //sensorManager.UnregisterListener(this);
 
                 LogDebug(LogLevel.Info, "OnDestroy: disposing signal");
-                this.gpsWatchdog.Dispose();
+                this.core?.Dispose();
 
                 LogDebug(LogLevel.Verbose, "removing events handlers");
 
@@ -431,20 +419,16 @@ private long mLastTime;
                 {
                     try
                     {
-                        using (this.alarmSequencer.OpenAlarmContext(gpsAcquired: this.gpsWatchdog.UpdateGpsIsOn(),
-                            hasGpsSignal: this.gpsWatchdog.HasGpsSignal))
+                        long start = timeStamper.GetTimestamp();
+                        dist = this.core.UpdateLocation(GeoPoint.FromDegrees(latitude: location.Latitude, longitude: location.Longitude),
+                            altitude: location.HasAltitude ? Length.FromMeters(location.Altitude) : (Length?)null,
+                            accuracy: location.HasAccuracy ? Length.FromMeters(location.Accuracy) : (Length?)null);
+                        double passed = timeStamper.GetSecondsSpan(start);
+                        if (this.longestUpdate < passed)
                         {
-                            long start = timeStamper.GetTimestamp();
-                            dist = this.core.UpdateLocation(GeoPoint.FromDegrees(latitude: location.Latitude, longitude: location.Longitude),
-                                altitude: location.HasAltitude ? Length.FromMeters(location.Altitude) : (Length?)null,
-                                accuracy: location.HasAccuracy ? Length.FromMeters(location.Accuracy) : (Length?)null);
-                            double passed = timeStamper.GetSecondsSpan(start);
-                            if (this.longestUpdate < passed)
-                            {
-                                if (longestUpdate != 0)
-                                    LogDebug(LogLevel.Verbose, $"loc update at {location.Latitude},{location.Longitude} took {(passed.ToString("0.####"))}s");
-                                longestUpdate = passed;
-                            }
+                            if (longestUpdate != 0)
+                                LogDebug(LogLevel.Verbose, $"loc update at {location.Latitude},{location.Longitude} took {(passed.ToString("0.####"))}s");
+                            longestUpdate = passed;
                         }
                     }
                     catch (Exception ex)
@@ -573,7 +557,7 @@ private long mLastTime;
             return new WrapTimer(callback);
         }
 
-        bool ISignalCheckerService.GpsOffAlarm(string message)
+        bool IGpsAlarm.GpsOffAlarm(string message)
         {
             LogDebug(LogLevel.Warning, $"GPS OFF {message}");
             if (this.hasSubscribers)

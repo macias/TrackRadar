@@ -11,7 +11,7 @@ namespace TrackRadar
         TimeSpan MaxTurnDuration { get; }
 
         bool TryGetLatestTurnAheadAlarmAt(out long timeStamp);
-        bool TryAlarm(Alarm alarm, out string reason);
+        bool TryAlarm(Alarm alarm,  out string reason);
         void PostMessage(string reason);
     }
 }

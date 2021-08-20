@@ -20,6 +20,12 @@ namespace TrackRadar.Tests
         [TestMethod]
         public void ConfusingCrossroadTest()
         {
+            // riding along the planned track, but with a bump
+            // --------*-----------
+            //
+            // ------\    /--------
+            //        ----
+            // the first one is plan (* is marked turning point), the rest is tracked ride
             string plan_filename = Toolbox.TestData("confusing-crossroad.plan.gpx");
             string tracked_filename = Toolbox.TestData("confusing-crossroad.tracked.gpx");
 

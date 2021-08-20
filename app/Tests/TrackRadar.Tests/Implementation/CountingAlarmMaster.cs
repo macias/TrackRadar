@@ -36,6 +36,10 @@ namespace TrackRadar.Tests.Implementation
             if (!this.master.TryAlarm(alarm, out reason))
                 return false;
 
+            if (alarm== Alarm.Engaged)
+            {
+                ;
+            }
             this.alarms.Add((alarm, pointIndex));
             ++alarmCount[alarm];
             logger.Verbose($"ALARM {alarm}");

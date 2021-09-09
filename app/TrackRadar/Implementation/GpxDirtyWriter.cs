@@ -65,7 +65,7 @@ namespace TrackRadar.Implementation
         }
 
         public void WriteLocation(double latitudeDegrees, double longitudeDegrees,
-            double? altitudeMeters = null, double? accuracyMeters = null, string name = null, string comment = null)
+            double? altitudeMeters = null, double? accuracyMeters = null, string name = null, string comment = null,DateTimeOffset? time = null)
         {
             lock (this.threadLock)
             {
@@ -77,6 +77,8 @@ namespace TrackRadar.Implementation
                     stream.WriteLine($"<ele>{altitudeMeters.Value.ToString(CultureInfo.InvariantCulture)}</ele>");
                 if (name != null)
                     stream.WriteLine($"<name>{name}</name>");
+                if (time != null)
+                    stream.WriteLine($"<time>{(Formatter.ZuluFormat(time.Value))}</time>");
                 if (comment != null)
                     stream.WriteLine($"<cmt>{comment}</cmt>");
                 stream.WriteLine($"</wpt>");

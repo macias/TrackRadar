@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Geo;
 
 namespace TrackRadar.Implementation
@@ -16,7 +17,8 @@ namespace TrackRadar.Implementation
         {
         }
 
-        void IGpxDirtyWriter.WriteLocation(double latitudeDegrees, double longitudeDegrees, double? altitudeMeters, double? accuracyMeters, string name, string comment)
+        void IGpxDirtyWriter.WriteLocation(double latitudeDegrees, double longitudeDegrees, double? altitudeMeters,
+            double? accuracyMeters, string name, string comment, DateTimeOffset? time)
         {
         }
 

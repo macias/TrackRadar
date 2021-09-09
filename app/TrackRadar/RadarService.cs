@@ -403,7 +403,8 @@ private long mLastTime;
                 //LogDebug(LogLevel.Verbose, $"new loc {locationToString(location)}");
                 this.traceWriter?.WriteLocation(latitudeDegrees: location.Latitude, longitudeDegrees: location.Longitude,
                     altitudeMeters: location.HasAltitude ? location.Altitude : (double?)null,
-                    accuracyMeters: location.HasAccuracy ? location.Accuracy : (double?)null);
+                    accuracyMeters: location.HasAccuracy ? location.Accuracy : (double?)null,
+                    time: Common.FromTimeStampMs(location.Time));
 
                 if (!statistics.CanUpdate())
                 {
@@ -469,7 +470,7 @@ private long mLastTime;
 
                 Common.Log(level, message);
                 //if (level > LogLevel.Verbose)
-                  //this.serviceLog?.WriteLine(level, message);
+                //this.serviceLog?.WriteLine(level, message);
             }
             catch (Exception ex)
             {

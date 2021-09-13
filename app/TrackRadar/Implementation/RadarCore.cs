@@ -36,7 +36,7 @@ namespace TrackRadar.Implementation
         public long StartedAt { get; }
 
         public TurnLookout Lookout { get; }
-        private readonly RoundQueue<(GeoPoint point, Length? altitude, long timestamp)> lastPoints;
+        private readonly RoundQueue<GpsReadout> lastPoints;
         private readonly IGeoMap trackMap;
         private long lastOnTrackAlarmAt;
         private long ridingStartedAt;
@@ -44,6 +44,7 @@ namespace TrackRadar.Implementation
         private int offTrackAlarmsCount;
         private long lastOffTrackAlarmAt;
         private Length lastAbsDistance;
+        private Length runningMinAccuracy;
         private int movingOutCount;
         private int movingInCount;
         private OnTrackStatus lastOnTrack;
@@ -89,8 +90,9 @@ namespace TrackRadar.Implementation
             // keeping window of 3 points seems like a good balance for measuring travelled distance (and speed)
             // too wide and we will not get proper speed value when rapidly stopping, 
             // too small and gps accurracy will play major role
-            this.lastPoints = new RoundQueue<(GeoPoint point, Length? altitude, long timestamp)>(capacity: 3);
+            this.lastPoints = new RoundQueue<GpsReadout>(capacity: 3);
             this.lastAbsDistance = Length.PositiveInfinity;
+            this.runningMinAccuracy = Length.MaxValue;
             this.service = service;
             this.signalService = signalService;
             this.gpsAlarm = gpsAlarm;
@@ -188,11 +190,11 @@ namespace TrackRadar.Implementation
                     this.totalClimbs += climb;
             }
 
-            Option<(GeoPoint lastPoint, Length? altitude, long timestamp)> older_point;
+            Option<GpsReadout> older_point;
 
             {
-                IEnumerable<(GeoPoint point, Length? altitude, long timestamp)> older_points = this.lastPoints.Reverse()
-                    .SkipWhile(point_ts => now - point_ts.timestamp < this.speedTicksWindow);
+                IEnumerable<GpsReadout> older_points = this.lastPoints.Reverse()
+                    .SkipWhile(point_ts => now - point_ts.Timestamp < this.speedTicksWindow);
                 older_point = older_points.FirstOrNone();
 
                 if (!older_point.HasValue)
@@ -207,7 +209,18 @@ namespace TrackRadar.Implementation
                 }
                 else
                 {
-                    (GeoPoint last_point, Length? last_alt, long last_ts) = older_point.Value;
+                    (GeoPoint last_point, Length? last_alt, Length? last_acc, long last_ts) = older_point.Value;
+                    {
+                        // treat stored data as a sample of accuracies
+                        Option<Length> max_accuracy = older_points
+                            .Where(it => it.Accuracy.HasValue)
+                            .Select(it => it.Accuracy.Value)
+                            // yes, take max to elimate min-outliers
+                            .MaxOrNone();
+                        // at having max from current sample, take the min
+                        if (max_accuracy.HasValue)
+                            this.runningMinAccuracy = this.runningMinAccuracy.Min(max_accuracy.Value);
+                    }
 
                     double time_s_passed = timeStamper.GetSecondsSpan(now, last_ts);
 
@@ -218,16 +231,36 @@ namespace TrackRadar.Implementation
                     this.RidingSpeed = Speed.FromMetersPerSecond(moved_dist_m / time_s_passed);
                     bool previously_riding_with_speed = this.isRidingWithSpeed;
 
+                    // we compute engagement speed in order to preserve current state (riding/resting)
+                    // this is done to avoid ping-pongs in the forest. Due to bad accuracy GPS
+                    // would constantly trigger riding state, and after a while resting, riding again...
+                    Speed engagement_speed = this.RidingSpeed;
+                    if (this.service.GpsFilter)
+                    {
+                        if (this.runningMinAccuracy != Length.MaxValue)
+                        {
+                            Length acc_diff = ((accuracy ?? Length.Zero) + (last_acc ?? Length.Zero)) / 2 - this.runningMinAccuracy;
+
+                            if (acc_diff > Length.Zero)
+                            {
+                                double keep_state_diff = acc_diff.Meters * (previously_riding_with_speed ? 1 : -1);
+                                engagement_speed = Speed.FromMetersPerSecond((moved_dist_m + keep_state_diff) / time_s_passed);
+                            }
+                        }
+                    }
+
+                    // engagement_speed = this.RidingSpeed;
+
                     // if we use only single value (below -- rest, above -- movement) then around this particular value user would have a flood
                     // of notification -- so we use two values, to separate well movement and rest "zones"
-                    if (RidingSpeed <= service.RestSpeedThreshold)
+                    if (engagement_speed <= service.RestSpeedThreshold)
                     {
                         if (this.ridingStartedAt != timeStamper.GetBeforeTimeTimestamp())
                             this.ridingTime += TimeSpan.FromSeconds(timeStamper.GetSecondsSpan(now, ridingStartedAt));
                         this.ridingStartedAt = timeStamper.GetBeforeTimeTimestamp();
                         this.isRidingWithSpeed = false;
                     }
-                    else if (RidingSpeed > service.RidingSpeedThreshold)
+                    else if (engagement_speed > service.RidingSpeedThreshold)
                     {
                         if (this.ridingStartedAt == timeStamper.GetBeforeTimeTimestamp())
                             this.ridingStartedAt = last_ts;
@@ -252,14 +285,14 @@ namespace TrackRadar.Implementation
 
             }
 
-            this.lastPoints.Enqueue((currentPoint, altitude, now));
+            this.lastPoints.Enqueue(new GpsReadout(currentPoint, altitude, accuracy: accuracy, timestamp: now));
 
             this.lastOnTrack = handleAlarm(currentPoint, accuracy, segment, crosspointInfo, on_track, DEBUG_prevSpeed, now);
 
             return fence_dist.Meters;
         }
 
-        private OnTrackStatus handleAlarm(in GeoPoint currentPoint,Length? accuracy,
+        private OnTrackStatus handleAlarm(in GeoPoint currentPoint, Length? accuracy,
             ISegment segment, in ArcSegmentIntersection crosspointInfo,
             OnTrackStatus isOnTrack, Speed DEBUG_prevSpeed, long now)
         {
@@ -369,7 +402,7 @@ namespace TrackRadar.Implementation
                             service.LogDebug(LogLevel.Warning, $"Off-track alarm, couldn't play, reason {reason}");
 
                         // it should be easier to make a GPX file out of it (we don't create it here because service crashes too often)
-                        service.WriteOffTrack(latitudeDegrees: currentPoint.Latitude.Degrees, 
+                        service.WriteOffTrack(latitudeDegrees: currentPoint.Latitude.Degrees,
                             longitudeDegrees: currentPoint.Longitude.Degrees,
                             name: $"{isOnTrack} {offTrackAlarmsCount} at speed {(this.RidingSpeed.KilometersPerHour.ToString("0.##"))}");
                     }

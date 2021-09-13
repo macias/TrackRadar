@@ -17,6 +17,7 @@ namespace TrackRadar.Tests.Implementation
         int IRadarService.DriftMovingAwayCountLimit => prefs.DriftMovingAwayCountLimit;
         int IRadarService.DriftComingCloserCountLimit => prefs.DriftComingCloserCountLimit;
         int IRadarService.OffTrackAlarmCountLimit => this.prefs.OffTrackAlarmCountLimit;
+        bool IRadarService.GpsFilter => this.prefs.GpsFilter;
 
         private readonly IPreferences prefs;
         private readonly ITimeStamper timeStamper;

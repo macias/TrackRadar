@@ -45,14 +45,14 @@ namespace TrackRadar.Implementation
                         bool updated = node_queue.Update(neighbour, turnPoint: cx.Point, hops: 0, dist.Value);
 #if DEBUG
                         DEBUG_neighbours.TryAdd(neighbour.Point, DEBUG_neighbours.Count);
-                        DEBUG_logger.GpxLogger.WritePoint(cx.Point, $"cx {DEBUG_neighbours[neighbour.Point]} {(dist.Value.ToString("0"))} {updated}");
+                        DEBUG_logger.GpxLogger.WriteWaypoint(cx.Point, $"cx {DEBUG_neighbours[neighbour.Point]} {(dist.Value.ToString("0"))} {updated}");
 #endif
                     }
                 }
 
 #if DEBUG
                 foreach (var neighbour in DEBUG_neighbours)
-                    DEBUG_logger.GpxLogger.WritePoint(neighbour.Key, $"node-neighbour {neighbour.Value}");
+                    DEBUG_logger.GpxLogger.WriteWaypoint(neighbour.Key, $"node-neighbour {neighbour.Value}");
 #endif
             }
 

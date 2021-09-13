@@ -31,10 +31,11 @@ namespace TrackRadar.Tests
             // we simulate riding off track
             var track_points = Toolbox.PopulateTrackDensely(
                 new[] { GeoPoint.FromDegrees(50, 5), GeoPoint.FromDegrees(50, 5.002) })
-                .Select(it => (GeoPoint?)it)
+                .Select(it => (GpsPoint?)it)
                 .ToList();
 
-            track_points.InsertRange(0, Enumerable.Range(0, (int)(prefs.GpsAcquisitionTimeout.TotalSeconds * 2)).Select(_ => (GeoPoint?)null));
+            track_points.InsertRange(0, Enumerable.Range(0, (int)(prefs.GpsAcquisitionTimeout.TotalSeconds * 2))
+                .Select(_ => (GpsPoint?)null));
 
             var stats = Toolbox.Ride(prefs, gpx_data, track_points, out var alarm_counters, out var alarms, out var messages);
 

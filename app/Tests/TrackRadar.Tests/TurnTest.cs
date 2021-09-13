@@ -18,6 +18,67 @@ namespace TrackRadar.Tests
         private const double precision = 0.00000001;
 
         [TestMethod]
+        public void AccuracyDrop1Test()
+        {
+            string plan_filename = Toolbox.TestData(@"accuracy-drop1.plan.gpx");
+            string tracked_filename = Toolbox.TestData(@"accuracy-drop1.tracked.gpx");
+
+            var prefs = Toolbox.CreatePreferences(); // regular thresholds for speed
+            RideStats stats;
+            stats = Toolbox.Ride(prefs, playDuration: TimeSpan.FromSeconds(2.229), plan_filename, tracked_filename, null);
+
+            Assert.AreEqual(2, stats.Alarms.Count);
+            int a = 0;
+
+            Assert.AreEqual((Alarm.Engaged, 18), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Disengage, 89), stats.Alarms[a++]);
+        }
+
+        [TestMethod]
+        public void AccuracyDrop2Test()
+        {
+            string plan_filename = Toolbox.TestData(@"accuracy-drop2.plan.gpx");
+            string tracked_filename = Toolbox.TestData(@"accuracy-drop2.tracked.gpx");
+
+            var prefs = Toolbox.CreatePreferences(); // regular thresholds for speed
+            RideStats stats;
+            stats = Toolbox.Ride(prefs, playDuration: TimeSpan.FromSeconds(2.229), plan_filename, tracked_filename, null);
+
+            Assert.AreEqual(2, stats.Alarms.Count);
+            int a = 0;
+
+            Assert.AreEqual((Alarm.Engaged, 3), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Disengage, 58), stats.Alarms[a++]);
+        }
+
+        [TestMethod]
+        public void AccuracyDrop3Test()
+        {
+            string plan_filename = Toolbox.TestData(@"accuracy-drop3.plan.gpx");
+            string tracked_filename = Toolbox.TestData(@"accuracy-drop3.tracked.gpx");
+
+            var prefs = Toolbox.CreatePreferences(); // regular thresholds for speed
+            RideStats stats;
+            stats = Toolbox.Ride(prefs, playDuration: TimeSpan.FromSeconds(2.229), plan_filename, tracked_filename, null);
+            /*
+            GpxToolbox.SaveGpxWaypoints("foo3.gpx",
+                Implementation.Linqer.ZipIndex(stats.TrackPoints)
+                .Where(it => it.value.HasValue)
+                .Select(it => (it.value.Value, $"{it.index} {it.value.Value.Accuracy}")));
+                */
+            //Toolbox.PrintAlarms(stats);
+
+            Assert.AreEqual(4, stats.Alarms.Count);
+
+            int a = 0;
+
+            Assert.AreEqual((Alarm.RightEasy, 25), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.RightEasy, 27), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.RightCross, 30), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Disengage, 35), stats.Alarms[a++]);
+        }
+
+        [TestMethod]
         public void ConfusingCrossroadTest()
         {
             // riding along the planned track, but with a bump
@@ -86,7 +147,7 @@ namespace TrackRadar.Tests
 
             var prefs = Toolbox.CreatePreferences(); // regular thresholds for speed
             RideStats stats;
-            stats = Toolbox.Ride( prefs, playDuration: TimeSpan.FromSeconds(2.229), plan_filename, tracked_filename, null);
+            stats = Toolbox.Ride(prefs, playDuration: TimeSpan.FromSeconds(2.229), plan_filename, tracked_filename, null);
 
             Assert.AreEqual(4, stats.Alarms.Count);
             int a = 0;
@@ -206,8 +267,7 @@ namespace TrackRadar.Tests
 
             IPlanData gpx_data = Toolbox.CreateBasicTrackData(track: plan_points, waypoints: turning_points, prefs.OffTrackAlarmDistance);
 
-            var track_points = plan_points.ToList();
-            Toolbox.PopulateTrackDensely(track_points, ride_speed);
+            var track_points = Toolbox.PopulateTrackDensely(plan_points.ToList(), ride_speed);
 
             Toolbox.Ride(prefs, gpx_data, track_points, out var alarm_counters, out var alarms, out var messages);
 
@@ -251,8 +311,7 @@ namespace TrackRadar.Tests
 
             IPlanData gpx_data = Toolbox.CreateBasicTrackData(track: plan_points, waypoints: turning_points, prefs.OffTrackAlarmDistance);
 
-            var track_points = plan_points.ToList();
-            Toolbox.PopulateTrackDensely(track_points, ride_speed);
+            var track_points = Toolbox.PopulateTrackDensely(plan_points.ToList(), ride_speed);
 
             Toolbox.Ride(prefs, playDuration: TimeSpan.FromSeconds(2.229), gpx_data, track_points, out var alarm_counters, out var alarms, out var messages);
 
@@ -296,8 +355,7 @@ namespace TrackRadar.Tests
 
             IPlanData gpx_data = Toolbox.CreateBasicTrackData(track: plan_points, waypoints: turning_points, prefs.OffTrackAlarmDistance);
 
-            var track_points = plan_points.ToList();
-            Toolbox.PopulateTrackDensely(track_points, ride_speed);
+            var track_points = Toolbox.PopulateTrackDensely(plan_points.ToList(), ride_speed);
 
             track_points.InsertRange(600, Enumerable.Range(0, 100).Select(_ => track_points[600]));
 
@@ -336,8 +394,7 @@ namespace TrackRadar.Tests
 
             IPlanData gpx_data = Toolbox.CreateBasicTrackData(track: plan_points, waypoints: null, prefs.OffTrackAlarmDistance);
 
-            var track_points = new[] { plan_points.First(), plan_points.Last() }.ToList();
-            Toolbox.PopulateTrackDensely(track_points);
+            var track_points = Toolbox.PopulateTrackDensely(new[] { plan_points.First(), plan_points.Last() });
 
             Toolbox.Ride(prefs, gpx_data, track_points, out var alarm_counters, out var alarms, out var messages);
 
@@ -367,8 +424,7 @@ namespace TrackRadar.Tests
             IPlanData gpx_data = Toolbox.CreateTrackData(track: plan_points,
                 waypoints: null, endpoints: new[] { endpoint }, prefs.OffTrackAlarmDistance);
 
-            var track_points = new[] { plan_points.First(), endpoint }.ToList();
-            Toolbox.PopulateTrackDensely(track_points);
+            var track_points = Toolbox.PopulateTrackDensely(new[] { plan_points.First(), endpoint });
 
             Toolbox.Ride(prefs, gpx_data, track_points, out var alarm_counters, out var alarms, out var messages);
 
@@ -397,8 +453,7 @@ namespace TrackRadar.Tests
             IPlanData gpx_data = Toolbox.CreateBasicTrackData(track: new[] { turning_points.First(), turning_points.Last() },
                 waypoints: turning_points, prefs.OffTrackAlarmDistance);
 
-            var track_points = new[] { turning_points.First(), turning_points.Last() }.ToList();
-            Toolbox.PopulateTrackDensely(track_points);
+            var track_points = Toolbox.PopulateTrackDensely(new[] { turning_points.First(), turning_points.Last() });
 
             Toolbox.Ride(prefs, gpx_data, track_points, out var alarm_counters, out var alarms, out var messages);
 
@@ -460,7 +515,7 @@ namespace TrackRadar.Tests
 
             var prefs = Toolbox.CreatePreferences();
             Toolbox.LoadData(prefs, plan_filename, tracked_filename,
-                out IPlanData plan_data, out List<GeoPoint> track_points);
+                out IPlanData plan_data, out List<GpsPoint> track_points);
 
             Toolbox.Ride(prefs, plan_data, track_points,
                 out var alarmCounters, out var alarms, out var messages);
@@ -497,7 +552,7 @@ namespace TrackRadar.Tests
 
             var prefs = Toolbox.CreatePreferences();
             Toolbox.LoadData(prefs, plan_filename, tracked_filename,
-                out IPlanData plan_data, out List<GeoPoint> track_points);
+                out IPlanData plan_data, out List<GpsPoint> track_points);
 
             Toolbox.Ride(prefs, plan_data, track_points,
                 out var alarmCounters, out var alarms, out var messages);
@@ -557,7 +612,7 @@ namespace TrackRadar.Tests
 
             var prefs = Toolbox.CreatePreferences(); // regular thresholds for speed
             Toolbox.LoadData(prefs, plan_filename, tracked_filename,
-                out IPlanData plan_data, out List<GeoPoint> track_points);
+                out IPlanData plan_data, out List<GpsPoint> track_points);
 
             // speed up riding through the second turn
             track_points.RemoveAt(28);
@@ -592,7 +647,7 @@ namespace TrackRadar.Tests
 
             var prefs = Toolbox.CreatePreferences(); // regular thresholds for speed
             Toolbox.LoadData(prefs, plan_filename, tracked_filename,
-                out IPlanData plan_data, out List<GeoPoint> track_points);
+                out IPlanData plan_data, out List<GpsPoint> track_points);
 
             // speed up riding through the second turn
             track_points.RemoveAt(27);
@@ -663,9 +718,7 @@ namespace TrackRadar.Tests
             var prefs = Toolbox.CreatePreferences();
             IPlanData gpx_data = Toolbox.LoadPlan(prefs, plan_filename);
 
-            var track_points = Toolbox.ReadTrackGpxPoints(tracked_filename).Select(it => GpxHelper.FromGpx(it)).ToList();
-
-            Toolbox.PopulateTrackDensely(track_points);
+            var track_points = Toolbox.PopulateTrackDensely(Toolbox.ReadTrackGpxPoints(tracked_filename).Select(it => GpxHelper.FromGpx(it)));
 
             Toolbox.Ride(prefs, gpx_data, track_points, out IReadOnlyDictionary<Alarm, int> alarmCounters,
                 out IReadOnlyList<(Alarm alarm, int index)> alarms,
@@ -688,7 +741,7 @@ namespace TrackRadar.Tests
             //     +-----
             // ----+
 
-            var track_points = new[] {
+            var geo_track_points = new[] {
                 GeoPoint.FromDegrees(50.918540800,2.921173700),
                 GeoPoint.FromDegrees(50.914250700,2.912756900),
                 GeoPoint.FromDegrees(50.914156000,2.913014400),
@@ -696,12 +749,12 @@ namespace TrackRadar.Tests
             }.ToList();
 
             // ensuring "tail" segments are short enough
-            TestHelper.IsGreaterThan(GeoMapFactory.SegmentLengthLimit, GeoCalculator.GetDistance(track_points[0], track_points[1]));
-            TestHelper.IsGreaterThan(GeoMapFactory.SegmentLengthLimit, GeoCalculator.GetDistance(track_points[2], track_points[3]));
+            TestHelper.IsGreaterThan(GeoMapFactory.SegmentLengthLimit, GeoCalculator.GetDistance(geo_track_points[0], geo_track_points[1]));
+            TestHelper.IsGreaterThan(GeoMapFactory.SegmentLengthLimit, GeoCalculator.GetDistance(geo_track_points[2], geo_track_points[3]));
 
             var prefs = Toolbox.CreatePreferences();
-            GeoPoint[] waypoints = new[] { track_points[1], track_points[2] };
-            var plan_data = Toolbox.CreateBasicTrackData(track_points, waypoints, prefs.OffTrackAlarmDistance);
+            GeoPoint[] waypoints = new[] { geo_track_points[1], geo_track_points[2] };
+            var plan_data = Toolbox.CreateBasicTrackData(geo_track_points, waypoints, prefs.OffTrackAlarmDistance);
 
             // Toolbox.SaveGpx("alt-turns.plan.gpx", plan_data);
 
@@ -724,12 +777,12 @@ namespace TrackRadar.Tests
             // (1 regular + 2 because of the implicit endpoints)
             Assert.AreEqual(1 + 2, alts.Select(it => it.Alternate.Value.TurnPoint).Distinct().Count());
 #endif
-            Toolbox.PopulateTrackDensely(track_points, Speed.FromKilometersPerHour(17));
+            var gps_track_points = Toolbox.PopulateTrackDensely(geo_track_points, Speed.FromKilometersPerHour(17));
 
             //  Toolbox.SaveGpxSegments("alt-turns.mocked.gpx", track_points);
             // Toolbox.SaveGpxWaypoints("alt-turns.points.gpx", track_points);
 
-            Toolbox.Ride(prefs, plan_data, track_points, out var alarm_counters, out var alarms, out var messages);
+            Toolbox.Ride(prefs, plan_data, gps_track_points, out var alarm_counters, out var alarms, out var messages);
 
             Assert.AreEqual(9, alarms.Count());
             int a = 0;
@@ -758,7 +811,7 @@ namespace TrackRadar.Tests
             //     +-----
             // ----+
 
-            var track_points = new[] {
+            var geo_track_points = new[] {
                 GeoPoint.FromDegrees(50.918540800,2.921173700),
                 GeoPoint.FromDegrees(50.914250700,2.912756900),
                 GeoPoint.FromDegrees(50.914156000,2.913014400),
@@ -770,19 +823,19 @@ namespace TrackRadar.Tests
 
             GeoPoint[] waypoints = new[] {
                 // extra starting turn -- program should not take it into account on the next turn 
-                track_points[0],
-                track_points[1], track_points[2] };
+                geo_track_points[0],
+                geo_track_points[1], geo_track_points[2] };
 
             // making sure the distance between turns are big enough so the clear part will kick off
             TestHelper.IsGreaterThan(GeoCalculator.GetDistance(waypoints[0], waypoints[1]),
                 TurnLookout.GetTurnClearDistance(riding_speed * prefs.TurnAheadAlarmDistance));
 
 
-            var plan_data = Toolbox.CreateBasicTrackData(track_points, waypoints, prefs.OffTrackAlarmDistance);
+            var plan_data = Toolbox.CreateBasicTrackData(geo_track_points, waypoints, prefs.OffTrackAlarmDistance);
 
-            Toolbox.PopulateTrackDensely(track_points, riding_speed);
+            var gps_track_points = Toolbox.PopulateTrackDensely(geo_track_points, riding_speed);
 
-            Toolbox.Ride(prefs, plan_data, track_points, out var alarm_counters, out var alarms, out var messages);
+            Toolbox.Ride(prefs, plan_data, gps_track_points, out var alarm_counters, out var alarms, out var messages);
 
             Assert.AreEqual(9, alarms.Count());
             int a = 0;
@@ -813,7 +866,7 @@ namespace TrackRadar.Tests
             // speed was too low. This is OK, but the program gave wrong turn-info -- so this test serves as opportunity to tackle
             // with walking speed and turns handling
 
-            var track_points = new[] {
+            var geo_track_points = new[] {
                 GeoPoint.FromDegrees(50.914156000, 2.913014400),
                 GeoPoint.FromDegrees(50.914250700, 2.912756900),
                 GeoPoint.FromDegrees(50.918540800, 2.921173700),
@@ -822,13 +875,13 @@ namespace TrackRadar.Tests
             var prefs = Toolbox.CreatePreferences();
             Speed riding_speed = Speed.FromKilometersPerHour(17);
 
-            GeoPoint[] waypoints = track_points.ToArray();
+            GeoPoint[] waypoints = geo_track_points.ToArray();
 
-            var plan_data = Toolbox.CreateBasicTrackData(track_points, waypoints, prefs.OffTrackAlarmDistance);
+            var plan_data = Toolbox.CreateBasicTrackData(geo_track_points, waypoints, prefs.OffTrackAlarmDistance);
 
-            Toolbox.PopulateTrackDensely(track_points, riding_speed);
+            var gps_track_points = Toolbox.PopulateTrackDensely(geo_track_points, riding_speed);
 
-            var stats = Toolbox.Ride(prefs, playDuration: null, plan_data, track_points,
+            var stats = Toolbox.Ride(prefs, playDuration: null, plan_data, gps_track_points,
                 out var alarm_counters, out var alarms, out var messages,
                 out TurnLookout lookout);
 
@@ -854,9 +907,7 @@ namespace TrackRadar.Tests
             var prefs = Toolbox.LowThresholdSpeedPreferences();
             IPlanData gpx_data = Toolbox.LoadPlan(prefs, plan_filename);
 
-            var track_points = Toolbox.ReadTrackGpxPoints(tracked_filename).Select(it => GpxHelper.FromGpx(it)).ToList();
-
-            Toolbox.PopulateTrackDensely(track_points);
+            var track_points = Toolbox.PopulateTrackDensely(Toolbox.ReadTrackGpxPoints(tracked_filename).Select(it => GpxHelper.FromGpx(it)));
 
             Assert.AreEqual(3, gpx_data.Segments.Select(it => it.SectionId).Distinct().Count());
 
@@ -890,7 +941,7 @@ namespace TrackRadar.Tests
             var prefs = Toolbox.CreatePreferences();
 
             Toolbox.LoadData(prefs, plan_filename, tracked_filename, out IPlanData plan_data,
-                out List<GeoPoint> track_points);
+                out List<GpsPoint> track_points);
 
             Assert.AreEqual(2, plan_data.Segments.Select(it => it.SectionId).Distinct().Count());
 
@@ -1029,16 +1080,15 @@ namespace TrackRadar.Tests
             const string result_filename = "turning-excercise.result.gpx";
             IReadOnlyList<GpxWayPoint> turn_points = Toolbox.ReadWaypoints(Toolbox.TestData(result_filename)).ToList();
 
-            List<GeoPoint> track_points = new List<GeoPoint>();
-            RideWithTurns(track_points, out IReadOnlyList<(Alarm alarm, int index)> alarms);
+            RideWithTurns(out List<GpsPoint> track_points, out IReadOnlyList<(Alarm alarm, int index)> alarms);
 
             // those 3 extras come from implicit endpoint
             Assert.AreEqual(turn_points.Count + 3, alarms.Count());
             int i = 0;
             for (; i < turn_points.Count; ++i)
             {
-                Assert.AreEqual(turn_points[i].Latitude.Degrees, track_points[alarms[i].index].Latitude.Degrees, precision);
-                Assert.AreEqual(turn_points[i].Longitude.Degrees, track_points[alarms[i].index].Longitude.Degrees, precision);
+                Assert.AreEqual(turn_points[i].Latitude.Degrees, track_points[alarms[i].index].Point.Latitude.Degrees, precision);
+                Assert.AreEqual(turn_points[i].Longitude.Degrees, track_points[alarms[i].index].Point.Longitude.Degrees, precision);
                 Assert.AreEqual(Enum.Parse<Alarm>(turn_points[i].Name), alarms[i].alarm);
             }
 
@@ -1048,23 +1098,24 @@ namespace TrackRadar.Tests
             Assert.AreEqual((Alarm.Crossroad, 19504), alarms[i++]);
         }
 
-        internal double RideWithTurns(List<GeoPoint> trackPoints, out IReadOnlyList<(Alarm alarm, int index)> alarms)
+        internal double RideWithTurns(out List<GpsPoint> trackPoints, out IReadOnlyList<(Alarm alarm, int index)> alarms)
         {
             const string plan_filename = "turning-excercise.gpx";
 
             var prefs = Toolbox.CreatePreferences();
             prefs.TurnAheadAlarmDistance = TimeSpan.FromSeconds(13);
 
-            trackPoints.AddRange(Toolbox.ReadTrackGpxPoints(Toolbox.TestData(plan_filename)).Select(it => GpxHelper.FromGpx(it)));
+            var geo_points = new List<GeoPoint>();
+            geo_points.AddRange(Toolbox.ReadTrackGpxPoints(Toolbox.TestData(plan_filename)).Select(it => GpxHelper.FromGpx(it)));
 
-            var gpx_data = Toolbox.CreateBasicTrackData(trackPoints,
+            var gpx_data = Toolbox.CreateBasicTrackData(track: geo_points,
                 //new TrackData(Enumerable.Range(0, trackPoints.Count - 1)
                 //.Select(i => new Segment(trackPoints[i], trackPoints[i + 1])),
                 // set each in-track point as turning one
-                trackPoints.Skip(1).SkipLast(1), prefs.OffTrackAlarmDistance);
+                waypoints: geo_points.Skip(1).SkipLast(1), prefs.OffTrackAlarmDistance);
 
             // populate densely the "ride" points (better than having 1MB file on disk)
-            Toolbox.PopulateTrackDensely(trackPoints);
+            trackPoints = Toolbox.PopulateTrackDensely(geo_points).ToList();
 
             var clock = new SecondStamper();
             using (var raw_alarm_master = new AlarmMaster(clock))
@@ -1080,16 +1131,16 @@ namespace TrackRadar.Tests
                 long start = Stopwatch.GetTimestamp();
 
                 int point_index = 0;
-                GeoPoint last_pt = trackPoints.First();
+                GpsPoint last_pt = trackPoints.First();
                 foreach (var pt in trackPoints)
                 {
                     using (sequencer.OpenAlarmContext(gpsAcquired: false, hasGpsSignal: true))
                     {
                         clock.Advance();
                         counting_alarm_master.SetPointIndex(point_index);
-                        PositionCalculator.IsOnTrack(pt, map, prefs.OffTrackAlarmDistance,
+                        PositionCalculator.IsOnTrack(pt.Point, map, prefs.OffTrackAlarmDistance,
                             out ISegment segment, out _, out ArcSegmentIntersection cx_info);
-                        lookout.AlarmTurnAhead(pt, segment, cx_info, ride_speed, comebackOnTrack: false, clock.GetTimestamp(), out _);
+                        lookout.AlarmTurnAhead(pt.Point, segment, cx_info, ride_speed, comebackOnTrack: false, clock.GetTimestamp(), out _);
                         ++point_index;
                         last_pt = pt;
                     }
@@ -1160,13 +1211,14 @@ namespace TrackRadar.Tests
                 GeoPoint.FromDegrees(leaving_latitude,leaving_longitude_start),
                 GeoPoint.FromDegrees(leaving_latitude,leaving_longitude_end) };
 
-            List<GeoPoint> track_points;
+            List<GpsPoint> track_points;
             {
                 const int parts = 1000;
                 track_points = Enumerable.Range(0, parts).Select(i => GeoPoint.FromDegrees(leaving_latitude,
                     leaving_longitude_start + i * (leaving_longitude_end - leaving_longitude_start) / parts))
                     .Take(100)
                     .Skip(10)
+                    .Select(pt => new GpsPoint(pt, null))
                     .ToList();
             }
 

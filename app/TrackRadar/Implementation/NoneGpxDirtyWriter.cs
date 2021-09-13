@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Geo;
+using MathUnit;
 
 namespace TrackRadar.Implementation
 {
@@ -17,13 +18,18 @@ namespace TrackRadar.Implementation
         {
         }
 
-        void IGpxDirtyWriter.WriteLocation(double latitudeDegrees, double longitudeDegrees, double? altitudeMeters,
+        void IGpxDirtyWriter.WriteWaypoint(double latitudeDegrees, double longitudeDegrees, double? altitudeMeters,
+            double? accuracyMeters, string name, string comment, DateTimeOffset? time)
+        {
+        }
+
+        void IGpxDirtyWriter.WriteTrackPoint(double latitudeDegrees, double longitudeDegrees, double? altitudeMeters,
             double? accuracyMeters, string name, string comment, DateTimeOffset? time)
         {
         }
 
 #if DEBUG
-        void IGpxDirtyWriter.WritePoint(in GeoPoint point, string name, string comment)
+        void IGpxDirtyWriter.WriteWaypoint(in GeoPoint point, string name, string comment, Length? accuracy)
         {
         }
 

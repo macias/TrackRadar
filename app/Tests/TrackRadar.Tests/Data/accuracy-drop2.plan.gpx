@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx
+  version="1.0"
+  creator="GPSBabel - http://www.gpsbabel.org"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://www.topografix.com/GPX/1/0"
+  xsi:schemaLocation="http://www.topografix.com/GPX/1/0 http://www.topografix.com/GPX/1/0/gpx.xsd">
+<trk>
+  <name>Line 1</name>
+<trkseg>
+<trkpt lat="53.099438400" lon="27.403529000">
+  <ele>0.000000</ele>
+</trkpt>
+<trkpt lat="53.098555400" lon="27.403700800">
+  <ele>0.000000</ele>
+</trkpt>
+<trkpt lat="53.097799300" lon="27.403793200">
+  <ele>0.000000</ele>
+</trkpt>
+<trkpt lat="53.096664200" lon="27.404367300">
+  <ele>0.000000</ele>
+</trkpt>
+<trkpt lat="53.095770000" lon="27.405188500">
+  <ele>0.000000</ele>
+</trkpt>
+<trkpt lat="53.095266800" lon="27.405900100">
+  <ele>0.000000</ele>
+</trkpt>
+<trkpt lat="53.094329000" lon="27.407649400">
+  <ele>0.000000</ele>
+</trkpt>
+<trkpt lat="53.093228900" lon="27.409687900">
+  <ele>0.000000</ele>
+</trkpt>
+<trkpt lat="53.091650100" lon="27.412867400">
+  <ele>0.000000</ele>
+</trkpt>
+</trkseg>
+</trk>
+</gpx>

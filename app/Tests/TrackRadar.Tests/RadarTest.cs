@@ -80,8 +80,7 @@ namespace TrackRadar.Tests
             IPlanData gpx_data = Toolbox.CreateBasicTrackData(track: plan_points, waypoints: null, prefs.OffTrackAlarmDistance);
 
             // we simulate riding off track and getting back to it
-            var track_points = new[] { GeoPoint.FromDegrees(40.05, 5), GeoPoint.FromDegrees(40.05, 5.01) }.ToList();
-            Toolbox.PopulateTrackDensely(track_points);
+            var track_points = Toolbox.PopulateTrackDensely(new[] { GeoPoint.FromDegrees(40.05, 5), GeoPoint.FromDegrees(40.05, 5.01) });
             track_points.AddRange(track_points.AsEnumerable().Reverse());
 
             var stats = Toolbox.Ride(prefs, gpx_data, track_points, out var alarm_counters, out var alarms, out var messages);

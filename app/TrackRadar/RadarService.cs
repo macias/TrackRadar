@@ -401,10 +401,6 @@ private long mLastTime;
                     return;
 
                 //LogDebug(LogLevel.Verbose, $"new loc {locationToString(location)}");
-                this.traceWriter?.WriteTrackPoint(latitudeDegrees: location.Latitude, longitudeDegrees: location.Longitude,
-                    altitudeMeters: location.HasAltitude ? location.Altitude : (double?)null,
-                    accuracyMeters: location.HasAccuracy ? location.Accuracy : (double?)null,
-                    time: DateTimeOffset.UtcNow); // location.Time gives time in the past (by 19 years)
 
                 if (!statistics.CanUpdate())
                 {
@@ -414,6 +410,8 @@ private long mLastTime;
                     //LogDebug(LogLevel.Verbose, $"[TEMP] CANNOT UPDATE");
                     return;
                 }
+
+                bool engaged = this.core.EngagedState;
 
                 double dist = 0;
                 lock (this.threadLock)
@@ -452,6 +450,15 @@ private long mLastTime;
                         MainReceiver.SendDistance(this, statistics.FenceDistance,
                             totalClimbs: core.TotalClimbsReadout, ridingDistance: core.RidingDistanceReadout, ridingTime: core.RidingTimeReadout, topSpeed: core.TopSpeedReadout);
                 }
+
+                string comment = null;
+                if (this.core.EngagedState != engaged)
+                    comment = this.core.EngagedState ? "riding" : "stopped";
+                this.traceWriter?.WriteTrackPoint(latitudeDegrees: location.Latitude, longitudeDegrees: location.Longitude,
+                    altitudeMeters: location.HasAltitude ? location.Altitude : (double?)null,
+                    accuracyMeters: location.HasAccuracy ? location.Accuracy : (double?)null,
+                    time: DateTimeOffset.UtcNow, // location.Time gives time in the past (by 19 years)
+                    comment: comment);
             }
         }
 

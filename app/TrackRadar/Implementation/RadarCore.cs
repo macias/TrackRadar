@@ -16,7 +16,7 @@ namespace TrackRadar.Implementation
         private bool isRidingWithSpeed;
         // when we walk, we don't alter the speed (sic!), i.e. it is set zero
         internal Speed RidingSpeed { get; private set; }
-        private bool engagedState;
+        internal bool EngagedState { get; private set; }
         private bool wasOffTrackPreviously => this.lastOnTrackAlarmAt < this.lastOffTrackAlarmAt;
         private readonly IRadarService service;
         private readonly ISignalCheckerService signalService;
@@ -159,7 +159,7 @@ namespace TrackRadar.Implementation
         public double UpdateLocation(in GeoPoint currentPoint, Length? altitude, Length? accuracy)
         {
             bool gps_acquired = this.gpsWatchdog.UpdateGpsIsOn();
-            using (this.alarmSequencer.OpenAlarmContext(gpsAcquired: engagedState ? false : gps_acquired,
+            using (this.alarmSequencer.OpenAlarmContext(gpsAcquired: EngagedState ? false : gps_acquired,
                 hasGpsSignal: gpsWatchdog.HasGpsSignal))
             {
                 return internalUpdateLocation(currentPoint, altitude, accuracy);
@@ -301,7 +301,7 @@ namespace TrackRadar.Implementation
                 if (Lookout.AlarmTurnAhead(currentPoint, segment, crosspointInfo, this.isRidingWithSpeed ? this.RidingSpeed : Speed.Zero, wasOffTrackPreviously, now, out string _))
                 {
                     this.offTrackAlarmsCount = 0;
-                    engagedState = true;
+                    EngagedState = true;
                     this.lastOnTrackAlarmAt = now;
                     isOnTrack = OnTrackStatus.OK;
                 }
@@ -313,7 +313,7 @@ namespace TrackRadar.Implementation
             {
                 // here we check the interval to prevent too often playing ACK
                 // possible case: user got back on track and then stopped, without checking interval she/he would got two ACKs
-                if (engagedState
+                if (EngagedState
                    //prevRiding != Speed.Zero
                    // reusing off-track interval, no point making separate settings
                    //               && timeStamper.GetSecondsSpan(now, this.lastOnTrackAlarmAt) >= service.OffTrackAlarmInterval.TotalSeconds
@@ -329,7 +329,7 @@ namespace TrackRadar.Implementation
                         if (played)
                         {
                             service.WriteDebug(currentPoint.Latitude.Degrees, currentPoint.Longitude.Degrees, alarm.ToString(), $"acc: {accuracy}");
-                            engagedState = false;
+                            EngagedState = false;
                             //  this.postponeSpeedDisengage = false;
                         }
                     }
@@ -339,7 +339,7 @@ namespace TrackRadar.Implementation
             {
                 this.offTrackAlarmsCount = 0;
 
-                if (!engagedState// we started riding, engagement
+                if (!EngagedState// we started riding, engagement
                     || wasOffTrackPreviously) // we were previously off-track
                 {
                     //var alarm = prevRiding == Speed.Zero ? Alarm.Engaged : Alarm.BackOnTrack;
@@ -351,7 +351,7 @@ namespace TrackRadar.Implementation
                     {
                         service.WriteDebug(currentPoint.Latitude.Degrees, currentPoint.Longitude.Degrees, alarm.ToString(), $"acc: {accuracy}");
                         this.lastOnTrackAlarmAt = now;
-                        engagedState = true;
+                        EngagedState = true;
                         // this.postponeSpeedDisengage = false;
                     }
                 }
@@ -396,7 +396,7 @@ namespace TrackRadar.Implementation
                             this.lastOffTrackAlarmAt = now;
                             ++this.offTrackAlarmsCount;
                             // it might happen, that off-track is the very first alarm, thus engaging 
-                            engagedState = alarm == Alarm.OffTrack;
+                            EngagedState = alarm == Alarm.OffTrack;
                         }
                         else
                             service.LogDebug(LogLevel.Warning, $"Off-track alarm, couldn't play, reason {reason}");

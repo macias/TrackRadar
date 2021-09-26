@@ -58,6 +58,14 @@ namespace TrackRadar.Implementation
             }
         }
 
+        public void WriteRaw(string value)
+        {
+            lock (this.threadLock)
+            {
+                this.stream.Write(value);
+            }
+        }
+
         public void Close()
         {
             lock (this.threadLock)

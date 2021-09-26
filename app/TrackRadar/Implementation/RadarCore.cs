@@ -9,6 +9,8 @@ namespace TrackRadar.Implementation
 {
     internal sealed class RadarCore : IDisposable
     {
+        internal static Length InitialMinAccuracy { get; } = Length.MaxValue;
+
         internal const string GeoPointFormat = "0.00000000000000";
 
         private readonly long speedTicksWindow; // measure speed only when we have time window of X ticks or more
@@ -44,7 +46,7 @@ namespace TrackRadar.Implementation
         private int offTrackAlarmsCount;
         private long lastOffTrackAlarmAt;
         private Length lastAbsDistance;
-        private Length runningMinAccuracy;
+        public Length RunningMinAccuracy { get; private set; }
         private int movingOutCount;
         private int movingInCount;
         private OnTrackStatus lastOnTrack;
@@ -85,14 +87,22 @@ namespace TrackRadar.Implementation
         public RadarCore(IRadarService service, ISignalCheckerService signalService, IGpsAlarm gpsAlarm,
             IAlarmSequencer alarmSequencer, ITimeStamper timeStamper,
             IPlanData planData,
-            Length totalClimbs, Length startRidingDistance, TimeSpan ridingTime, Speed topSpeed)
+            Length totalClimbs, Length startRidingDistance, TimeSpan ridingTime, Speed topSpeed
+#if DEBUG
+            , Length initMinAccuracy
+#endif
+           )
         {
             // keeping window of 3 points seems like a good balance for measuring travelled distance (and speed)
             // too wide and we will not get proper speed value when rapidly stopping, 
             // too small and gps accurracy will play major role
             this.lastPoints = new RoundQueue<GpsReadout>(capacity: 3);
             this.lastAbsDistance = Length.PositiveInfinity;
-            this.runningMinAccuracy = Length.MaxValue;
+#if DEBUG
+            this.RunningMinAccuracy = initMinAccuracy;
+#else
+            this.RunningMinAccuracy = InitialMinAccuracy;
+#endif
             this.service = service;
             this.signalService = signalService;
             this.gpsAlarm = gpsAlarm;
@@ -212,14 +222,21 @@ namespace TrackRadar.Implementation
                     (GeoPoint last_point, Length? last_alt, Length? last_acc, long last_ts) = older_point.Value;
                     {
                         // treat stored data as a sample of accuracies
-                        Option<Length> max_accuracy = older_points
+                        Option<Length> opt_max_accuracy = older_points
                             .Where(it => it.Accuracy.HasValue)
-                            .Select(it => it.Accuracy.Value)
+                            // we call Abs, because we mark with negative sign "borrowed-from" accuracies
+                            .Select(it => it.Accuracy.Value.Abs())
                             // yes, take max to elimate min-outliers
                             .MaxOrNone();
                         // at having max from current sample, take the min
-                        if (max_accuracy.HasValue)
-                            this.runningMinAccuracy = this.runningMinAccuracy.Min(max_accuracy.Value);
+                        if (opt_max_accuracy.HasValue)
+                        {
+                            Length max_accuracy = opt_max_accuracy.Value;
+                            // try to add current accuracy
+                            if (accuracy.HasValue)
+                                max_accuracy = max_accuracy.Max(accuracy.Value);
+                            this.RunningMinAccuracy = this.RunningMinAccuracy.Min(max_accuracy);
+                        }
                     }
 
                     double time_s_passed = timeStamper.GetSecondsSpan(now, last_ts);
@@ -237,9 +254,10 @@ namespace TrackRadar.Implementation
                     Speed engagement_speed = this.RidingSpeed;
                     if (this.service.GpsFilter)
                     {
-                        if (this.runningMinAccuracy != Length.MaxValue)
+                        if (this.RunningMinAccuracy != Length.MaxValue)
                         {
-                            Length acc_diff = ((accuracy ?? Length.Zero) + (last_acc ?? Length.Zero)) / 2 - this.runningMinAccuracy;
+                            // note Max for last accuracy, if we borrowed from it previously, then now it has negative value
+                            Length acc_diff = ((accuracy ?? Length.Zero) + (last_acc ?? Length.Zero).Max(Length.Zero)) / 2 - this.RunningMinAccuracy;
 
                             if (acc_diff > Length.Zero)
                             {
@@ -248,8 +266,6 @@ namespace TrackRadar.Implementation
                             }
                         }
                     }
-
-                    // engagement_speed = this.RidingSpeed;
 
                     // if we use only single value (below -- rest, above -- movement) then around this particular value user would have a flood
                     // of notification -- so we use two values, to separate well movement and rest "zones"
@@ -262,9 +278,24 @@ namespace TrackRadar.Implementation
                     }
                     else if (engagement_speed > service.RidingSpeedThreshold)
                     {
+
                         if (this.ridingStartedAt == timeStamper.GetBeforeTimeTimestamp())
                             this.ridingStartedAt = last_ts;
                         this.isRidingWithSpeed = true;
+                    }
+
+                    {
+                        // if we didn't change the state at the expense of the accuracy, then alter the accuracy
+                        // so we won't continue "borrowing" from it forever
+                        bool true_riding = previously_riding_with_speed;
+                        if (this.RidingSpeed <= service.RestSpeedThreshold)
+                            true_riding = false;
+                        else if (this.RidingSpeed > service.RidingSpeedThreshold)
+                            true_riding = true;
+
+                        if (this.isRidingWithSpeed != true_riding)
+                            // mark it as borrowed-from one
+                            accuracy = -accuracy;
                     }
 
                     if (this.isRidingWithSpeed)

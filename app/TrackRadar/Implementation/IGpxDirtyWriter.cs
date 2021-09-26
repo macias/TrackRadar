@@ -1,12 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using Geo;
+﻿using Geo;
 using MathUnit;
+using System;
+using System.Collections.Generic;
 
 namespace TrackRadar.Implementation
 {
     public interface IGpxDirtyWriter
     {
+        void WriteRaw(string value);
         void WriteComment(string comment);
         void WriteWaypoint(double latitudeDegrees, double longitudeDegrees,
             double? altitudeMeters = null, double? accuracyMeters = null, string name = null, string comment = null, DateTimeOffset? time = null);

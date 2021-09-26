@@ -82,35 +82,43 @@ namespace TrackRadar.Tests.Implementation
             Speed? speed,
             bool reverse = false)
         {
-            return RideLogged(
-#if DEBUG
-                MetaLogger.None,
-#endif
-                prefs, playDuration, planFilename, trackedFilename, speed, reverse);
+            var ride_params = new RideParams(prefs)
+            {
+                PlanFilename = planFilename,
+                PlayDuration = playDuration,
+                Reverse = reverse,
+                Speed = speed,
+                TraceFilename = trackedFilename
+            };
+
+            return Ride(ride_params);
         }
 
-        internal static RideStats RideLogged(
-#if DEBUG
-            MetaLogger DEBUG_logger,
-#endif
-            Preferences prefs, TimeSpan playDuration, string planFilename, string trackedFilename,
-            Speed? speed, bool reverse = false)
+        internal static RideStats Ride(RideParams rideParams)
         {
-            LoadDataLogged(
+            IPlanData plan_data = rideParams.PlanData;
+            if (plan_data == null)
+            {
+                plan_data = LoadPlanLogged( 
 #if DEBUG
-                DEBUG_logger,
+                rideParams.DEBUG_Logger,
 #endif
-                prefs, planFilename, trackedFilename,
-                out IPlanData plan_data, out List<GpsPoint> track_points);
+                rideParams.Prefs, rideParams.PlanFilename);
+            }
+            // we assume for reals rides GPS acquire interval was one second, thus we don't have to process timestamps
+            // because 1 second is our test interval
+            List<GpsPoint> track_points = ReadTrackPoints(rideParams.TraceFilename).ToList();
 
-            if (speed != null)
-                track_points = PopulateTrackDensely(track_points, speed.Value);
+            if (rideParams.Speed != null)
+                track_points = PopulateTrackDensely(track_points, rideParams.Speed.Value);
 
-            if (reverse)
+            if (rideParams.Reverse)
                 track_points.Reverse();
 
-            return Ride(
-                prefs, playDuration, plan_data, track_points, out _, out _, out _, out _);
+            return RideWithGps(
+               rideParams.Prefs, rideParams.PlayDuration, plan_data, 
+               track_points.Select(it => (GpsPoint?)it).ToList(), rideParams.InitMinAccuracy,
+               out _, out _, out _, out _);
 
         }
 
@@ -184,14 +192,49 @@ namespace TrackRadar.Tests.Implementation
 #endif
             Preferences prefs, string planFilename)
         {
-            return GpxLoader.ReadGpx(
+            return LoadPlanLogged(
 #if DEBUG
                 DEBUG_logger,
 #endif
-                planFilename, prefs.OffTrackAlarmDistance, onProgress: OnProgressValidator(), CancellationToken.None);
+                prefs, planFilename, extendEnds: false);
+            /*   return GpxLoader.ReadGpx(
+   #if DEBUG
+                   DEBUG_logger,
+   #endif
+                   planFilename, prefs.OffTrackAlarmDistance, onProgress: OnProgressValidator(), CancellationToken.None);
+                   */
         }
 
-        internal static IPlanData LoadPlan(Preferences prefs, string planFilename)
+        internal static IPlanData LoadPlanLogged(
+#if DEBUG
+            MetaLogger DEBUG_logger,
+            #endif
+            Preferences prefs, string planFilename,
+            // this make sense if the file is trace actually, and we would like to make ends be place father apart
+            bool extendEnds)
+        {
+#if DEBUG
+            GpxLoader.TryLoadGpx(filename: planFilename, tracks: out var tracks, waypoints: out var waypoints,
+                onProgress: OnProgressValidator(), CancellationToken.None);
+            if (extendEnds)
+            {
+                var track = tracks.Single();
+                Angle bearing = GeoCalculator.GetBearing(track.First(), track.Last());
+                track.Add(GeoCalculator.GetDestination(track.Last(), bearing, Length.FromKilometers(1)));
+                track.Insert(0, GeoCalculator.GetDestination(track.First(), -bearing, Length.FromKilometers(1)));
+            }
+
+            return GpxLoader.ProcessTrackData(
+            DEBUG_logger,
+             tracks: tracks, waypoints: waypoints, offTrackDistance: prefs.OffTrackAlarmDistance,
+             segmentLengthLimit: GeoMapFactory.SegmentLengthLimit,
+             onProgress: null, token: CancellationToken.None);
+#else
+            throw new NotImplementedException();
+#endif
+    }
+
+    internal static IPlanData LoadPlan(Preferences prefs, string planFilename)
         {
             return LoadPlanLogged(
 #if DEBUG
@@ -215,7 +258,9 @@ namespace TrackRadar.Tests.Implementation
     out IReadOnlyList<(Alarm alarm, int index)> alarms,
     out IReadOnlyList<(string message, int index)> messages)
         {
-            return RideWithGps(prefs, playDuration: null, planData, trackPoints, out alarmCounters, out alarms, out messages, out _);
+            return RideWithGps(prefs, playDuration: null, planData, trackPoints,
+                                RadarCore.InitialMinAccuracy,
+                out alarmCounters, out alarms, out messages, out _);
         }
 
         public static RideStats Ride(Preferences prefs, TimeSpan? playDuration, IPlanData planData,
@@ -238,6 +283,7 @@ namespace TrackRadar.Tests.Implementation
             return RideWithGps(prefs, playDuration,
                 planData,
                 trackPoints.Select(it => (GpsPoint?)it).ToList(),
+                RadarCore.InitialMinAccuracy,
                 out alarmCounters,
                 out alarms,
                 out messages,
@@ -247,6 +293,7 @@ namespace TrackRadar.Tests.Implementation
         internal static RideStats RideWithGps(Preferences prefs, TimeSpan? playDuration,
             IPlanData planData,
             IReadOnlyList<GpsPoint?> trackPoints,
+            Length initMinAccuracy,
             out IReadOnlyDictionary<Alarm, int> alarmCounters,
             out IReadOnlyList<(Alarm alarm, int index)> alarms,
             out IReadOnlyList<(string message, int index)> messages,
@@ -272,7 +319,12 @@ namespace TrackRadar.Tests.Implementation
                 var counting_alarm_master = new CountingAlarmMaster(logger, raw_alarm_master);
 
                 AlarmSequencer sequencer = new AlarmSequencer(service, counting_alarm_master);
-                using (var core = new RadarCore(service, signal_service, new GpsAlarm(sequencer), sequencer, clock, planData, Length.Zero, Length.Zero, TimeSpan.Zero, Speed.Zero))
+                using (var core = new RadarCore(service, signal_service, new GpsAlarm(sequencer), sequencer, clock, planData,
+                    Length.Zero, Length.Zero, TimeSpan.Zero, Speed.Zero
+#if DEBUG
+                    , initMinAccuracy: initMinAccuracy
+#endif
+                    ))
                 {
                     core.SetupGpsWatchdog(prefs);
 

@@ -9,6 +9,7 @@ using Geo;
 using MathUnit;
 using TrackRadar.Implementation;
 using System.Collections.Generic;
+using Gpx;
 
 namespace TrackRadar
 {
@@ -119,7 +120,10 @@ private long mLastTime;
                 loadPreferences();
 
                 if (this.prefs.GpsDump)
+                {
                     disposables.Add(LogFactory.CreateGpxLogger(this, "trace.gpx", DateTime.UtcNow.AddDays(-2), out this.traceWriter));
+                    traceWriter.WriteRaw($"<{GpxSymbol.Track}><{GpxSymbol.TrackSegment}>");
+                }
 
                 if (this.prefs.ShowTurnAhead)
                 {
@@ -128,7 +132,11 @@ private long mLastTime;
                 }
 
                 this.core = new RadarCore(this, this, this, alarmSequencer, timeStamper, app.GetTrackData(),
-                    totalClimbs: app.Prefs.TotalClimbs, app.Prefs.RidingDistance, app.Prefs.RidingTime, app.Prefs.TopSpeed);
+                    totalClimbs: app.Prefs.TotalClimbs, app.Prefs.RidingDistance, app.Prefs.RidingTime, app.Prefs.TopSpeed
+#if DEBUG
+                    ,RadarCore.InitialMinAccuracy
+#endif
+                    );
 
                 this.locationManager = (LocationManager)GetSystemService(Context.LocationService);
 
@@ -453,7 +461,9 @@ private long mLastTime;
 
                 string comment = null;
                 if (this.core.EngagedState != engaged)
-                    comment = this.core.EngagedState ? "riding" : "stopped";
+                {
+                    comment = $"{(this.core.EngagedState ? "riding" : "stopped")} {this.core.RunningMinAccuracy}";
+                }
                 this.traceWriter?.WriteTrackPoint(latitudeDegrees: location.Latitude, longitudeDegrees: location.Longitude,
                     altitudeMeters: location.HasAltitude ? location.Altitude : (double?)null,
                     accuracyMeters: location.HasAccuracy ? location.Accuracy : (double?)null,

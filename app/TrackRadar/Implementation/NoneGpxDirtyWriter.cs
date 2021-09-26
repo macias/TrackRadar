@@ -28,7 +28,11 @@ namespace TrackRadar.Implementation
         {
         }
 
-#if DEBUG
+        public void WriteRaw(string value)
+        {
+        }
+
+        #if DEBUG
         void IGpxDirtyWriter.WriteWaypoint(in GeoPoint point, string name, string comment, Length? accuracy)
         {
         }
@@ -36,6 +40,7 @@ namespace TrackRadar.Implementation
         void IGpxDirtyWriter.WriteTrack(IEnumerable<GeoPoint> points, string name)
         {
         }
+
 #endif
     }
 }

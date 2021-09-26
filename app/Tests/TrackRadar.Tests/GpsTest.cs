@@ -37,18 +37,18 @@ namespace TrackRadar.Tests
             track_points.InsertRange(0, Enumerable.Range(0, (int)(prefs.GpsAcquisitionTimeout.TotalSeconds * 2))
                 .Select(_ => (GpsPoint?)null));
 
-            var stats = Toolbox.Ride(prefs, gpx_data, track_points, out var alarm_counters, out var alarms, out var messages);
+            var stats = Toolbox.Ride(prefs, gpx_data, track_points, out _, out _, out _);
 
-            Assert.AreEqual(5, alarms.Count);
+            Assert.AreEqual(5, stats.Alarms.Count);
             int a = 0;
 
-            Assert.AreEqual((Alarm.GpsLost, 3), alarms[a++]);
+            Assert.AreEqual((Alarm.GpsLost, 3), stats.Alarms[a++]);
             
             // off-track is our engaging alarm in such case
-            Assert.AreEqual((Alarm.OffTrack, 13), alarms[a++]);
-            Assert.AreEqual((Alarm.OffTrack, 23), alarms[a++]);
-            Assert.AreEqual((Alarm.OffTrack, 33), alarms[a++]);
-            Assert.AreEqual((Alarm.Disengage, 43), alarms[a++]);
+            Assert.AreEqual((Alarm.OffTrack, 13), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.OffTrack, 23), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.OffTrack, 33), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Disengage, 43), stats.Alarms[a++]);
         }
 
         [TestMethod]

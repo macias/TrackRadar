@@ -9,6 +9,7 @@ using Geo;
 using MathUnit;
 using TrackRadar.Implementation;
 using System.Collections.Generic;
+using Gpx;
 
 namespace TrackRadar
 {
@@ -119,7 +120,10 @@ private long mLastTime;
                 loadPreferences();
 
                 if (this.prefs.GpsDump)
+                {
                     disposables.Add(LogFactory.CreateGpxLogger(this, "trace.gpx", DateTime.UtcNow.AddDays(-2), out this.traceWriter));
+                    traceWriter.WriteRaw($"<{GpxSymbol.Track}><{GpxSymbol.TrackSegment}>");
+                }
 
                 if (this.prefs.ShowTurnAhead)
                 {
@@ -128,7 +132,11 @@ private long mLastTime;
                 }
 
                 this.core = new RadarCore(this, this, this, alarmSequencer, timeStamper, app.GetTrackData(),
-                    totalClimbs: app.Prefs.TotalClimbs, app.Prefs.RidingDistance, app.Prefs.RidingTime, app.Prefs.TopSpeed);
+                    totalClimbs: app.Prefs.TotalClimbs, app.Prefs.RidingDistance, app.Prefs.RidingTime, app.Prefs.TopSpeed
+#if DEBUG
+                    ,RadarCore.InitialMinAccuracy
+#endif
+                    );
 
                 this.locationManager = (LocationManager)GetSystemService(Context.LocationService);
 
@@ -401,9 +409,6 @@ private long mLastTime;
                     return;
 
                 //LogDebug(LogLevel.Verbose, $"new loc {locationToString(location)}");
-                this.traceWriter?.WriteLocation(latitudeDegrees: location.Latitude, longitudeDegrees: location.Longitude,
-                    altitudeMeters: location.HasAltitude ? location.Altitude : (double?)null,
-                    accuracyMeters: location.HasAccuracy ? location.Accuracy : (double?)null);
 
                 if (!statistics.CanUpdate())
                 {
@@ -413,6 +418,8 @@ private long mLastTime;
                     //LogDebug(LogLevel.Verbose, $"[TEMP] CANNOT UPDATE");
                     return;
                 }
+
+                bool engaged = this.core.EngagedState;
 
                 double dist = 0;
                 lock (this.threadLock)
@@ -434,7 +441,7 @@ private long mLastTime;
                     catch (Exception ex)
                     {
                         LogDebug(LogLevel.Error, ex.Message);
-                        offTrackWriter.WriteLocation(latitudeDegrees: location.Latitude, longitudeDegrees: location.Longitude, name: "crash");
+                        offTrackWriter.WriteWaypoint(latitudeDegrees: location.Latitude, longitudeDegrees: location.Longitude, name: "crash");
                     }
 
                     // alarm about GPS only if there is no off-track alarm
@@ -451,6 +458,17 @@ private long mLastTime;
                         MainReceiver.SendDistance(this, statistics.FenceDistance,
                             totalClimbs: core.TotalClimbsReadout, ridingDistance: core.RidingDistanceReadout, ridingTime: core.RidingTimeReadout, topSpeed: core.TopSpeedReadout);
                 }
+
+                string comment = null;
+                if (this.core.EngagedState != engaged)
+                {
+                    comment = $"{(this.core.EngagedState ? "riding" : "stopped")} {this.core.RunningMinAccuracy}";
+                }
+                this.traceWriter?.WriteTrackPoint(latitudeDegrees: location.Latitude, longitudeDegrees: location.Longitude,
+                    altitudeMeters: location.HasAltitude ? location.Altitude : (double?)null,
+                    accuracyMeters: location.HasAccuracy ? location.Accuracy : (double?)null,
+                    time: DateTimeOffset.UtcNow, // location.Time gives time in the past (by 19 years)
+                    comment: comment);
             }
         }
 
@@ -469,7 +487,7 @@ private long mLastTime;
 
                 Common.Log(level, message);
                 //if (level > LogLevel.Verbose)
-                //  this.serviceLog?.WriteLine(level, message);
+                //this.serviceLog?.WriteLine(level, message);
             }
             catch (Exception ex)
             {
@@ -520,17 +538,17 @@ private long mLastTime;
 
         void IRadarService.WriteCrossroad(double latitudeDegrees, double longitudeDegrees)
         {
-            crossroadsWriter.WriteLocation(latitudeDegrees: latitudeDegrees, longitudeDegrees: longitudeDegrees);
+            crossroadsWriter.WriteWaypoint(latitudeDegrees: latitudeDegrees, longitudeDegrees: longitudeDegrees);
         }
 
         void IRadarService.WriteDebug(double latitudeDegrees, double longitudeDegrees, string name, string comment)
         {
-            debugPositionsWriter.WriteLocation(latitudeDegrees: latitudeDegrees, longitudeDegrees: longitudeDegrees, name: name, comment: comment);
+            debugPositionsWriter.WriteWaypoint(latitudeDegrees: latitudeDegrees, longitudeDegrees: longitudeDegrees, name: name, comment: comment);
         }
 
         void IRadarService.WriteOffTrack(double latitudeDegrees, double longitudeDegrees, string name)
         {
-            offTrackWriter.WriteLocation(latitudeDegrees: latitudeDegrees, longitudeDegrees: longitudeDegrees, name: name);
+            offTrackWriter.WriteWaypoint(latitudeDegrees: latitudeDegrees, longitudeDegrees: longitudeDegrees, name: name);
         }
 
         public void LogDebug(LogLevel level, string message)
@@ -595,6 +613,7 @@ private long mLastTime;
         TimeSpan IRadarService.DoubleTurnAlarmDistance => this.prefs.DoubleTurnAlarmDistance;
         Speed IRadarService.RestSpeedThreshold => this.prefs.RestSpeedThreshold;
         Speed IRadarService.RidingSpeedThreshold => this.prefs.RidingSpeedThreshold;
+        bool IRadarService.GpsFilter => this.prefs.GpsFilter;
         /*bool IRadarService.TryGetLatestTurnAheadAlarmAt(out long timeStamp)
         {
             return this.alarms.TryGetLatestTurnAheadAlarmAt(out timeStamp);

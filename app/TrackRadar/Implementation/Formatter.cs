@@ -6,7 +6,7 @@ namespace TrackRadar.Implementation
     {
         public static string ZuluFormat(DateTimeOffset dto)
         {
-            return dto.ToUniversalTime().ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'.'FFFFFFF'Z'");
+            return dto.ToUniversalTime().ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'.'fffffff'Z'");
         }
 
         public static string FormatShortDateTime(DateTimeOffset dto)

@@ -21,7 +21,7 @@ namespace TrackRadar.Implementation
                 ITurnGraph graph)
             {
                 Segments = segments.ToArray();
-                Crossroads = crossroads.ZipIndex().ToDictionary(it => it.value, it=> it.index);
+                Crossroads = Linqer.ZipIndex(crossroads).ToDictionary(it => it.value, it=> it.index);
 #if DEBUG
                 DEBUG_ExtensionCount = debugExtensionCount;
 #endif

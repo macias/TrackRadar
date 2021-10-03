@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx
+  version="1.0"
+  creator="GPSBabel - http://www.gpsbabel.org"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://www.topografix.com/GPX/1/0"
+  xsi:schemaLocation="http://www.topografix.com/GPX/1/0 http://www.topografix.com/GPX/1/0/gpx.xsd">
+<trk>
+  <name>Line 4</name>
+<trkseg>
+<trkpt lat="53.192594400" lon="27.154426900">
+  <ele>0.000000</ele>
+</trkpt>
+<trkpt lat="53.190456300" lon="27.154060200">
+  <ele>0.000000</ele>
+</trkpt>
+<trkpt lat="53.190268900" lon="27.153989400">
+  <ele>0.000000</ele>
+</trkpt>
+<trkpt lat="53.190145700" lon="27.153338100">
+  <ele>0.000000</ele>
+</trkpt>
+<trkpt lat="53.189287800" lon="27.150673600">
+  <ele>0.000000</ele>
+</trkpt>
+<trkpt lat="53.188313200" lon="27.146927400">
+  <ele>0.000000</ele>
+</trkpt>
+<trkpt lat="53.188062500" lon="27.145296600">
+  <ele>0.000000</ele>
+</trkpt>
+</trkseg>
+</trk>
+</gpx>

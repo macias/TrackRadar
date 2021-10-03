@@ -17,6 +17,94 @@ namespace TrackRadar.Tests
         private const double precision = 0.00000001;
 
         [TestMethod]
+        public void LongStartTest()
+        {
+            // with gps accuracy filtering it took too long for engagement to kick in
+
+            string plan_filename = Toolbox.TestData(@"long-start.gpx");
+            string tracked_filename = Toolbox.TestData(@"long-start.gpx");
+
+            var prefs = Toolbox.CreatePreferences(); // regular thresholds for speed
+            RideStats stats;
+            IPlanData plan = Toolbox.LoadPlanLogged(
+#if DEBUG
+                MetaLogger.None,
+#endif
+prefs, plan_filename, extendEnds: true);
+
+            stats = Toolbox.Ride(new RideParams(prefs)
+            {
+                PlayDuration = TimeSpan.FromSeconds(2.229),
+                PlanData = plan,
+                TraceFilename = tracked_filename,
+                InitMinAccuracy = Length.FromMeters(4)
+            });
+
+            Assert.AreEqual(1, stats.Alarms.Count);
+            int a = 0;
+
+            Assert.AreEqual((Alarm.Engaged, 10), stats.Alarms[a++]);
+        }
+
+        [TestMethod]
+        public void AccuracyDrop1Test()
+        {
+            string plan_filename = Toolbox.TestData(@"accuracy-drop1.plan.gpx");
+            string tracked_filename = Toolbox.TestData(@"accuracy-drop1.tracked.gpx");
+
+            var prefs = Toolbox.CreatePreferences(); // regular thresholds for speed
+            RideStats stats;
+            stats = Toolbox.Ride(prefs, playDuration: TimeSpan.FromSeconds(2.229), plan_filename, tracked_filename, null);
+
+            Assert.AreEqual(2, stats.Alarms.Count);
+            int a = 0;
+
+            Assert.AreEqual((Alarm.Engaged, 18), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Disengage, 89), stats.Alarms[a++]);
+        }
+
+        [TestMethod]
+        public void AccuracyDrop2Test()
+        {
+            string plan_filename = Toolbox.TestData(@"accuracy-drop2.plan.gpx");
+            string tracked_filename = Toolbox.TestData(@"accuracy-drop2.tracked.gpx");
+
+            var prefs = Toolbox.CreatePreferences(); // regular thresholds for speed
+            RideStats stats;
+            stats = Toolbox.Ride(prefs, playDuration: TimeSpan.FromSeconds(2.229), plan_filename, tracked_filename, null);
+
+            Assert.AreEqual(2, stats.Alarms.Count);
+            int a = 0;
+
+            Assert.AreEqual((Alarm.Engaged, 3), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Disengage, 58), stats.Alarms[a++]);
+        }
+
+        [TestMethod]
+        public void AccuracyDrop3Test()
+        {
+            string plan_filename = Toolbox.TestData(@"accuracy-drop3.plan.gpx");
+            string tracked_filename = Toolbox.TestData(@"accuracy-drop3.tracked.gpx");
+
+            var prefs = Toolbox.CreatePreferences(); // regular thresholds for speed
+            RideStats stats;
+            stats = Toolbox.Ride(prefs, playDuration: TimeSpan.FromSeconds(2.229), plan_filename, tracked_filename, null);
+            /*
+            GpxToolbox.SaveGpxWaypoints("foo3.gpx",
+                Implementation.Linqer.ZipIndex(stats.TrackPoints)
+                .Where(it => it.value.HasValue)
+                .Select(it => (it.value.Value, $"{it.index} {it.value.Value.Accuracy}")));
+                */
+            Assert.AreEqual(3, stats.Alarms.Count);
+
+            int a = 0;
+
+            Assert.AreEqual((Alarm.RightEasy, 25), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.RightEasy, 27), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Disengage, 29), stats.Alarms[a++]);
+        }
+
+        [TestMethod]
         public void IMPROVE_SpeedingSlowingTest()
         {
             // the purpose of this test is to check if we can get from engage/disengage cycle because of constant
@@ -80,8 +168,7 @@ namespace TrackRadar.Tests
             IPlanData gpx_data = Toolbox.CreateBasicTrackData(track: plan_points, waypoints: null, prefs.OffTrackAlarmDistance);
 
             // we simulate riding off track and getting back to it
-            var track_points = new[] { GeoPoint.FromDegrees(40.05, 5), GeoPoint.FromDegrees(40.05, 5.01) }.ToList();
-            Toolbox.PopulateTrackDensely(track_points);
+            var track_points = Toolbox.PopulateTrackDensely(new[] { GeoPoint.FromDegrees(40.05, 5), GeoPoint.FromDegrees(40.05, 5.01) });
             track_points.AddRange(track_points.AsEnumerable().Reverse());
 
             var stats = Toolbox.Ride(prefs, gpx_data, track_points, out var alarm_counters, out var alarms, out var messages);
@@ -266,7 +353,11 @@ namespace TrackRadar.Tests
                 var signal_service = new ManualSignalService(clock);
                 AlarmSequencer alarm_sequencer = new AlarmSequencer(service, raw_alarm_master);
                 var core = new RadarCore(service, signal_service, new GpsAlarm(alarm_sequencer), alarm_sequencer, clock, gpx_data,
-                    Length.Zero, Length.Zero, TimeSpan.Zero, Speed.Zero);
+                    Length.Zero, Length.Zero, TimeSpan.Zero, Speed.Zero
+#if DEBUG
+                    , RadarCore.InitialMinAccuracy
+#endif
+                    );
                 core.SetupGpsWatchdog(prefs);
 
                 //clock.SetTime(DateTimeOffset.UtcNow);

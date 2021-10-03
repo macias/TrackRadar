@@ -16,6 +16,7 @@ namespace TrackRadar
         Length DriftWarningDistance { get; }
         int DriftMovingAwayCountLimit { get; }
         int DriftComingCloserCountLimit { get; }
+        bool GpsFilter { get; }
 
         void WriteCrossroad(double latitudeDegrees, double longitudeDegrees);
         void WriteDebug(double latitudeDegrees, double longitudeDegrees,string name,string comment);

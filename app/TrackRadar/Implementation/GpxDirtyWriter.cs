@@ -1,4 +1,6 @@
 ﻿using Geo;
+using Gpx;
+using MathUnit;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -56,6 +58,14 @@ namespace TrackRadar.Implementation
             }
         }
 
+        public void WriteRaw(string value)
+        {
+            lock (this.threadLock)
+            {
+                this.stream.Write(value);
+            }
+        }
+
         public void Close()
         {
             lock (this.threadLock)
@@ -64,46 +74,77 @@ namespace TrackRadar.Implementation
             }
         }
 
-        public void WriteLocation(double latitudeDegrees, double longitudeDegrees,
-            double? altitudeMeters = null, double? accuracyMeters = null, string name = null, string comment = null)
+        public void WriteWaypoint(double latitudeDegrees, double longitudeDegrees,
+            double? altitudeMeters = null, double? accuracyMeters = null, string name = null,
+            string comment = null, DateTimeOffset? time = null)
+        {
+            writePoint(GpxSymbol.Waypoint,
+                latitudeDegrees: latitudeDegrees,
+                longitudeDegrees: longitudeDegrees,
+                altitudeMeters: altitudeMeters,
+                accuracyMeters: accuracyMeters,
+                name: name,
+                comment: comment,
+                time: time);
+        }
+
+        public void WriteTrackPoint(double latitudeDegrees, double longitudeDegrees,
+            double? altitudeMeters = null, double? accuracyMeters = null, string name = null,
+            string comment = null, DateTimeOffset? time = null)
+        {
+            writePoint(GpxSymbol.TrackPoint,
+                latitudeDegrees: latitudeDegrees,
+                longitudeDegrees: longitudeDegrees,
+                altitudeMeters: altitudeMeters,
+                accuracyMeters: accuracyMeters,
+                name: name,
+                comment: comment,
+                time: time);
+        }
+
+        private void writePoint(string tag, double latitudeDegrees, double longitudeDegrees,
+    double? altitudeMeters = null, double? accuracyMeters = null, string name = null, string comment = null, DateTimeOffset? time = null)
         {
             lock (this.threadLock)
             {
-                stream.Write($"<wpt lat=\"{latitudeDegrees.ToString(CultureInfo.InvariantCulture)}\" lon=\"{longitudeDegrees.ToString(CultureInfo.InvariantCulture)}\"");
+                stream.Write($"<{tag} {GpxSymbol.Latitude}=\"{latitudeDegrees.ToString(CultureInfo.InvariantCulture)}\" {GpxSymbol.Longitude}=\"{longitudeDegrees.ToString(CultureInfo.InvariantCulture)}\"");
                 stream.WriteLine($">");
                 if (accuracyMeters.HasValue)
-                    stream.WriteLine($"<Proximity>{accuracyMeters.Value.ToString(CultureInfo.InvariantCulture)}</Proximity>");
+                    stream.WriteLine($"<{GpxSymbol.Proximity}>{accuracyMeters.Value.ToString(CultureInfo.InvariantCulture)}</{GpxSymbol.Proximity}>");
                 if (altitudeMeters.HasValue)
-                    stream.WriteLine($"<ele>{altitudeMeters.Value.ToString(CultureInfo.InvariantCulture)}</ele>");
+                    stream.WriteLine($"<{GpxSymbol.Elevation}>{altitudeMeters.Value.ToString(CultureInfo.InvariantCulture)}</{GpxSymbol.Elevation}>");
                 if (name != null)
-                    stream.WriteLine($"<name>{name}</name>");
+                    stream.WriteLine($"<{GpxSymbol.Name}>{name}</{GpxSymbol.Name}>");
+                if (time != null)
+                    stream.WriteLine($"<{GpxSymbol.Time}>{(Formatter.ZuluFormat(time.Value))}</{GpxSymbol.Time}>");
                 if (comment != null)
-                    stream.WriteLine($"<cmt>{comment}</cmt>");
-                stream.WriteLine($"</wpt>");
+                    stream.WriteLine($"<{GpxSymbol.Comment}>{comment}</{GpxSymbol.Comment}>");
+                stream.WriteLine($"</{tag}>");
 
                 stream.Flush();
             }
         }
 
 #if DEBUG
-        public void WritePoint(in GeoPoint point, string name, string comment = null)
+        public void WriteWaypoint(in GeoPoint point, string name, string comment = null,Length? accuracy = null)
         {
-            this.WriteLocation(point.Latitude.Degrees, point.Longitude.Degrees, altitudeMeters: null, accuracyMeters: null, comment: comment, name: name);
+            this.WriteWaypoint(point.Latitude.Degrees, point.Longitude.Degrees, altitudeMeters: null, 
+                accuracyMeters: accuracy?.Meters, comment: comment, name: name);
         }
 
         public void WriteTrack(IEnumerable<GeoPoint> points, string name)
         {
             lock (this.threadLock)
             {
-                stream.WriteLine("<trk>");
-                stream.WriteLine($"<name>{name}</name>");
-                stream.WriteLine("<trkseg>");
+                stream.WriteLine($"<{GpxSymbol.Track}>");
+                stream.WriteLine($"<{GpxSymbol.Name}>{name}</{GpxSymbol.Name}>");
+                stream.WriteLine($"<{GpxSymbol.TrackSegment}>");
                 foreach (var point in points)
                 {
-                    stream.WriteLine($"<trkpt lat=\"{point.Latitude.Degrees.ToString(CultureInfo.InvariantCulture)}\" lon=\"{point.Longitude.Degrees.ToString(CultureInfo.InvariantCulture)}\"/>");
+                    WriteTrackPoint(latitudeDegrees: point.Latitude.Degrees, longitudeDegrees: point.Longitude.Degrees);
                 }
-                stream.WriteLine("</trkseg>");
-                stream.WriteLine("</trk>");
+                stream.WriteLine($"</{GpxSymbol.TrackSegment}>");
+                stream.WriteLine($"</{GpxSymbol.Track}>");
 
                 stream.Flush();
             }

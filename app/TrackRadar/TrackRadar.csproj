@@ -56,8 +56,8 @@
     <AndroidSupportedAbis />
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Gpx, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Gpx.1.0.0\lib\netstandard2.0\Gpx.dll</HintPath>
+    <Reference Include="Gpx, Version=1.1.3.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Gpx.1.1.3\lib\netstandard2.0\Gpx.dll</HintPath>
     </Reference>
     <Reference Include="MathUnit, Version=2.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\MathUnit.2.0.0\lib\netstandard2.0\MathUnit.dll</HintPath>
@@ -79,6 +79,7 @@
     <Compile Include="Implementation\NoneGpxDirtyWriter.cs" />
     <Compile Include="Implementation\OnTrackStatus.cs" />
     <Compile Include="Implementation\GpsInfo.cs" />
+    <Compile Include="Implementation\GpsReadout.cs" />
     <Compile Include="TimeStamperExtension.cs" />
     <Compile Include="NoneLogger.cs" />
     <Compile Include="Implementation\GpxLoader.Stage.cs" />

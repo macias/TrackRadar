@@ -172,8 +172,9 @@ namespace TrackRadar
                         MetaLogger.None,
 #endif
                         path, offTrackDistance,
-                                            onProgress: i =>
+                                            onProgress: (stage,step,total) =>
                                             {
+                                                double i = GpxLoader.RecomputeProgress(stage, step, total);
                                                 i = i * 0.8 + 0.1; // clip the values within range 0.1-0.9
                                                 SendProgress(tagRequest, null, i);
                                             },

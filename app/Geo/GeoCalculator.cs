@@ -54,7 +54,7 @@ namespace Geo
         /// gives nulls if there is no solution
         /// </summary>
         /// <param name="cx2">if not null, p1 is also not null</param>
-        public  static void GetArcSegmentIntersection(in GeoPoint startA, in GeoPoint endA, in GeoPoint startB, in GeoPoint endB,
+        public static void GetArcSegmentIntersection(in GeoPoint startA, in GeoPoint endA, in GeoPoint startB, in GeoPoint endB,
             out GeoPoint? cx1, out GeoPoint? cx2)
         {
             // https://www.movable-type.co.uk/scripts/latlong.html
@@ -136,6 +136,15 @@ namespace Geo
             return true;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="startA"></param>
+        /// <param name="endA"></param>
+        /// <param name="startB"></param>
+        /// <param name="endB"></param>
+        /// <param name="p1">it does not have to be within start-end limits</param>
+        /// <returns></returns>
         public static bool TryGetArcIntersection(in GeoPoint startA, in GeoPoint endA, in GeoPoint startB, in GeoPoint endB,
             out GeoPoint p1)
         {
@@ -257,7 +266,7 @@ namespace Geo
             return GetDistance(start, end, out _, out _);
         }
 
-        public static Length GetDistance(in GeoPoint start, in GeoPoint end,out Angle bearing)
+        public static Length GetDistance(in GeoPoint start, in GeoPoint end, out Angle bearing)
         {
             var result = GetDistance(start, end, out double bearingY, out double bearingX);
             bearing = GetBearing(bearingY, bearingX);
@@ -425,7 +434,7 @@ namespace Geo
                 Length dis14 = Length.FromMeters(Math.Acos(Math.Cos(dis13.Meters / R) / Math.Cos(dxt / R)) * R);
                 if (dis14 > dis12)
                 {
-                    arcSegmentIntersection = new ArcSegmentIntersection(dis12, 
+                    arcSegmentIntersection = new ArcSegmentIntersection(dis12,
                         //bear12, 
                         arcP2End, dis12);
                     return GeoCalculator.GetDistance(arcP2End, pointP3);
@@ -433,9 +442,9 @@ namespace Geo
                 else
                 {
                     if (computeCrossPoint)
-                        arcSegmentIntersection = new ArcSegmentIntersection(dis12, 
+                        arcSegmentIntersection = new ArcSegmentIntersection(dis12,
                             //bear12,
-                            GetDestination(arcP1Start, bearing: Angle.FromRadians( bear12), distance: dis14),
+                            GetDestination(arcP1Start, bearing: Angle.FromRadians(bear12), distance: dis14),
                             dis14);
                     else
                         arcSegmentIntersection = default;
@@ -479,6 +488,23 @@ namespace Geo
             return Length.FromMeters(Math.Abs(dxt));
         }
 
+        /// <summary>
+        /// gets longitude difference (or angular distance) at given latitude
+        /// </summary>
+        /// <param name="latitude"></param>
+        /// <param name="length"></param>
+        /// <returns></returns>
+        public static Angle GetLongitudeDifference(Angle latitude, Length length)
+        {
+            return Angle.FromRadians(length / (EarthRadius * latitude.Abs().Cos()));
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="start"></param>
+        /// <param name="bearing">0 points to north, and further angles are counted clockwise</param>
+        /// <param name="distance"></param>
+        /// <returns></returns>
         public static GeoPoint GetDestination(in GeoPoint start, Angle bearing, Length distance)
         {
             // https://www.movable-type.co.uk/scripts/latlong.html

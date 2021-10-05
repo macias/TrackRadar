@@ -18,12 +18,12 @@ namespace TrackRadar.Implementation
 
             public IEnumerable<GeoPoint> GeoPoints => this.Nodes.Select(it => it.Point);
 
-            public Track(IEnumerable<GeoPoint> points)
+            public Track(IReadOnlyList<GeoPoint> points)
             {
                 this.Head = build(points);
             }
 
-            private static TrackNode build(IEnumerable<GeoPoint> points)
+            private static TrackNode build(IReadOnlyList<GeoPoint> points)
             {
                 TrackNode prev = null;
                 TrackNode root = null;

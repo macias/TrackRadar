@@ -2,6 +2,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -16,10 +17,11 @@ namespace TestRunner
         static void Main(string[] args)
         {
             //convertTrackToPoints("Data/tight-turns.tracked.gpx", "tight-points.gpx");
-            //CheckLoading();            Measure();
+            CheckLoading();
+            //Measure();
 
             //CheckLoadingOne();
-            var test = new TrackRadar.Tests.RadarTest(); test.AccuracyDrop3Test();
+            //var test = new TrackRadar.Tests.CrossroadsTest(); test.CrossroadsTotalTest();
 
             //RunAllTests();
             Console.WriteLine("Hello World!");
@@ -77,15 +79,28 @@ namespace TestRunner
         public static void CheckLoading()
         {
             var prefs = Toolbox.CreatePreferences();
-            foreach (string plan_filename in System.IO.Directory.GetFiles(@"C:\Projekty\TrackRadar\priv-data\plan\", "*.gpx"))
+            string plan_filename = @"..\..\..\..\..\..\long-loading.gpx";
             {
                 Console.WriteLine(plan_filename);
+                var progress = new LoaderProgress();
+                long now = Stopwatch.GetTimestamp();
                 GpxLoader.ReadGpx(
 #if DEBUG
                     MetaLogger.None, 
 #endif
-                    plan_filename, prefs.OffTrackAlarmDistance, Toolbox.OnProgressValidator(), CancellationToken.None);
+                    plan_filename, prefs.OffTrackAlarmDistance, progress.OnProgress, CancellationToken.None);
+
+                Console.WriteLine($"all in {(Stopwatch.GetTimestamp()-now-0.0)/Stopwatch.Frequency}s");
+
+                foreach (var entry in progress.History.OrderByDescending(x => x.time).Take(7))
+                {
+                    Console.WriteLine($"{entry.stage} {entry.time}s");
+                }
             }
+            /*
+             
+             */
+
         }
 
         private static void RunAllTests()

@@ -3,7 +3,7 @@ using System;
 
 namespace Geo
 {
-    public readonly struct GeoPoint 
+    public readonly struct GeoPoint
     {
         public static GeoPoint FromDegrees(double latitude, double longitude)
         {

@@ -99,7 +99,7 @@ namespace TrackRadar.Tests.Implementation
             IPlanData plan_data = rideParams.PlanData;
             if (plan_data == null)
             {
-                plan_data = LoadPlanLogged( 
+                plan_data = LoadPlanLogged(
 #if DEBUG
                 rideParams.DEBUG_Logger,
 #endif
@@ -116,7 +116,7 @@ namespace TrackRadar.Tests.Implementation
                 track_points.Reverse();
 
             return RideWithGps(
-               rideParams.Prefs, rideParams.PlayDuration, plan_data, 
+               rideParams.Prefs, rideParams.PlayDuration, plan_data,
                track_points.Select(it => (GpsPoint?)it).ToList(), rideParams.InitMinAccuracy,
                out _, out _, out _, out _);
 
@@ -175,11 +175,23 @@ namespace TrackRadar.Tests.Implementation
             return Toolbox.ReadTrackGpxPoints(trackedFilename).Select(it => new GpsPoint(it));
         }
 
-        public static Action<double> OnProgressValidator()
+        public static Action<Stage, long, long> OnProgressValidator()
         {
             double last_seen = 0;
-            return new Action<double>(x =>
+            return new Action<Stage, long, long>((stage, step, total) =>
+              {
+                  double x = GpxLoader.RecomputeProgress(stage, step, total);
+                  if (x < last_seen)
+                      throw new ArgumentException($"Progress cannot go down, last {last_seen}, current {x}");
+                  last_seen = x;
+              });
+        }
+        public static Action<long, long> OnLoaderProgressValidator()
+        {
+            double last_seen = 0;
+            return new Action<long, long>((step, total) =>
             {
+                double x = GpxLoader.RecomputeProgress(Stage.Loading, step, total);
                 if (x < last_seen)
                     throw new ArgumentException($"Progress cannot go down, last {last_seen}, current {x}");
                 last_seen = x;
@@ -208,14 +220,14 @@ namespace TrackRadar.Tests.Implementation
         internal static IPlanData LoadPlanLogged(
 #if DEBUG
             MetaLogger DEBUG_logger,
-            #endif
+#endif
             Preferences prefs, string planFilename,
             // this make sense if the file is trace actually, and we would like to make ends be place father apart
             bool extendEnds)
         {
 #if DEBUG
             GpxLoader.TryLoadGpx(filename: planFilename, tracks: out var tracks, waypoints: out var waypoints,
-                onProgress: OnProgressValidator(), CancellationToken.None);
+                onProgress: OnLoaderProgressValidator(), CancellationToken.None);
             if (extendEnds)
             {
                 var track = tracks.Single();
@@ -232,9 +244,9 @@ namespace TrackRadar.Tests.Implementation
 #else
             throw new NotImplementedException();
 #endif
-    }
+        }
 
-    internal static IPlanData LoadPlan(Preferences prefs, string planFilename)
+        internal static IPlanData LoadPlan(Preferences prefs, string planFilename)
         {
             return LoadPlanLogged(
 #if DEBUG
@@ -526,25 +538,25 @@ namespace TrackRadar.Tests.Implementation
             return track_points;
         }
 
-        public static IPlanData CreateBasicTrackData(IEnumerable<GeoPoint> track,
+        public static IPlanData CreateBasicTrackData(IReadOnlyList<GeoPoint> track,
             IEnumerable<GeoPoint> waypoints, Length offTrackDistance)
         {
             return CreateBasicTrackData(waypoints, offTrackDistance, track);
         }
-        public static IPlanData CreateTrackData(IEnumerable<GeoPoint> track, IEnumerable<GeoPoint> waypoints, IEnumerable<GeoPoint> endpoints,
+        public static IPlanData CreateTrackData(IReadOnlyList<GeoPoint> track, IEnumerable<GeoPoint> waypoints, IEnumerable<GeoPoint> endpoints,
             Length offTrackDistance)
         {
             return CreateRichTrackData(waypoints, endpoints: endpoints, offTrackDistance, track);
         }
         public static IPlanData CreateBasicTrackData(IEnumerable<GeoPoint> waypoints, Length offTrackDistance,
-            params IEnumerable<GeoPoint>[] tracks)
+            params IReadOnlyList<GeoPoint>[] tracks)
         {
             return CreateRichTrackData(waypoints, endpoints: null, offTrackDistance, tracks);
         }
 
         public static bool TryLoadGpx(string filename, out List<List<GeoPoint>> tracks,
          out List<GeoPoint> waypoints,
-         Action<double> onProgress,
+         Action<long, long> onProgress,
          CancellationToken token)
         {
 #if DEBUG
@@ -554,9 +566,9 @@ namespace TrackRadar.Tests.Implementation
 #endif
         }
 
-        public static IPlanData ProcessTrackData(IEnumerable<IEnumerable<GeoPoint>> tracks,
+        public static IPlanData ProcessTrackData(IEnumerable<IReadOnlyList<GeoPoint>> tracks,
     IEnumerable<GeoPoint> waypoints, IEnumerable<GeoPoint> endpoints,
-    Length offTrackDistance, Length segmentLengthLimit, Action<Stage, double> onProgress, CancellationToken token)
+    Length offTrackDistance, Length segmentLengthLimit, Action<Stage, long,long> onProgress, CancellationToken token)
         {
 #if DEBUG
             return GpxLoader.ProcessTrackData(MetaLogger.None, tracks, waypoints, endpoints, offTrackDistance, segmentLengthLimit, onProgress, token);
@@ -564,15 +576,15 @@ namespace TrackRadar.Tests.Implementation
             throw new NotSupportedException();
 #endif
         }
-        public static IPlanData ProcessTrackData(IEnumerable<IEnumerable<GeoPoint>> tracks,
+        public static IPlanData ProcessTrackData(IEnumerable<IReadOnlyList<GeoPoint>> tracks,
     IEnumerable<GeoPoint> waypoints,
-    Length offTrackDistance, Length segmentLengthLimit, Action<Stage, double> onProgress, CancellationToken token)
+    Length offTrackDistance, Length segmentLengthLimit, Action<Stage, long,long> onProgress, CancellationToken token)
         {
             return ProcessTrackData(tracks, waypoints, Enumerable.Empty<GeoPoint>(), offTrackDistance, segmentLengthLimit, onProgress, token);
         }
 
         public static IPlanData CreateRichTrackData(IEnumerable<GeoPoint> waypoints, IEnumerable<GeoPoint> endpoints,
-            Length offTrackDistance, params IEnumerable<GeoPoint>[] tracks)
+            Length offTrackDistance, params IReadOnlyList<GeoPoint>[] tracks)
         {
             return ProcessTrackData(tracks, waypoints ?? Enumerable.Empty<GeoPoint>(),
                  endpoints ?? Enumerable.Empty<GeoPoint>(),
@@ -580,7 +592,7 @@ namespace TrackRadar.Tests.Implementation
                 segmentLengthLimit: GeoMapFactory.SegmentLengthLimit, null, CancellationToken.None);
         }
 
-        public static IGeoMap CreateTrackMap(IEnumerable<GeoPoint> track, params GeoPoint[] waypoints)
+        public static IGeoMap CreateTrackMap(IReadOnlyList<GeoPoint> track, params GeoPoint[] waypoints)
         {
             var prefs = Toolbox.CreatePreferences();
             IPlanData track_data = CreateBasicTrackData(track, waypoints: waypoints, prefs.OffTrackAlarmDistance);

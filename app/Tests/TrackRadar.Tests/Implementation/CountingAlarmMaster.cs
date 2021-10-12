@@ -59,5 +59,6 @@ namespace TrackRadar.Tests.Implementation
         {
             return master.TryGetLatestTurnAheadAlarmAt(out timeStamp);
         }
+
     }
 }

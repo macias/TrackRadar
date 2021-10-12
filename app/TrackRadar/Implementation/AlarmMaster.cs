@@ -153,14 +153,19 @@ namespace TrackRadar.Implementation
         /// <returns>false if some player still plays, true otherwise</returns>
         public bool TryGetLatestTurnAheadAlarmAt(out long timeStamp)
         {
+            return tryGetLastAlarmAt(this.turnAheads, out timeStamp);
+        }
+
+        private bool tryGetLastAlarmAt(IReadOnlyList<AlarmSound> alarms, out long timeStamp)
+        {
             lock (this.threadLock)
             {
                 timeStamp = stamper.GetBeforeTimeTimestamp();
 
-                if (this.turnAheads.Any(x => this.players[x].IsPlaying))
+                if (alarms.Any(x => this.players[x].IsPlaying))
                     return false;
 
-                foreach (AlarmSound sound in this.turnAheads)
+                foreach (AlarmSound sound in alarms)
                 {
                     // sanity-crazy check, but I don't trust Android, 
                     // so we fix here case when we started alarm but it didn't complete
@@ -178,7 +183,7 @@ namespace TrackRadar.Implementation
             }
         }
 
-        public bool TryAlarm(Alarm alarm,  out string reason)
+        public bool TryAlarm(Alarm alarm, out string reason)
         {
             lock (this.threadLock)
             {
@@ -221,6 +226,5 @@ namespace TrackRadar.Implementation
         {
             ; // do nothing, we could send it to UI but this makes little sense
         }
-
     }
 }

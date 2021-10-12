@@ -17,6 +17,121 @@ namespace TrackRadar.Tests
         private const double precision = 0.00000001;
 
         [TestMethod]
+        public void UphillTest()
+        {
+            // this "test" does nothing, it is simply a reminder/example how crazy computations can be
+            // On an average hill (going uphill) program computes 115% or 180% gradients because the
+            // accuracy of location spikes from 4m to 16m 
+
+            // until finding out how to cancel such effects, using elevation remains disabled
+
+            string filename = Toolbox.TestData(@"uphill.gpx");
+
+            var prefs = Toolbox.CreatePreferences(); // regular thresholds for speed
+            RideStats stats;
+
+            stats = Toolbox.Ride(new RideParams(prefs)
+            {
+                PlayDuration = TimeSpan.FromSeconds(2.229),
+                PlanFilename = filename,
+                TraceFilename = filename,
+                UseTraceTimestamps = true,
+                ReportOnlyDuration = false,
+                ExtendPlanEnds = true,
+                InitMinAccuracy = Length.FromMeters(4),
+                ReadAltitude = true,
+            });
+        }
+
+        [TestMethod]
+        public void GpsAcquiredOffTrackTest()
+        {
+            // the point of this test is to ensure that we won't get gps-acquired alarm when we are
+            // off-track (we should get off-track alarm instead)
+            string tracked_filename = Toolbox.TestData(@"gps-acquired-off-track.gpx");
+
+            var prefs = Toolbox.CreatePreferences(); // regular thresholds for speed
+            RideStats stats;
+            IPlanData plan = Toolbox.ProcessTrackData(new PlanParams(prefs)
+                .AddTrack(new GeoPoint(), new GeoPoint(latitude: Angle.FromDegrees(1), longitude: new Angle())), 
+                CancellationToken.None);
+
+            stats = Toolbox.Ride(new RideParams(prefs)
+            {
+                PlayDuration = TimeSpan.FromSeconds(2.229),
+                PlanData = plan,
+                TraceFilename = tracked_filename,
+                UseTraceTimestamps = true,
+                ReportOnlyDuration = false,
+            });
+
+            Assert.AreEqual(5, stats.Alarms.Count);
+            int a = 0;
+
+            Assert.AreEqual((Alarm.GpsLost, 0), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.OffTrack, 6), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Disengage, 9), stats.Alarms[a++]);
+            // it would be great to get rid of these, because there was no riding
+            Assert.AreEqual((Alarm.OffTrack, 21), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Disengage, 24), stats.Alarms[a++]);
+        }
+
+        [TestMethod]
+        public void IMPROVE_StartAndStopTest()
+        {
+            // the general problem is current gps-filtering slows down dis-/engagement, however
+            // even with disabling it, the improvement is around 1 second reaction time
+            // the aim is to improve it much more (how -- this is the question!)
+
+            string plan_filename = Toolbox.TestData(@"start-and-stop.gpx");
+            string tracked_filename = Toolbox.TestData(@"start-and-stop.gpx");
+
+            var prefs = Toolbox.CreatePreferences(); // regular thresholds for speed
+            prefs.GpsFilter = true;
+            RideStats stats;
+            IPlanData plan = Toolbox.LoadPlanLogged(
+#if DEBUG
+                MetaLogger.None,
+#endif
+prefs, plan_filename, extendEnds: true);
+
+            stats = Toolbox.Ride(new RideParams(prefs)
+            {
+                PlayDuration = TimeSpan.FromSeconds(2.229),
+                PlanData = plan,
+                TraceFilename = tracked_filename,
+                InitMinAccuracy = Length.FromMeters(8)
+            });
+
+            /* without filter
+
+Assert.AreEqual(8, stats.Alarms.Count);
+int a = 0;
+
+Assert.AreEqual((Alarm.Engaged, 61), stats.Alarms[a++]);
+Assert.AreEqual((Alarm.Disengage, 75), stats.Alarms[a++]);
+Assert.AreEqual((Alarm.Engaged, 81), stats.Alarms[a++]);
+Assert.AreEqual((Alarm.Disengage, 94), stats.Alarms[a++]);
+Assert.AreEqual((Alarm.Engaged, 102), stats.Alarms[a++]);
+Assert.AreEqual((Alarm.Disengage, 115), stats.Alarms[a++]);
+Assert.AreEqual((Alarm.Engaged, 123), stats.Alarms[a++]);
+Assert.AreEqual((Alarm.Disengage, 138), stats.Alarms[a++]);
+              
+             */
+            Assert.AreEqual(8, stats.Alarms.Count);
+            int a = 0;
+
+            Assert.AreEqual((Alarm.Engaged, 62), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Disengage, 75), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Engaged, 81), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Disengage, 94), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Engaged, 105), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Disengage, 115), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Engaged, 123), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Disengage, 138), stats.Alarms[a++]);
+        }
+
+        [TestMethod]
         public void LongStartTest()
         {
             // with gps accuracy filtering it took too long for engagement to kick in
@@ -54,7 +169,12 @@ prefs, plan_filename, extendEnds: true);
 
             var prefs = Toolbox.CreatePreferences(); // regular thresholds for speed
             RideStats stats;
-            stats = Toolbox.Ride(prefs, playDuration: TimeSpan.FromSeconds(2.229), plan_filename, tracked_filename, null);
+            stats = Toolbox.Ride(new RideParams(prefs)
+            {
+                PlayDuration = TimeSpan.FromSeconds(2.229),
+                PlanFilename = plan_filename,
+                TraceFilename = tracked_filename
+            });
 
             Assert.AreEqual(2, stats.Alarms.Count);
             int a = 0;
@@ -71,7 +191,12 @@ prefs, plan_filename, extendEnds: true);
 
             var prefs = Toolbox.CreatePreferences(); // regular thresholds for speed
             RideStats stats;
-            stats = Toolbox.Ride(prefs, playDuration: TimeSpan.FromSeconds(2.229), plan_filename, tracked_filename, null);
+            stats = Toolbox.Ride(new RideParams(prefs)
+            {
+                PlayDuration = TimeSpan.FromSeconds(2.229),
+                PlanFilename = plan_filename,
+                TraceFilename = tracked_filename,
+            });
 
             Assert.AreEqual(2, stats.Alarms.Count);
             int a = 0;
@@ -88,7 +213,12 @@ prefs, plan_filename, extendEnds: true);
 
             var prefs = Toolbox.CreatePreferences(); // regular thresholds for speed
             RideStats stats;
-            stats = Toolbox.Ride(prefs, playDuration: TimeSpan.FromSeconds(2.229), plan_filename, tracked_filename, null);
+            stats = Toolbox.Ride(new RideParams(prefs)
+            {
+                PlayDuration = TimeSpan.FromSeconds(2.229),
+                PlanFilename = plan_filename,
+                TraceFilename = tracked_filename,
+            });
             /*
             GpxToolbox.SaveGpxWaypoints("foo3.gpx",
                 Implementation.Linqer.ZipIndex(stats.TrackPoints)
@@ -125,32 +255,36 @@ prefs, plan_filename, extendEnds: true);
             string filename = Toolbox.TestData("slowing-speeding.gpx");
 
             var prefs = Toolbox.CreatePreferences(); // regular thresholds for speed
-            var stats = Toolbox.Ride(prefs, playDuration: TimeSpan.FromSeconds(2.229), filename, filename, null,
-                out var alarmCounters, out var alarms, out var messages);
+            var stats = Toolbox.Ride(new RideParams(prefs)
+            {
+                PlayDuration = TimeSpan.FromSeconds(2.229),
+                PlanFilename = filename,
+                TraceFilename = filename,
+            });
 
-            Assert.AreEqual(20, alarms.Count);
+            Assert.AreEqual(20, stats.Alarms.Count);
             int a = 0;
 
-            Assert.AreEqual((Alarm.Engaged, 3), alarms[a++]);
-            Assert.AreEqual((Alarm.Disengage, 32), alarms[a++]);
-            Assert.AreEqual((Alarm.Engaged, 40), alarms[a++]);
-            Assert.AreEqual((Alarm.Disengage, 49), alarms[a++]);
-            Assert.AreEqual((Alarm.Engaged, 52), alarms[a++]);
-            Assert.AreEqual((Alarm.Disengage, 62), alarms[a++]);
-            Assert.AreEqual((Alarm.Engaged, 71), alarms[a++]);
-            Assert.AreEqual((Alarm.Disengage, 80), alarms[a++]);
-            Assert.AreEqual((Alarm.Engaged, 89), alarms[a++]);
-            Assert.AreEqual((Alarm.Disengage, 92), alarms[a++]);
-            Assert.AreEqual((Alarm.Engaged, 96), alarms[a++]);
-            Assert.AreEqual((Alarm.Disengage, 103), alarms[a++]);
-            Assert.AreEqual((Alarm.Engaged, 144), alarms[a++]);
-            Assert.AreEqual((Alarm.Disengage, 213), alarms[a++]);
-            Assert.AreEqual((Alarm.Engaged, 217), alarms[a++]);
-            Assert.AreEqual((Alarm.Disengage, 268), alarms[a++]);
-            Assert.AreEqual((Alarm.Engaged, 273), alarms[a++]);
-            Assert.AreEqual((Alarm.Crossroad, 399), alarms[a++]);
-            Assert.AreEqual((Alarm.Crossroad, 401), alarms[a++]);
-            Assert.AreEqual((Alarm.Crossroad, 405), alarms[a++]);
+            Assert.AreEqual((Alarm.Engaged, 3), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Disengage, 32), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Engaged, 40), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Disengage, 49), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Engaged, 52), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Disengage, 62), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Engaged, 71), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Disengage, 80), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Engaged, 89), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Disengage, 92), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Engaged, 96), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Disengage, 103), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Engaged, 144), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Disengage, 213), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Engaged, 217), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Disengage, 268), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Engaged, 273), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 399), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 401), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 405), stats.Alarms[a++]);
         }
 
         [TestMethod]
@@ -171,7 +305,11 @@ prefs, plan_filename, extendEnds: true);
             var track_points = Toolbox.PopulateTrackDensely(new[] { GeoPoint.FromDegrees(40.05, 5), GeoPoint.FromDegrees(40.05, 5.01) });
             track_points.AddRange(track_points.AsEnumerable().Reverse());
 
-            var stats = Toolbox.Ride(prefs, gpx_data, track_points, out var alarm_counters, out var alarms, out var messages);
+            var stats = Toolbox.Ride(new RideParams(prefs)
+            {
+                PlanData = gpx_data,
+            }
+            .SetTrace(track_points));
 
             Assert.AreEqual(10, stats.Alarms.Count);
             int a = 0;
@@ -347,7 +485,7 @@ prefs, plan_filename, extendEnds: true);
             var clock = new SecondStamper();
             using (var raw_alarm_master = new AlarmMaster(clock))
             {
-                raw_alarm_master.PopulateAlarms();
+                raw_alarm_master.PopulateAlarms(null);
 
                 var service = new TrackRadar.Tests.Implementation.MockRadarService(prefs, clock);
                 var signal_service = new ManualSignalService(clock);

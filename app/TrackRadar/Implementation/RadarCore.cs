@@ -13,12 +13,20 @@ namespace TrackRadar.Implementation
 
         internal const string GeoPointFormat = "0.00000000000000";
 
-        private readonly long speedTicksWindow; // measure speed only when we have time window of X ticks or more
+        private readonly long speedingTicksWindow; // measure speed only when we have time window of X ticks or more
 
         private bool isRidingWithSpeed;
         // when we walk, we don't alter the speed (sic!), i.e. it is set zero
         internal Speed RidingSpeed { get; private set; }
-        internal bool EngagedState { get; private set; }
+        private bool engagedState;
+        internal bool EngagedState
+        {
+            get { return engagedState; }
+            private set
+            {
+                this.engagedState = value;
+            }
+        }
         private bool wasOffTrackPreviously => this.lastOnTrackAlarmAt < this.lastOffTrackAlarmAt;
         private readonly IRadarService service;
         private readonly ISignalCheckerService signalService;
@@ -114,7 +122,7 @@ namespace TrackRadar.Implementation
             this.ridingTime = ridingTime;
             this.lastOffTrackAlarmAt = this.lastOnTrackAlarmAt = this.ridingStartedAt = timeStamper.GetBeforeTimeTimestamp();
             this.topSpeed = topSpeed;
-            this.speedTicksWindow = 3 * timeStamper.Frequency; // 3 seconds is good time window
+            this.speedingTicksWindow = 3 * timeStamper.Frequency; // 3 seconds is good time window
             this.lastOnTrack = OnTrackStatus.OK;
             this.StartedAt = timeStamper.GetTimestamp();
 
@@ -169,15 +177,18 @@ namespace TrackRadar.Implementation
         public double UpdateLocation(in GeoPoint currentPoint, Length? altitude, Length? accuracy)
         {
             bool gps_acquired = this.gpsWatchdog.UpdateGpsIsOn();
-            using (this.alarmSequencer.OpenAlarmContext(gpsAcquired: EngagedState ? false : gps_acquired,
+            // if we are in engaged state do not consider gps signal acquiring (i.e. establishing it afresh)
+            if (EngagedState)
+                gps_acquired = false;
+            using (this.alarmSequencer.OpenAlarmContext(gpsAcquired: gps_acquired,
                 hasGpsSignal: gpsWatchdog.HasGpsSignal))
             {
-                return internalUpdateLocation(currentPoint, altitude, accuracy);
+                return internalUpdateLocation(currentPoint, altitude, accuracy, gps_acquired);
             }
 
         }
         /// <returns>negative value means on track</returns>
-        private double internalUpdateLocation(in GeoPoint currentPoint, Length? altitude, Length? accuracy)
+        private double internalUpdateLocation(in GeoPoint currentPoint, Length? altitude, Length? accuracy, bool gpsAcquired)
         {
             Length fence_dist;
             long now = timeStamper.GetTimestamp();
@@ -204,7 +215,7 @@ namespace TrackRadar.Implementation
 
             {
                 IEnumerable<GpsReadout> older_points = this.lastPoints.Reverse()
-                    .SkipWhile(point_ts => now - point_ts.Timestamp < this.speedTicksWindow);
+                    .SkipWhile(point_ts => now - point_ts.Timestamp < this.speedingTicksWindow);
                 older_point = older_points.FirstOrNone();
 
                 if (!older_point.HasValue)
@@ -242,8 +253,14 @@ namespace TrackRadar.Implementation
                     double time_s_passed = timeStamper.GetSecondsSpan(now, last_ts);
 
                     double moved_dist_m = GeoCalculator.GetDistance(last_point, currentPoint).Meters;
-                    if (last_alt.HasValue && altitude.HasValue)
-                        moved_dist_m = Math.Sqrt(Math.Pow(moved_dist_m, 2) + Math.Pow(last_alt.Value.Meters - altitude.Value.Meters, 2));
+                    /*if (last_alt.HasValue && altitude.HasValue)
+                    {
+                        Length altitude_diff = altitude.Value-last_alt.Value;
+#if DEBUG
+                        Console.WriteLine($"last acc {last_acc}, curr acc {accuracy}, alt diff {altitude_diff} = {Math.Round(100*altitude_diff.Meters/moved_dist_m)}%");
+#endif
+                        moved_dist_m = Math.Sqrt(Math.Pow(moved_dist_m, 2) + Math.Pow(altitude_diff.Meters, 2));
+                    }*/
 
                     this.RidingSpeed = Speed.FromMetersPerSecond(moved_dist_m / time_s_passed);
                     bool previously_riding_with_speed = this.isRidingWithSpeed;
@@ -294,8 +311,10 @@ namespace TrackRadar.Implementation
                             true_riding = true;
 
                         if (this.isRidingWithSpeed != true_riding)
+                        {
                             // mark it as borrowed-from one
                             accuracy = -accuracy;
+                        }
                     }
 
                     if (this.isRidingWithSpeed)
@@ -318,14 +337,14 @@ namespace TrackRadar.Implementation
 
             this.lastPoints.Enqueue(new GpsReadout(currentPoint, altitude, accuracy: accuracy, timestamp: now));
 
-            this.lastOnTrack = handleAlarm(currentPoint, accuracy, segment, crosspointInfo, on_track, DEBUG_prevSpeed, now);
+            this.lastOnTrack = handleAlarm(currentPoint, accuracy, segment, crosspointInfo, on_track, gpsAcquired, DEBUG_prevSpeed, now);
 
             return fence_dist.Meters;
         }
 
         private OnTrackStatus handleAlarm(in GeoPoint currentPoint, Length? accuracy,
             ISegment segment, in ArcSegmentIntersection crosspointInfo,
-            OnTrackStatus isOnTrack, Speed DEBUG_prevSpeed, long now)
+            OnTrackStatus isOnTrack, bool gpsAcquired, Speed DEBUG_prevSpeed, long now)
         {
             if (isOnTrack != OnTrackStatus.OffTrack)
             {
@@ -339,8 +358,13 @@ namespace TrackRadar.Implementation
 
             }
 
+            if (gpsAcquired && isOnTrack != OnTrackStatus.OK)
+            {
+                // if we just got GPS signal but we are off-track we need to play off-track signal, not gps-acquired
+                alarmOffTrack(currentPoint, isOnTrack, now);
+            }
             // do not trigger alarm if we stopped moving
-            if (!this.isRidingWithSpeed)
+            else if (!this.isRidingWithSpeed)
             {
                 // here we check the interval to prevent too often playing ACK
                 // possible case: user got back on track and then stopped, without checking interval she/he would got two ACKs
@@ -350,8 +374,6 @@ namespace TrackRadar.Implementation
                    //               && timeStamper.GetSecondsSpan(now, this.lastOnTrackAlarmAt) >= service.OffTrackAlarmInterval.TotalSeconds
                    )
                 {
-                    //this.postponeSpeedDisengage = true;
-                    //if (false)
                     {
                         const Alarm alarm = Alarm.Disengage;
                         bool played = alarmSequencer.TryAlarm(alarm, false, out string reason);
@@ -361,7 +383,6 @@ namespace TrackRadar.Implementation
                         {
                             service.WriteDebug(currentPoint.Latitude.Degrees, currentPoint.Longitude.Degrees, alarm.ToString(), $"acc: {accuracy}");
                             EngagedState = false;
-                            //  this.postponeSpeedDisengage = false;
                         }
                     }
                 }
@@ -390,57 +411,62 @@ namespace TrackRadar.Implementation
             }
             else
             {
-                // alarm = Alarm.OffTrack;
-
-                // we are off-track but we cannot alarm about it (because of the count limit, or interval)
-                if (offTrackAlarmsCount > this.service.OffTrackAlarmCountLimit ||
-                    timeStamper.GetSecondsSpan(now, this.lastOffTrackAlarmAt) < service.OffTrackAlarmInterval.TotalSeconds)
-                {
-                    this.alarmSequencer.NotifyAlarm(Alarm.OffTrack);
-                }
-                else
-                {
-                    // technically we are off-track, but if didn't alarm user we disengaged because of the speed
-                    // (user is walking, usually sightseeing)
-                    /*if (false && this.postponeSpeedDisengage)
-                    {
-                        bool played = alarmSequencer.TryAlarm(Alarm.Disengage, out string reason);
-                        service.LogDebug(LogLevel.Verbose, $"Disengage played {played}, reason {reason}, stopped, previously riding {prevRiding}m/s");
-
-                        if (played)
-                        {
-                            engagedState = false;
-                            this.postponeSpeedDisengage = false;
-                        }
-                    }
-                    else*/
-                    {
-                        // do NOT try to be smart, and check if we are closing to the any of the tracks, this is because in real life
-                        // we can be closing to parallel track however with some fence between us, so when we are off the track
-                        // we are OFF THE TRACK and alarm the user about it -- user has info about environment, she/he sees if it possible
-                        // to take a shortcut, we don't see a thing
-
-                        Alarm alarm = offTrackAlarmsCount == this.service.OffTrackAlarmCountLimit ? Alarm.Disengage : Alarm.OffTrack;
-                        var played = alarmSequencer.TryAlarm(alarm, false, out string reason);
-                        if (played)
-                        {
-                            this.lastOffTrackAlarmAt = now;
-                            ++this.offTrackAlarmsCount;
-                            // it might happen, that off-track is the very first alarm, thus engaging 
-                            EngagedState = alarm == Alarm.OffTrack;
-                        }
-                        else
-                            service.LogDebug(LogLevel.Warning, $"Off-track alarm, couldn't play, reason {reason}");
-
-                        // it should be easier to make a GPX file out of it (we don't create it here because service crashes too often)
-                        service.WriteOffTrack(latitudeDegrees: currentPoint.Latitude.Degrees,
-                            longitudeDegrees: currentPoint.Longitude.Degrees,
-                            name: $"{isOnTrack} {offTrackAlarmsCount} at speed {(this.RidingSpeed.KilometersPerHour.ToString("0.##"))}");
-                    }
-                }
+                alarmOffTrack(currentPoint, isOnTrack, now);
             }
 
             return isOnTrack;
+        }
+
+        private void alarmOffTrack(GeoPoint currentPoint, OnTrackStatus isOnTrack, long now)
+        {
+            // alarm = Alarm.OffTrack;
+
+            // we are off-track but we cannot alarm about it (because of the count limit, or interval)
+            if (offTrackAlarmsCount > this.service.OffTrackAlarmCountLimit ||
+                timeStamper.GetSecondsSpan(now, this.lastOffTrackAlarmAt) < service.OffTrackAlarmInterval.TotalSeconds)
+            {
+                this.alarmSequencer.NotifyAlarm(Alarm.OffTrack);
+            }
+            else
+            {
+                // technically we are off-track, but if didn't alarm user we disengaged because of the speed
+                // (user is walking, usually sightseeing)
+                /*if (false && this.postponeSpeedDisengage)
+                {
+                    bool played = alarmSequencer.TryAlarm(Alarm.Disengage, out string reason);
+                    service.LogDebug(LogLevel.Verbose, $"Disengage played {played}, reason {reason}, stopped, previously riding {prevRiding}m/s");
+
+                    if (played)
+                    {
+                        engagedState = false;
+                        this.postponeSpeedDisengage = false;
+                    }
+                }
+                else*/
+                {
+                    // do NOT try to be smart, and check if we are closing to the any of the tracks, this is because in real life
+                    // we can be closing to parallel track however with some fence between us, so when we are off the track
+                    // we are OFF THE TRACK and alarm the user about it -- user has info about environment, she/he sees if it possible
+                    // to take a shortcut, we don't see a thing
+
+                    Alarm alarm = offTrackAlarmsCount == this.service.OffTrackAlarmCountLimit ? Alarm.Disengage : Alarm.OffTrack;
+                    var played = alarmSequencer.TryAlarm(alarm, false, out string reason);
+                    if (played)
+                    {
+                        this.lastOffTrackAlarmAt = now;
+                        ++this.offTrackAlarmsCount;
+                        // it might happen, that off-track is the very first alarm, thus engaging 
+                        EngagedState = alarm == Alarm.OffTrack;
+                    }
+                    else
+                        service.LogDebug(LogLevel.Warning, $"Off-track alarm, couldn't play, reason {reason}");
+
+                    // it should be easier to make a GPX file out of it (we don't create it here because service crashes too often)
+                    service.WriteOffTrack(latitudeDegrees: currentPoint.Latitude.Degrees,
+                        longitudeDegrees: currentPoint.Longitude.Degrees,
+                        name: $"{isOnTrack} {offTrackAlarmsCount} at speed {(this.RidingSpeed.KilometersPerHour.ToString("0.##"))}");
+                }
+            }
         }
 
 

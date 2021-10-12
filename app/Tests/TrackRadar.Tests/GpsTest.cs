@@ -37,7 +37,11 @@ namespace TrackRadar.Tests
             track_points.InsertRange(0, Enumerable.Range(0, (int)(prefs.GpsAcquisitionTimeout.TotalSeconds * 2))
                 .Select(_ => (GpsPoint?)null));
 
-            var stats = Toolbox.Ride(prefs, gpx_data, track_points, out _, out _, out _);
+            var stats = Toolbox.Ride(new RideParams(prefs)
+            {
+                PlanData = gpx_data,
+                Trace = track_points,
+            });
 
             Assert.AreEqual(5, stats.Alarms.Count);
             int a = 0;

@@ -10,7 +10,7 @@ namespace TrackRadar.Tests
         [TestMethod]
         public void MapWithSameWeightTest()
         {
-            var map = new MappedPairingHeap<string, double,ValueTuple>();
+            var map = MappedPairingHeap.Create<string, double,ValueTuple>();
             map.TryAddOrUpdate( "hello",0, new ValueTuple());
             map.TryAddOrUpdate( "world", 0, new ValueTuple());
             map.TryAddOrUpdate( "!", 0, new ValueTuple());

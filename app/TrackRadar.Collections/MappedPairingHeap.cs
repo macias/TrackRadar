@@ -4,6 +4,20 @@ using System.Linq;
 
 namespace TrackRadar.Collections
 {
+    public static class MappedPairingHeap
+    {
+        public static MappedPairingHeap<TKey, TWeight, TValue> Create<TKey, TWeight, TValue>(IEqualityComparer<TKey> keyComparer = null)
+            where TWeight : IComparable<TWeight>
+        {
+            return Create<TKey, TWeight, TValue>(Comparer<TWeight>.Default, keyComparer);
+        }
+
+        public static MappedPairingHeap<TKey, TWeight, TValue> Create<TKey, TWeight, TValue>(IComparer<TWeight> weightComparer, IEqualityComparer<TKey> keyComparer = null)
+        {
+            return new MappedPairingHeap<TKey, TWeight, TValue>(weightComparer, keyComparer ?? EqualityComparer<TKey>.Default);
+        }
+    }
+
     /// <summary>
     /// this is helper type for PairingHeap, it helps to keep inversed relation -- from the values hold in heap (tags) and the heap nodes
     /// </summary>
@@ -11,7 +25,6 @@ namespace TrackRadar.Collections
     /// <typeparam name="TKey">key for dictionary, should be immutable</typeparam>
     /// <typeparam name="TValue"></typeparam>
     public sealed class MappedPairingHeap<TKey, TWeight, TValue>
-        where TWeight : IComparable<TWeight>
     {
         // current (after updates) tag values are stored at heap, not in dict (dict keeps only equal -- by comparer -- tag value)
         private readonly Dictionary<TKey, PairingHeapNode<TWeight, (TKey key, TValue value)>> dict;
@@ -22,11 +35,16 @@ namespace TrackRadar.Collections
 
         public IEnumerable<(TKey key, TWeight weight, TValue value)> Data => dict.Select(it => (it.Key, it.Value.Weight, it.Value.Tag.value));
 
-        public MappedPairingHeap(IEqualityComparer<TKey> keyComparer = null, IComparer<TWeight> weightComparer = null)
+        internal MappedPairingHeap(IComparer<TWeight> weightComparer, IEqualityComparer<TKey> keyComparer)
         {
-            this.dict = new Dictionary<TKey, PairingHeapNode<TWeight, (TKey, TValue)>>(keyComparer ?? EqualityComparer<TKey>.Default);
+            if (keyComparer == null)
+                throw new ArgumentNullException(nameof(keyComparer));
+            if (weightComparer == null)
+                throw new ArgumentNullException(nameof(weightComparer));
+
             this.root = null;
-            this.weightComparer = weightComparer ?? Comparer<TWeight>.Default;
+            this.weightComparer = weightComparer;
+            this.dict = new Dictionary<TKey, PairingHeapNode<TWeight, (TKey, TValue)>>(keyComparer);
         }
 
         /// <summary>

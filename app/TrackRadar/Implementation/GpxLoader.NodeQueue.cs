@@ -18,7 +18,7 @@ namespace TrackRadar.Implementation
 
             public NodeQueue()
             {
-                this.mappedHeap = new MappedPairingHeap<TrackNode, Length, TurnNodeInfo>();
+                this.mappedHeap = MappedPairingHeap.Create<TrackNode, Length, TurnNodeInfo>();
                 this.usedNodes = new HashSet<TrackNode>();
             }
 

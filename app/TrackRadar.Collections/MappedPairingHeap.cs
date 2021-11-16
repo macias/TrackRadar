@@ -15,16 +15,18 @@ namespace TrackRadar.Collections
     {
         // current (after updates) tag values are stored at heap, not in dict (dict keeps only equal -- by comparer -- tag value)
         private readonly Dictionary<TKey, PairingHeapNode<TWeight, (TKey key, TValue value)>> dict;
+        private readonly IComparer<TWeight> weightComparer;
         private PairingHeapNode<TWeight, (TKey key, TValue value)> root;
 
         public int Count => this.dict.Count;
 
         public IEnumerable<(TKey key, TWeight weight, TValue value)> Data => dict.Select(it => (it.Key, it.Value.Weight, it.Value.Tag.value));
 
-        public MappedPairingHeap(IEqualityComparer<TKey> keyComparer = null)
+        public MappedPairingHeap(IEqualityComparer<TKey> keyComparer = null, IComparer<TWeight> weightComparer = null)
         {
             this.dict = new Dictionary<TKey, PairingHeapNode<TWeight, (TKey, TValue)>>(keyComparer ?? EqualityComparer<TKey>.Default);
             this.root = null;
+            this.weightComparer = weightComparer ?? Comparer<TWeight>.Default;
         }
 
         /// <summary>
@@ -37,18 +39,15 @@ namespace TrackRadar.Collections
         {
             if (this.dict.TryGetValue(key, out var heap_node))
             {
-                if (weight.CompareTo(heap_node.Weight) >= 0)
-                    return false;
-
-                root.DecreaseWeight(ref root, heap_node, weight, (key, value));
+                return root.TryDecreaseWeight(ref root, heap_node, weight, (key, value));
             }
             else
             {
-                heap_node = PairingHeap.Add(ref root, weight, (key, value));
+                heap_node = PairingHeap.Add(ref root, weight, (key, value), weightComparer);
                 this.dict.Add(key, heap_node);
-            }
 
-            return true;
+                return true;
+            }
         }
 
         public bool TryPop(out TKey key, out TWeight weight, out TValue value)

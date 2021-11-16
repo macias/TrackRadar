@@ -59,9 +59,9 @@ namespace TrackRadar.Tests
             var b= root.Add(ref root, 25, "y");
             var c = root.Add(ref root, 31, "z");
 
-            root.DecreaseWeight(ref root, b, 5, "world");
-            root.DecreaseWeight(ref root, a, 3, "hello");
-            root.DecreaseWeight(ref root, c, 1, "now");
+            root.TryDecreaseWeight(ref root, b, 5, "world");
+            root.TryDecreaseWeight(ref root, a, 3, "hello");
+            root.TryDecreaseWeight(ref root, c, 1, "now");
 
 
             Assert.AreEqual(1, root.Weight);
@@ -95,7 +95,7 @@ namespace TrackRadar.Tests
             root.Pop(ref root);
 
             var c = root.Add(ref root, 41, "z");
-            root.DecreaseWeight(ref root, c, 1, "now");
+            root.TryDecreaseWeight(ref root, c, 1, "now");
 
             Assert.AreEqual(1, root.Weight);
             Assert.AreEqual("now", root.Tag);
@@ -103,8 +103,8 @@ namespace TrackRadar.Tests
             root.Pop(ref root);
 
             var b = root.Add(ref root, 25, "y");
-            root.DecreaseWeight(ref root, a, 3, "hello");
-            root.DecreaseWeight(ref root, b, 5, "world");
+            root.TryDecreaseWeight(ref root, a, 3, "hello");
+            root.TryDecreaseWeight(ref root, b, 5, "world");
 
 
             Assert.AreEqual(3, root.Weight);

@@ -496,7 +496,7 @@ namespace Geo
         /// <returns></returns>
         public static Angle GetLongitudeDifference(Angle latitude, Length length)
         {
-            return Angle.FromRadians(length / (EarthRadius * latitude.Abs().Cos()));
+            return Angle.FromRadians(length / (EarthRadius * latitude.Cos()));
         }
         /// <summary>
         /// 

@@ -88,26 +88,25 @@ namespace TrackRadar.Collections
         /// <param name="node">node to update the weight</param>
         /// <param name="weight"></param>
         /// <param name="tag"></param>
-        public void DecreaseWeight(ref PairingHeapNode<TWeight, TData> root, PairingHeapNode<TWeight, TData> node, TWeight weight, TData tag)
+        public bool TryDecreaseWeight(ref PairingHeapNode<TWeight, TData> root, PairingHeapNode<TWeight, TData> node, TWeight weight, TData tag)
         {
             if (this != root)
                 throw new ArgumentException("You need to pass root of the heap");
 
             int comparison = root.comparer.Compare(node.Weight, weight);
-            if (comparison < 0)
-                throw new ArgumentException($"Cannot increase the {nameof(weight)} from {node.Weight} to {weight}");
+            if (comparison <= 0)
+                return false;
 
             node.Weight = weight;
             node.Tag = tag;
-
-            if (comparison == 0)
-                return;
 
             if (node.previous != null)
             {
                 node.detachSubHeap();
                 root = merge(root, node);
             }
+
+            return true;
         }
 
         private static PairingHeapNode<TWeight, TData> merge(PairingHeapNode<TWeight, TData> rootA, PairingHeapNode<TWeight, TData> rootB)

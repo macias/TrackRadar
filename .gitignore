@@ -3,6 +3,7 @@
 !app/**
 !.gitignore
 !README.md
+!LICENSE.md
 
 **/bin/**
 **/obj/**

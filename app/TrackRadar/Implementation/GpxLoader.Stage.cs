@@ -13,6 +13,7 @@ namespace TrackRadar.Implementation
         {
             Loading,
             ComputingCrossroads,
+            RemovePassingBy,
             AddingEndpoints,
             SplitByWaypoints,
             AssigningTurns,

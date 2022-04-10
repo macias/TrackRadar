@@ -18,7 +18,6 @@ namespace TrackRadar
     {
         private readonly object threadLock = new object();
 
-        //private const double gpsAccuracy = 5; // meters
         private readonly Statistics statistics;
         private AlarmMaster alarmMaster;
         private AlarmSequencer alarmSequencer;
@@ -26,7 +25,6 @@ namespace TrackRadar
         private IPreferences prefs => __prefs.Value;
         private LocationManager locationManager;
         private TimeStamper timeStamper;
-        // private WrapTimer TEST_timer;
         private RadarCore core;
 
         private HandlerThread handler;
@@ -34,6 +32,7 @@ namespace TrackRadar
         //   private LogFile serviceLog;
         private IGpxDirtyWriter offTrackWriter;
         private IGpxDirtyWriter crossroadsWriter;
+        private IGpxDirtyWriter alarmWriter;
         private IGpxDirtyWriter debugPositionsWriter;
         private int gpsLastStatus;
         private DisposableGuard guard;
@@ -43,6 +42,7 @@ namespace TrackRadar
         private int subscriptions;
         private IGpxDirtyWriter traceWriter;
         private double longestUpdate;
+        private GeoPoint currentPoint;
 
         /*
 private SensorManager sensorManager;
@@ -109,6 +109,7 @@ private long mLastTime;
                 disposables.Add(LogFactory.CreateGpxLogger(this, "off-track.gpx", DateTime.UtcNow.AddDays(-2), out this.offTrackWriter));
                 disposables.Add(LogFactory.CreateGpxLogger(this, "debug-pos.gpx", DateTime.UtcNow.AddDays(-2), out this.debugPositionsWriter));
                 disposables.Add(LogFactory.CreateGpxLogger(this, "crossroads.gpx", DateTime.UtcNow.AddDays(-2), out this.crossroadsWriter));
+                disposables.Add(LogFactory.CreateGpxLogger(this, "alarms.gpx", DateTime.UtcNow.AddDays(-2), out this.alarmWriter));
 
                 this.handler = new HandlerThread("GPSHandler");
                 this.handler.Start();
@@ -116,6 +117,8 @@ private long mLastTime;
                 this.timeStamper = new Implementation.TimeStamper();
                 this.alarmMaster = new TrackRadar.Implementation.AlarmMaster(this.timeStamper);
                 this.alarmSequencer = new AlarmSequencer(this, this.alarmMaster);
+
+                this.alarmSequencer.AlarmPlayed += AlarmSequencer_AlarmPlayed;
 
                 loadPreferences();
 
@@ -131,10 +134,11 @@ private long mLastTime;
                     //this.TEST_timer.Change(TimeSpan.FromSeconds(25), System.Threading.Timeout.InfiniteTimeSpan);
                 }
 
+
                 this.core = new RadarCore(this, this, this, alarmSequencer, timeStamper, app.GetTrackData(),
                     totalClimbs: app.Prefs.TotalClimbs, app.Prefs.RidingDistance, app.Prefs.RidingTime, app.Prefs.TopSpeed
 #if DEBUG
-                    ,RadarCore.InitialMinAccuracy
+                    , RadarCore.InitialMinAccuracy
 #endif
                     );
 
@@ -182,6 +186,20 @@ private long mLastTime;
                 LogDebug(LogLevel.Error, $"Error on start {ex}");
             }
             return StartCommandResult.Sticky;
+        }
+
+        private void AlarmSequencer_AlarmPlayed(object sender, Alarm alarm)
+        {
+            GeoPoint last_point = this.currentPoint;
+            lock (this.threadLock)
+            {
+                last_point = this.currentPoint;
+            }
+
+            this.alarmWriter.WriteWaypoint(latitudeDegrees: last_point.Latitude.Degrees,
+                longitudeDegrees: last_point.Longitude.Degrees,
+                name: alarm.ToString(),
+                time: DateTimeOffset.UtcNow);
         }
 
         private void showTurnAhead()
@@ -362,6 +380,7 @@ private long mLastTime;
 
                 LogDebug(LogLevel.Verbose, "disposing alarms");
 
+                this.alarmSequencer.AlarmPlayed -= AlarmSequencer_AlarmPlayed;
                 this.alarmMaster.Dispose();
 
                 LogDebug(LogLevel.Verbose, "disposing handler");
@@ -427,7 +446,8 @@ private long mLastTime;
                     try
                     {
                         long start = timeStamper.GetTimestamp();
-                        dist = this.core.UpdateLocation(GeoPoint.FromDegrees(latitude: location.Latitude, longitude: location.Longitude),
+                        this.currentPoint = GeoPoint.FromDegrees(latitude: location.Latitude, longitude: location.Longitude);
+                        dist = this.core.UpdateLocation(currentPoint,
                             altitude: location.HasAltitude ? Length.FromMeters(location.Altitude) : (Length?)null,
                             accuracy: location.HasAccuracy ? Length.FromMeters(location.Accuracy) : (Length?)null);
                         double passed = timeStamper.GetSecondsSpan(start);
@@ -473,10 +493,10 @@ private long mLastTime;
         }
 
 
-        private string locationToString(Location location)
+        /*private string locationToString(Location location)
         {
             return $"{(location.Latitude.ToString(RadarCore.GeoPointFormat))}, {(location.Longitude.ToString(RadarCore.GeoPointFormat))}, acc: {(location.HasAccuracy ? location.Accuracy.ToString("0.##") : "?")}, dt {Formatter.FormatShortDateTime(Common.FromTimeStampMs(location.Time))}, hw: {timeStamper.GetSecondsSpan(core.StartedAt)}s";
-        }
+        }*/
 
 
         private void logLocal(LogLevel level, string message)

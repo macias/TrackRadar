@@ -3,7 +3,7 @@ using System;
 
 namespace Geo
 {
-    public readonly struct GeoPoint 
+    public readonly struct GeoPoint : IEquatable<GeoPoint>
     {
         public static GeoPoint FromDegrees(double latitude, double longitude)
         {
@@ -39,7 +39,7 @@ namespace Geo
 
         public bool Equals(GeoPoint obj)
         {
-            return this.Latitude.Equals(obj.Latitude) && this.Longitude.Equals(obj.Longitude);
+            return this.Latitude==obj.Latitude && this.Longitude==obj.Longitude;
         }
 
         public override int GetHashCode()

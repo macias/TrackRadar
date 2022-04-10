@@ -2,11 +2,13 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
 using TrackRadar;
 using TrackRadar.Implementation;
+using TrackRadar.Tests;
 using TrackRadar.Tests.Implementation;
 
 namespace TestRunner
@@ -16,10 +18,11 @@ namespace TestRunner
         static void Main(string[] args)
         {
             //convertTrackToPoints("Data/tight-turns.tracked.gpx", "tight-points.gpx");
-            //CheckLoading();            Measure();
+            //CheckLoading();
+            //Measure();
 
             //CheckLoadingOne();
-            var test = new TrackRadar.Tests.RadarTest(); test.AccuracyDrop3Test();
+            var test = new TrackRadar.Tests.RadarTest(); test.UphillTest();
 
             //RunAllTests();
             Console.WriteLine("Hello World!");
@@ -31,7 +34,11 @@ namespace TestRunner
             string plan_filename = @"C:\Projekty\TrackRadar\priv-data\warmup-n-merged.plan.gpx";
             string tracked_filename = @"C:\Projekty\TrackRadar\priv-data\warmup-n-merged.tracked.gpx";
 
-            var times = Toolbox.Ride(Toolbox.CreatePreferences(), plan_filename, tracked_filename, null, out _, out _, out _);
+            var times = Toolbox.Ride(new RideParams(Toolbox.CreatePreferences())
+            {
+                PlanFilename = plan_filename,
+                TraceFilename = tracked_filename,
+            });
             // android-max 0.14-0.40
             // without turns ~0.14
             Console.WriteLine($"times {times}, on android {times.MaxUpdate * 6}, {times.AvgUpdate * 6}");
@@ -59,7 +66,7 @@ namespace TestRunner
 
             waypoints = waypoints.Take(0).ToList();
 
-//         Toolbox.SaveGpx("novelty.gpx", tracks, waypoints);
+            //         Toolbox.SaveGpx("novelty.gpx", tracks, waypoints);
             Toolbox.ProcessTrackData(tracks: tracks, waypoints: waypoints,
                 offTrackDistance: prefs.OffTrackAlarmDistance, segmentLengthLimit: GeoMapFactory.SegmentLengthLimit,
                 null, CancellationToken.None);
@@ -77,15 +84,28 @@ namespace TestRunner
         public static void CheckLoading()
         {
             var prefs = Toolbox.CreatePreferences();
-            foreach (string plan_filename in System.IO.Directory.GetFiles(@"C:\Projekty\TrackRadar\priv-data\plan\", "*.gpx"))
+            string plan_filename = @"..\..\..\..\..\..\long-loading.gpx";
             {
                 Console.WriteLine(plan_filename);
+                var progress = new LoaderProgress();
+                long now = Stopwatch.GetTimestamp();
                 GpxLoader.ReadGpx(
 #if DEBUG
-                    MetaLogger.None, 
+                    MetaLogger.None,
 #endif
-                    plan_filename, prefs.OffTrackAlarmDistance, Toolbox.OnProgressValidator(), CancellationToken.None);
+                    plan_filename, prefs.OffTrackAlarmDistance, progress.OnProgress, CancellationToken.None);
+
+                Console.WriteLine($"all in {(Stopwatch.GetTimestamp() - now - 0.0) / Stopwatch.Frequency}s");
+
+                foreach (var entry in progress.History.OrderByDescending(x => x.time).Take(7))
+                {
+                    Console.WriteLine($"{entry.stage} {entry.time}s");
+                }
             }
+            /*
+             
+             */
+
         }
 
         private static void RunAllTests()
@@ -126,11 +146,11 @@ namespace TestRunner
             }
         }
 
-        private static void convertTrackToPoints(string trackPath,string pointsPath)
+        private static void convertTrackToPoints(string trackPath, string pointsPath)
         {
             if (System.IO.File.Exists(pointsPath))
                 throw new ArgumentException($"File {pointsPath} already exists");
-            Toolbox.SaveGpxWaypoints(pointsPath, Toolbox.ReadTrackPoints(trackPath));
+            Toolbox.SaveGpxWaypoints(pointsPath, Toolbox.ReadTrackPoints(trackPath, readAltitude: true));
         }
     }
 }

@@ -16,20 +16,20 @@ namespace TrackRadar.Implementation
     {
         private static readonly Length numericAccuracy = Length.FromMeters(1);
 
-        private static double recomputeProgress(Stage stage, double progress)
+        public static double RecomputeProgress(Stage stage, long step, long total)
         {
-            return ((int)stage + progress) / StageCount;
+            return ((int)stage + step * 1.0 / total) / StageCount;
         }
         public static IPlanData ReadGpx(
 #if DEBUG
             MetaLogger DEBUG_logger,
 #endif
             string filename, Length offTrackDistance,
-            Action<double> onProgress,
+            Action<Stage, long, long> onProgress,
             CancellationToken token)
         {
             if (!tryLoadGpx(filename, out List<List<GeoPoint>> tracks, out List<(GeoPoint point, WayPointKind kind)> waypoints,
-                x => onProgress?.Invoke(recomputeProgress(Stage.Loading, x)), token))
+                (step, total) => onProgress?.Invoke(Stage.Loading, step, total), token))
                 return null;
 
             if (token.IsCancellationRequested)
@@ -40,16 +40,16 @@ namespace TrackRadar.Implementation
                 DEBUG_logger,
 #endif
                 tracks, waypoints, offTrackDistance, segmentLengthLimit: GeoMapFactory.SegmentLengthLimit,
-                (stage, progress) => onProgress?.Invoke(recomputeProgress(stage, progress)), token);
+                onProgress, token);
         }
 
 #if DEBUG
         // another sick hack for ValueTuple and problems with resolving them in test projects
         internal static IPlanData ProcessTrackData(
             MetaLogger DEBUG_logger,
-            IEnumerable<IEnumerable<GeoPoint>> tracks,
+            IEnumerable<IReadOnlyList<GeoPoint>> tracks,
     IEnumerable<GeoPoint> waypoints, IEnumerable<GeoPoint> endpoints,
-    Length offTrackDistance, Length segmentLengthLimit, Action<Stage, double> onProgress, CancellationToken token)
+    Length offTrackDistance, Length segmentLengthLimit, Action<Stage, long, long> onProgress, CancellationToken token)
         {
             return processTrackData(DEBUG_logger,
                 tracks,
@@ -59,16 +59,17 @@ namespace TrackRadar.Implementation
 
         internal static IPlanData ProcessTrackData(
             MetaLogger DEBUG_logger,
-            IEnumerable<IEnumerable<GeoPoint>> tracks,
+            IEnumerable<IReadOnlyList<GeoPoint>> tracks,
     IEnumerable<GeoPoint> waypoints,
-    Length offTrackDistance, Length segmentLengthLimit, Action<Stage, double> onProgress, CancellationToken token)
+    Length offTrackDistance, Length segmentLengthLimit, Action<Stage, long, long> onProgress, CancellationToken token)
         {
             return ProcessTrackData(DEBUG_logger, tracks,
                 waypoints, Enumerable.Empty<GeoPoint>(),
                 offTrackDistance, segmentLengthLimit, onProgress, token);
         }
 
-        internal static bool TryLoadGpx(string filename, out List<List<GeoPoint>> tracks, out List<GeoPoint> waypoints, Action<double> onProgress, CancellationToken token)
+        internal static bool TryLoadGpx(string filename, out List<List<GeoPoint>> tracks, out List<GeoPoint> waypoints,
+            Action<long, long> onProgress, CancellationToken token)
         {
             bool result = tryLoadGpx(filename, out tracks, out List<(GeoPoint point, WayPointKind kind)> waypoints_out,
                 onProgress, token);
@@ -81,15 +82,20 @@ namespace TrackRadar.Implementation
 #if DEBUG
             MetaLogger DEBUG_Logger,
 #endif
-            IEnumerable<IEnumerable<GeoPoint>> tracks,
+            IEnumerable<IReadOnlyList<GeoPoint>> tracks,
             IEnumerable<(GeoPoint point, WayPointKind kind)> waypoints,
-            Length offTrackDistance, Length segmentLengthLimit, Action<Stage, double> onProgress, CancellationToken token)
+            Length offTrackDistance, Length segmentLengthLimit,
+            Action<Stage, long, long> onProgress, CancellationToken token)
         {
-            Dictionary<GeoPoint, WayPointInfo> waypoints_dict = (waypoints ?? Enumerable.Empty<(GeoPoint point, WayPointKind kind)>())
-                .GroupBy(it => it.point)
-                .ToDictionary(it => it.Key, it => new WayPointInfo(it.First().kind));
+            Dictionary<GeoPoint, WayPointInfo> waypoints_dict;
+            waypoints_dict = new Dictionary<GeoPoint, WayPointInfo>();
+            foreach (var entry in (waypoints ?? Enumerable.Empty<(GeoPoint point, WayPointKind kind)>()))
+            {
+                if (!waypoints_dict.ContainsKey(entry.point))
+                    waypoints_dict.TryAdd(entry.point, new WayPointInfo(entry.kind));
+            }
 
-            var tracks_list = tracks.Select(it => new Track(it)).Where(it => it.Nodes.Count() > 1).ToList();
+            List<Track> tracks_list = tracks.Where(it => it.Count > 1).Select(it => new Track(it)).ToList();
 
             // add only distant intersections from user's already marked waypoints
 
@@ -144,10 +150,10 @@ namespace TrackRadar.Implementation
         }
 
         private static bool addEndpoints(IEnumerable<Track> tracks, IEnumerable<GeoPoint> waypoints,
-              List<Crossroad> crossroads, Length proximityDistance, Action<Stage, double> onProgress, CancellationToken token)
+              List<Crossroad> crossroads, Length proximityDistance, Action<Stage, long, long> onProgress, CancellationToken token)
         {
             int total_steps = tracks.Count();
-            double step = 0;
+            long step = 0;
 
             IEnumerable<GeoPoint> initial_crossroads = crossroads.Select(it => it.Point).Concat(waypoints).ToArray();
             var extensions = new List<Crossroad>();
@@ -157,7 +163,7 @@ namespace TrackRadar.Implementation
                 if (token.IsCancellationRequested)
                     return false;
 
-                onProgress?.Invoke(Stage.AddingEndpoints, step / total_steps);
+                onProgress?.Invoke(Stage.AddingEndpoints, step, total_steps);
                 ++step;
 
                 if (!isPointInProximity(track.Head.Point, initial_crossroads, proximityDistance))
@@ -202,7 +208,7 @@ namespace TrackRadar.Implementation
 
         private static bool tryLoadGpx(string filename, out List<List<GeoPoint>> tracks,
             out List<(GeoPoint point, WayPointKind kind)> waypoints,
-            Action<double> onProgress,
+            Action<long, long> onProgress,
             CancellationToken token)
         {
             tracks = new List<List<GeoPoint>>();
@@ -211,7 +217,7 @@ namespace TrackRadar.Implementation
             {
                 while (reader.Read(out GpxObjectType type))
                 {
-                    onProgress?.Invoke(stream_progress.Position * 1.0 / stream_progress.Length);
+                    onProgress?.Invoke(stream_progress.Position, stream_progress.Length);
 
                     if (token.IsCancellationRequested)
                         return false;
@@ -230,7 +236,7 @@ namespace TrackRadar.Implementation
                                 else
                                 {
                                     GeoPoint pt = GpxHelper.FromGpx(reader.WayPoint);
-                                    waypoints.Add((pt, (name.StartsWith("end") || name.StartsWith("exit") ) ? WayPointKind.Endpoint : WayPointKind.Regular));
+                                    waypoints.Add((pt, (name.StartsWith("end") || name.StartsWith("exit")) ? WayPointKind.Endpoint : WayPointKind.Regular));
                                 }
                                 break;
                             }
@@ -245,8 +251,16 @@ namespace TrackRadar.Implementation
                                 }
                                 else
                                 {
-                                    tracks.AddRange(reader.Track.Segments
-                                    .Select(trk => trk.TrackPoints.Select(p => GpxHelper.FromGpx(p)).ToList()));
+                                    if (tracks.Capacity < tracks.Count + reader.Track.Segments.Count)
+                                        tracks.Capacity = tracks.Count + reader.Track.Segments.Count;
+                                    foreach (var seg in reader.Track.Segments)
+                                    {
+                                        // allocate list in advance
+                                        var trk = new List<GeoPoint>(capacity: seg.TrackPoints.Count);
+                                        foreach (var pt in seg.TrackPoints)
+                                            trk.Add(GpxHelper.FromGpx(pt));
+                                        tracks.Add(trk);
+                                    }
                                 }
                                 break;
                             }
@@ -338,13 +352,41 @@ namespace TrackRadar.Implementation
         }
 
         private static bool tryFindCrossroads(List<Track> tracks,
-            Length offTrackDistance, Action<Stage, double> onProgress,
+            Length offTrackDistance, Action<Stage, long, long> onProgress,
             out List<Crossroad> crossroads,
             CancellationToken token)
         {
             crossroads = new List<GpxLoader.Crossroad>();
 
             {
+                IReadOnlyList<Angle> longitude_diff_limits;
+                Angle latitude_diff_limit;
+                {
+                    // note crossroads are computed such way that each track can have crossroad at limit (max) distance
+                    // =========<--->*<--->=============
+                    // so it means that tracks can be separated by double (!) the limit at most
+                    Length proximity_limit = offTrackDistance * 2;
+
+                    // calculating crossroads can be time consuming, so we calculate angular proximity distances
+                    // those are just approximations, but they are dirty-cheap -- if two points are not within proximity
+                    // it means for sure they won't make crossroad, if they are -- we need to calculate it for real
+                    var list = new List<Angle>(capacity: tracks.Count);
+                    foreach (var trk in tracks)
+                    {
+                        // we take max from latitude, because closer the poles the distances are smaller
+                        Angle latitude_max = trk.Nodes.Select(it => it.Point.Latitude.Abs()).Max();
+                        var longitude_diff = GeoCalculator.GetLongitudeDifference(latitude_max, proximity_limit);
+                        list.Add(longitude_diff);
+                    }
+                    longitude_diff_limits = list;
+
+                    {
+                        // distances along longitudes are always the same
+                        var dest = GeoCalculator.GetDestination(new GeoPoint(), Angle.Zero, proximity_limit);
+                        latitude_diff_limit = dest.Latitude;
+                    }
+                }
+
                 int total_steps = (tracks.Count - 1) * tracks.Count / 2;
                 int step = 0;
                 for (int i_idx = 0; i_idx < tracks.Count; ++i_idx)
@@ -353,11 +395,13 @@ namespace TrackRadar.Implementation
                         if (token.IsCancellationRequested)
                             return false;
 
-                        onProgress?.Invoke(Stage.ComputingCrossroads, step * 1.0 / total_steps);
+                        onProgress?.Invoke(Stage.ComputingCrossroads, step, total_steps);
 
                         // mark each intersection with source index, this will allow us better averaging the points
                         List<Crossroad> intersections = getTrackIntersections(tracks[i_idx], tracks[k_idx],
-                            offTrackDistance);
+                            offTrackDistance,
+                            latitudeProximityLimit: latitude_diff_limit,
+                            longitudeProximityLimit: longitude_diff_limits[i_idx].Max(longitude_diff_limits[k_idx]));
                         intersections.ForEach(it => { it.SetSourceIndex(i_idx, k_idx); });
 
                         // at this point each track can be enriched with connection into to this or that crossroad
@@ -375,7 +419,7 @@ namespace TrackRadar.Implementation
             if (token.IsCancellationRequested)
                 return false;
 
-            removePassingBy(crossroads, offTrackDistance * 2);
+            removePassingBy(crossroads, offTrackDistance * 2, onProgress);
 
             if (token.IsCancellationRequested)
                 return false;
@@ -414,7 +458,7 @@ namespace TrackRadar.Implementation
                     file.WriteTrack($"seg{count++}", new[] { s.A, s.B });
             }
         }*/
-        private static void removePassingBy(List<GpxLoader.Crossroad> crossroads, Length limit)
+        private static void removePassingBy(List<GpxLoader.Crossroad> crossroads, Length limit, Action<Stage, long, long> onProgress)
         {
             // this is weak but it was easy to implement and so far it works
 
@@ -435,6 +479,8 @@ namespace TrackRadar.Implementation
 
             for (int i = crossroads.Count - 1; i >= 0; --i)
             {
+                onProgress?.Invoke(Stage.RemovePassingBy, crossroads.Count - i, crossroads.Count);
+
                 GpxLoader.Crossroad passing_by = crossroads[i];
 
                 if (passing_by.Kind != GpxLoader.CrossroadKind.PassingBy)
@@ -551,15 +597,15 @@ namespace TrackRadar.Implementation
         }
 
 
-        private static bool isWithinLimit(Length sig_len, Length segment_len, Length limit)
+        private static bool isWithinLimit(Length signedLength, Length segmentLength, Length limit)
         {
-            if (sig_len.Sign() == segment_len.Sign())
+            if (signedLength.Sign() == segmentLength.Sign())
             {
-                return sig_len.Abs() <= segment_len.Abs() + limit;
+                return signedLength.Abs() <= segmentLength.Abs() + limit;
             }
             else
             {
-                return sig_len.Abs() <= limit;
+                return signedLength.Abs() <= limit;
             }
         }
 
@@ -628,8 +674,8 @@ namespace TrackRadar.Implementation
                 yield return cx;
         }
 
-        private static List<GpxLoader.Crossroad> getTrackIntersections(Track track1,
-            Track track2, Length limit)
+        private static List<GpxLoader.Crossroad> getTrackIntersections(Track track1, Track track2, Length limit,
+            Angle latitudeProximityLimit, Angle longitudeProximityLimit)
         {
             var result = new List<Crossroad>();
 
@@ -640,8 +686,8 @@ namespace TrackRadar.Implementation
 
                 TrackNode node1_1 = node1_0.Next;
 
-                Length sig_len1 = GeoCalculator.GetSignedDistance(node1_0.Point, node1_1.Point);
-                Length len1 = sig_len1.Abs();
+                Length sig_len1 = Length.Zero;
+                Length len1 = Length.Zero;
 
                 int __idx2 = 0;
                 foreach (TrackNode node2_0 in track2.Nodes.Where(it => !it.IsLast))
@@ -649,6 +695,18 @@ namespace TrackRadar.Implementation
                     ++__idx2;
 
                     TrackNode node2_1 = node2_0.Next;
+
+                    bool within_proximity = withinProximity(node1_0.Point, node1_1.Point, node2_0.Point, node2_1.Point,
+                        latitudeProximityLimit, longitudeProximityLimit);
+                    if (!within_proximity)
+                        continue;
+
+                    if (len1 == Length.Zero)
+                    {
+                        sig_len1 = GeoCalculator.GetSignedDistance(node1_0.Point, node1_1.Point);
+                        len1 = sig_len1.Abs();
+                    }
+
                     Length sig_len2 = Length.Zero;
 
                     Length sig_cx_len1_1 = Length.Zero;
@@ -855,6 +913,54 @@ namespace TrackRadar.Implementation
             }
 
             return result;
+        }
+
+        private static bool withinProximity(GeoPoint point1_0, GeoPoint point1_1, GeoPoint point2_0, GeoPoint point2_1,
+            Angle latitudeProximityLimit, Angle longitudeProximityLimit)
+        {
+            {
+                Angle diff = (point1_0.Latitude - point2_0.Latitude).Abs() - latitudeProximityLimit;
+                if (diff <= Angle.Zero)
+                    return true;
+            }
+            {
+                Angle diff = (point1_1.Latitude - point2_0.Latitude).Abs() - latitudeProximityLimit;
+                if (diff <= Angle.Zero)
+                    return true;
+            }
+            {
+                Angle diff = (point1_0.Latitude - point2_1.Latitude).Abs() - latitudeProximityLimit;
+                if (diff <= Angle.Zero)
+                    return true;
+            }
+            {
+                Angle diff = (point1_1.Latitude - point2_1.Latitude).Abs() - latitudeProximityLimit;
+                if (diff <= Angle.Zero)
+                    return true;
+            }
+
+            {
+                Angle diff = (point1_0.Longitude - point2_0.Longitude).Abs() - longitudeProximityLimit;
+                if (diff <= Angle.Zero)
+                    return true;
+            }
+            {
+                Angle diff = (point1_1.Longitude - point2_0.Longitude).Abs() - longitudeProximityLimit;
+                if (diff <= Angle.Zero)
+                    return true;
+            }
+            {
+                Angle diff = (point1_0.Longitude - point2_1.Longitude).Abs() - longitudeProximityLimit;
+                if (diff <= Angle.Zero)
+                    return true;
+            }
+            {
+                Angle diff = (point1_1.Longitude - point2_1.Longitude).Abs() - longitudeProximityLimit;
+                if (diff <= Angle.Zero)
+                    return true;
+            }
+
+            return false;
         }
     }
 }

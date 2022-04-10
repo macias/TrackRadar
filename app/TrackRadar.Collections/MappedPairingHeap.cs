@@ -4,86 +4,104 @@ using System.Linq;
 
 namespace TrackRadar.Collections
 {
+    public static class MappedPairingHeap
+    {
+        public static MappedPairingHeap<TKey, TWeight, TValue> Create<TKey, TWeight, TValue>(IEqualityComparer<TKey> keyComparer = null)
+            where TWeight : IComparable<TWeight>
+        {
+            return Create<TKey, TWeight, TValue>(Comparer<TWeight>.Default, keyComparer);
+        }
+
+        public static MappedPairingHeap<TKey, TWeight, TValue> Create<TKey, TWeight, TValue>(IComparer<TWeight> weightComparer, IEqualityComparer<TKey> keyComparer = null)
+        {
+            return new MappedPairingHeap<TKey, TWeight, TValue>(weightComparer, keyComparer ?? EqualityComparer<TKey>.Default);
+        }
+    }
+
     /// <summary>
     /// this is helper type for PairingHeap, it helps to keep inversed relation -- from the values hold in heap (tags) and the heap nodes
     /// </summary>
     /// <typeparam name="TWeight"></typeparam>
-    /// <typeparam name="TTag"></typeparam>
-    public sealed class MappedPairingHeap<TWeight, TTag, TTagExtract>
-        where TWeight : IComparable<TWeight>
+    /// <typeparam name="TKey">key for dictionary, should be immutable</typeparam>
+    /// <typeparam name="TValue"></typeparam>
+    public sealed class MappedPairingHeap<TKey, TWeight, TValue>
     {
         // current (after updates) tag values are stored at heap, not in dict (dict keeps only equal -- by comparer -- tag value)
-        private readonly Dictionary<TTagExtract, PairingHeapNode<TWeight, TTag>> dict;
-        private readonly Func<TTag, TTagExtract> tagExtractor;
-        private PairingHeapNode<TWeight, TTag> root;
+        private readonly Dictionary<TKey, PairingHeapNode<TWeight, (TKey key, TValue value)>> dict;
+        private readonly IComparer<TWeight> weightComparer;
+        private PairingHeapNode<TWeight, (TKey key, TValue value)> root;
 
         public int Count => this.dict.Count;
 
-        public IEnumerable<TTag> Tags => dict.Values.Select(it => it.Tag);
+        public IEnumerable<(TKey key, TWeight weight, TValue value)> Data => dict.Select(it => (it.Key, it.Value.Weight, it.Value.Tag.value));
 
-        public MappedPairingHeap(Func<TTag,TTagExtract> tagExtractor, IEqualityComparer<TTagExtract> comparer = null)
+        internal MappedPairingHeap(IComparer<TWeight> weightComparer, IEqualityComparer<TKey> keyComparer)
         {
-            this.dict = new Dictionary<TTagExtract, PairingHeapNode<TWeight, TTag>>(comparer ?? EqualityComparer<TTagExtract>.Default);
+            if (keyComparer == null)
+                throw new ArgumentNullException(nameof(keyComparer));
+            if (weightComparer == null)
+                throw new ArgumentNullException(nameof(weightComparer));
+
             this.root = null;
-            this.tagExtractor = tagExtractor;
+            this.weightComparer = weightComparer;
+            this.dict = new Dictionary<TKey, PairingHeapNode<TWeight, (TKey, TValue)>>(keyComparer);
         }
 
         /// <summary>
-        /// 
+        /// maintain key the same exactly like with Dictionary
         /// </summary>
         /// <param name="weight"></param>
-        /// <param name="tag"></param>
+        /// <param name="value"></param>
         /// <returns>true when weight was added/updated, false otherwise</returns>
-        public bool TryAddOrUpdate(TWeight weight, TTag tag)
+        public bool TryAddOrUpdate(TKey key, TWeight weight, TValue value)
         {
-            TTagExtract extract = tagExtractor(tag);
-            if (this.dict.TryGetValue(extract, out PairingHeapNode<TWeight, TTag> heap_node))
+            if (this.dict.TryGetValue(key, out var heap_node))
             {
-                if (weight.CompareTo(heap_node.Weight) >= 0)
-                    return false;
-
-                // only heap get its tag updated, but not dict
-                root.DecreaseWeight(ref root, heap_node, weight, tag);
+                return root.TryDecreaseWeight(ref root, heap_node, weight, (key, value));
             }
             else
             {
-                heap_node = PairingHeap.Add(ref root, weight, tag);
-                this.dict.Add(extract, heap_node);
-            }
+                heap_node = PairingHeap.Add(ref root, weight, (key, value), weightComparer);
+                this.dict.Add(key, heap_node);
 
-            return true;
+                return true;
+            }
         }
 
-        public bool TryPop(out TWeight weight, out TTag tag)
+        public bool TryPop(out TKey key, out TWeight weight, out TValue value)
         {
             if (root == null)
             {
                 weight = default;
-                tag = default;
+                value = default;
+                key = default;
                 return false;
             }
 
-            tag = root.Tag;
+            value = root.Tag.value;
+            key = root.Tag.key;
             weight = root.Weight;
             this.root.Pop(ref root);
-            this.dict.Remove(tagExtractor(tag));
+            this.dict.Remove(key);
             return true;
         }
 
-        public bool Contains(TTagExtract tagExtract)
+        public bool ContainsKey(TKey key)
         {
-            return this.dict.ContainsKey(tagExtract);
+            return this.dict.ContainsKey(key);
         }
 
-        public bool TryGetTagValue(TTagExtract tagExtract, out TTag tagValue)
+        public bool TryGetData(TKey key, out TWeight weight, out TValue value)
         {
-            if (!dict.TryGetValue(tagExtract, out var heap_node))
+            if (!dict.TryGetValue(key, out var heap_node))
             {
-                tagValue = default;
+                value = default;
+                weight = default;
                 return false;
             }
 
-            tagValue = heap_node.Tag;
+            value = heap_node.Tag.value;
+            weight = heap_node.Weight;
             return true;
         }
 

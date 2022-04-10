@@ -31,7 +31,12 @@ namespace TrackRadar.Tests
 
             var prefs = Toolbox.CreatePreferences(); // regular thresholds for speed
             RideStats stats;
-            stats = Toolbox.Ride(prefs, playDuration: TimeSpan.FromSeconds(2.229), plan_filename, tracked_filename, null);
+            stats = Toolbox.Ride(new RideParams(prefs)
+            {
+                PlayDuration = TimeSpan.FromSeconds(2.229),
+                PlanFilename = plan_filename,
+                TraceFilename = tracked_filename,
+            });
 
             Assert.AreEqual(11, stats.Alarms.Count);
             int a = 0;
@@ -60,7 +65,12 @@ namespace TrackRadar.Tests
 
             var prefs = Toolbox.CreatePreferences(); // regular thresholds for speed
             RideStats stats;
-            stats = Toolbox.Ride(prefs, playDuration: TimeSpan.FromSeconds(2.229), plan_filename, tracked_filename, null);
+            stats = Toolbox.Ride(new RideParams(prefs)
+            {
+                PlayDuration = TimeSpan.FromSeconds(2.229),
+                PlanFilename = plan_filename,
+                TraceFilename = tracked_filename
+            });
 
             Assert.AreEqual(8, stats.Alarms.Count);
             int a = 0;
@@ -86,7 +96,12 @@ namespace TrackRadar.Tests
 
             var prefs = Toolbox.CreatePreferences(); // regular thresholds for speed
             RideStats stats;
-            stats = Toolbox.Ride(prefs, playDuration: TimeSpan.FromSeconds(2.229), plan_filename, tracked_filename, null);
+            stats = Toolbox.Ride(new RideParams(prefs)
+            {
+                PlayDuration = TimeSpan.FromSeconds(2.229),
+                PlanFilename = plan_filename,
+                TraceFilename = tracked_filename,
+            });
 
             Assert.AreEqual(4, stats.Alarms.Count);
             int a = 0;
@@ -107,16 +122,20 @@ namespace TrackRadar.Tests
             string tracked_filename = Toolbox.TestData("attention-needed-near-start.tracked.gpx");
 
             var prefs = Toolbox.CreatePreferences(); // regular thresholds for speed
-            var stats = Toolbox.Ride(prefs, playDuration: TimeSpan.FromSeconds(2.229), plan_filename, tracked_filename, null,
-                out var alarmCounters, out var alarms, out var messages);
+            var stats = Toolbox.Ride(new RideParams(prefs)
+            {
+                PlayDuration = TimeSpan.FromSeconds(2.229),
+                PlanFilename = plan_filename,
+                TraceFilename = tracked_filename,
+            });
 
-            Assert.AreEqual(4, alarms.Count);
+            Assert.AreEqual(4, stats.Alarms.Count);
             int a = 0;
 
-            Assert.AreEqual((Alarm.Engaged, 7), alarms[a++]);
-            Assert.AreEqual((Alarm.Crossroad, 22), alarms[a++]); // we want here general attention alarm, not direction
-            Assert.AreEqual((Alarm.LeftEasy, 24), alarms[a++]);
-            Assert.AreEqual((Alarm.LeftEasy, 26), alarms[a++]);
+            Assert.AreEqual((Alarm.Engaged, 7), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 22), stats.Alarms[a++]); // we want here general attention alarm, not direction
+            Assert.AreEqual((Alarm.LeftEasy, 24), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.LeftEasy, 26), stats.Alarms[a++]);
         }
 
 
@@ -127,15 +146,19 @@ namespace TrackRadar.Tests
             string tracked_filename = Toolbox.TestData("turning-after-start.tracked.gpx");
 
             var prefs = Toolbox.CreatePreferences(); // regular thresholds for speed
-            var stats = Toolbox.Ride(prefs, playDuration: TimeSpan.FromSeconds(2.229), plan_filename, tracked_filename, null,
-                out var alarmCounters, out var alarms, out var messages);
+            var stats = Toolbox.Ride(new RideParams(prefs)
+            {
+                PlayDuration = TimeSpan.FromSeconds(2.229),
+                PlanFilename = plan_filename,
+                TraceFilename = tracked_filename,
+            });
 
-            Assert.AreEqual(3, alarms.Count);
+            Assert.AreEqual(3, stats.Alarms.Count);
             int a = 0;
 
-            Assert.AreEqual((Alarm.Crossroad, 12), alarms[a++]);
-            Assert.AreEqual((Alarm.RightCross, 14), alarms[a++]);
-            Assert.AreEqual((Alarm.RightCross, 16), alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 12), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.RightCross, 14), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.RightCross, 16), stats.Alarms[a++]);
         }
 
         [TestMethod]
@@ -150,18 +173,21 @@ namespace TrackRadar.Tests
             string tracked_filename = Toolbox.TestData("coming-back-to-offset-turn.tracked.gpx");
 
             var prefs = Toolbox.CreatePreferences(); // regular thresholds for speed
-            Toolbox.Ride(prefs, plan_filename, tracked_filename, null,
-                out var alarmCounters, out var alarms, out var messages);
+            var stats = Toolbox.Ride(new RideParams(prefs)
+            {
+                PlanFilename = plan_filename,
+                TraceFilename = tracked_filename,
+            });
 
-            Assert.AreEqual(5, alarms.Count);
+            Assert.AreEqual(5, stats.Alarms.Count);
             int a = 0;
 
-            Assert.AreEqual((Alarm.OffTrack, 3), alarms[a++]);
-            Assert.AreEqual((Alarm.OffTrack, 13), alarms[a++]);
+            Assert.AreEqual((Alarm.OffTrack, 3), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.OffTrack, 13), stats.Alarms[a++]);
 
-            Assert.AreEqual((Alarm.Crossroad, 15), alarms[a++]);
-            Assert.AreEqual((Alarm.Crossroad, 20), alarms[a++]);
-            Assert.AreEqual((Alarm.Crossroad, 22), alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 15), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 20), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 22), stats.Alarms[a++]);
         }
 
         [TestMethod]
@@ -172,17 +198,21 @@ namespace TrackRadar.Tests
             string tracked_filename = Toolbox.TestData("attention-turn.tracked.gpx");
 
             var prefs = Toolbox.CreatePreferences(); // regular thresholds for speed
-            Toolbox.Ride(prefs, playDuration: TimeSpan.FromSeconds(2.229), plan_filename, tracked_filename, null,
-                out var alarmCounters, out var alarms, out var messages);
+            var stats = Toolbox.Ride(new RideParams(prefs)
+            {
+                PlayDuration = TimeSpan.FromSeconds(2.229),
+                PlanFilename = plan_filename,
+                TraceFilename = tracked_filename,
+            });
 
-            Assert.AreEqual(4, alarms.Count);
+            Assert.AreEqual(4, stats.Alarms.Count);
             int a = 0;
 
-            Assert.AreEqual((Alarm.Engaged, 3), alarms[a++]);
+            Assert.AreEqual((Alarm.Engaged, 3), stats.Alarms[a++]);
 
-            Assert.AreEqual((Alarm.Crossroad, 16), alarms[a++]); // despite we are accelerating the program should give us generic alarm (now is OK)
-            Assert.AreEqual((Alarm.LeftCross, 18), alarms[a++]);
-            Assert.AreEqual((Alarm.LeftCross, 20), alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 16), stats.Alarms[a++]); // despite we are accelerating the program should give us generic alarm (now is OK)
+            Assert.AreEqual((Alarm.LeftCross, 18), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.LeftCross, 20), stats.Alarms[a++]);
         }
 
         [TestMethod]
@@ -208,25 +238,28 @@ namespace TrackRadar.Tests
 
             var track_points = Toolbox.PopulateTrackDensely(plan_points.ToList(), ride_speed);
 
-            Toolbox.Ride(prefs, gpx_data, track_points, out var alarm_counters, out var alarms, out var messages);
+            var stats = Toolbox.Ride(new RideParams(prefs)
+            {
+                PlanData = gpx_data,
+            }.SetTrace(track_points));
 
-            Assert.AreEqual(10, alarms.Count);
+            Assert.AreEqual(10, stats.Alarms.Count);
 
             int a = 0;
 
-            Assert.AreEqual((Alarm.Engaged, 3), alarms[a++]);
+            Assert.AreEqual((Alarm.Engaged, 3), stats.Alarms[a++]);
 
-            Assert.AreEqual((Alarm.Crossroad, 496), alarms[a++]);
-            Assert.AreEqual((Alarm.RightCross, 498), alarms[a++]);
-            Assert.AreEqual((Alarm.RightCross, 500), alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 496), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.RightCross, 498), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.RightCross, 500), stats.Alarms[a++]);
 
-            Assert.AreEqual((Alarm.Crossroad, 1007), alarms[a++]);
-            Assert.AreEqual((Alarm.LeftCross, 1009), alarms[a++]);
-            Assert.AreEqual((Alarm.LeftCross, 1011), alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 1007), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.LeftCross, 1009), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.LeftCross, 1011), stats.Alarms[a++]);
 
-            Assert.AreEqual((Alarm.Crossroad, 1520), alarms[a++]);
-            Assert.AreEqual((Alarm.Crossroad, 1522), alarms[a++]);
-            Assert.AreEqual((Alarm.Crossroad, 1524), alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 1520), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 1522), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 1524), stats.Alarms[a++]);
         }
 
         [TestMethod]
@@ -252,7 +285,12 @@ namespace TrackRadar.Tests
 
             var track_points = Toolbox.PopulateTrackDensely(plan_points.ToList(), ride_speed);
 
-            var stats = Toolbox.Ride(prefs, playDuration: TimeSpan.FromSeconds(2.229), gpx_data, track_points, out _, out _, out _);
+            var stats = Toolbox.Ride(new RideParams(prefs)
+            {
+                PlayDuration = TimeSpan.FromSeconds(2.229),
+                PlanData = gpx_data,
+            }
+            .SetTrace(track_points));
 
             Assert.AreEqual(10, stats.Alarms.Count);
 
@@ -298,28 +336,31 @@ namespace TrackRadar.Tests
 
             track_points.InsertRange(600, Enumerable.Range(0, 100).Select(_ => track_points[600]));
 
-            Toolbox.Ride(prefs, gpx_data, track_points, out var alarm_counters, out var alarms, out var messages);
+            var stats = Toolbox.Ride(new RideParams(prefs)
+            {
+                PlanData = gpx_data,
+            }.SetTrace(track_points));
 
-            Assert.AreEqual(12, alarms.Count);
+            Assert.AreEqual(12, stats.Alarms.Count);
 
             int a = 0;
 
-            Assert.AreEqual((Alarm.Engaged, 3), alarms[a++]);
+            Assert.AreEqual((Alarm.Engaged, 3), stats.Alarms[a++]);
 
-            Assert.AreEqual((Alarm.Crossroad, 496), alarms[a++]);
-            Assert.AreEqual((Alarm.RightCross, 498), alarms[a++]);
-            Assert.AreEqual((Alarm.RightCross, 500), alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 496), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.RightCross, 498), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.RightCross, 500), stats.Alarms[a++]);
 
-            Assert.AreEqual((Alarm.Disengage, 602), alarms[a++]);
-            Assert.AreEqual((Alarm.Engaged, 703), alarms[a++]);
+            Assert.AreEqual((Alarm.Disengage, 602), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Engaged, 703), stats.Alarms[a++]);
 
-            Assert.AreEqual((Alarm.Crossroad, 1107), alarms[a++]);
-            Assert.AreEqual((Alarm.LeftCross, 1109), alarms[a++]);
-            Assert.AreEqual((Alarm.LeftCross, 1111), alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 1107), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.LeftCross, 1109), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.LeftCross, 1111), stats.Alarms[a++]);
 
-            Assert.AreEqual((Alarm.Crossroad, 1620), alarms[a++]);
-            Assert.AreEqual((Alarm.Crossroad, 1622), alarms[a++]);
-            Assert.AreEqual((Alarm.Crossroad, 1624), alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 1620), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 1622), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 1624), stats.Alarms[a++]);
         }
 
         [TestMethod]
@@ -335,16 +376,19 @@ namespace TrackRadar.Tests
 
             var track_points = Toolbox.PopulateTrackDensely(new[] { plan_points.First(), plan_points.Last() });
 
-            Toolbox.Ride(prefs, gpx_data, track_points, out var alarm_counters, out var alarms, out var messages);
+            var stats = Toolbox.Ride(new RideParams(prefs)
+            {
+                PlanData = gpx_data,
+            }.SetTrace(track_points));
 
-            Assert.AreEqual(4, alarms.Count());
+            Assert.AreEqual(4, stats.Alarms.Count());
 
             int a = 0;
-            Assert.AreEqual((Alarm.Engaged, 3), alarms[a++]);
+            Assert.AreEqual((Alarm.Engaged, 3), stats.Alarms[a++]);
 
-            Assert.AreEqual((Alarm.Crossroad, 496), alarms[a++]);
-            Assert.AreEqual((Alarm.Crossroad, 498), alarms[a++]);
-            Assert.AreEqual((Alarm.Crossroad, 500), alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 496), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 498), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 500), stats.Alarms[a++]);
         }
 
         [TestMethod]
@@ -365,16 +409,19 @@ namespace TrackRadar.Tests
 
             var track_points = Toolbox.PopulateTrackDensely(new[] { plan_points.First(), endpoint });
 
-            Toolbox.Ride(prefs, gpx_data, track_points, out var alarm_counters, out var alarms, out var messages);
+            var stats = Toolbox.Ride(new RideParams(prefs)
+            {
+                PlanData = gpx_data,
+            }.SetTrace(track_points));
 
-            Assert.AreEqual(4, alarms.Count());
+            Assert.AreEqual(4, stats.Alarms.Count());
 
             int a = 0;
-            Assert.AreEqual((Alarm.Engaged, 3), alarms[a++]);
+            Assert.AreEqual((Alarm.Engaged, 3), stats.Alarms[a++]);
 
-            Assert.AreEqual((Alarm.Crossroad, 240), alarms[a++]);
-            Assert.AreEqual((Alarm.Crossroad, 242), alarms[a++]); // no directions, because it is an endpoint
-            Assert.AreEqual((Alarm.Crossroad, 244), alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 240), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 242), stats.Alarms[a++]); // no directions, because it is an endpoint
+            Assert.AreEqual((Alarm.Crossroad, 244), stats.Alarms[a++]);
         }
 
         [TestMethod]
@@ -394,23 +441,26 @@ namespace TrackRadar.Tests
 
             var track_points = Toolbox.PopulateTrackDensely(new[] { turning_points.First(), turning_points.Last() });
 
-            Toolbox.Ride(prefs, gpx_data, track_points, out var alarm_counters, out var alarms, out var messages);
+            var stats = Toolbox.Ride(new RideParams(prefs)
+            {
+                PlanData = gpx_data,
+            }.SetTrace(track_points));
 
-            Assert.AreEqual(7, alarms.Count());
+            Assert.AreEqual(7, stats.Alarms.Count());
             //            Assert.AreEqual(2, messages.Count());
 
             int a = 0;
-            Assert.AreEqual((Alarm.Engaged, 3), alarms[a++]);
+            Assert.AreEqual((Alarm.Engaged, 3), stats.Alarms[a++]);
             // Assert.AreEqual((TurnLookout.LeavingTurningPoint, 5), messages[0]);
             // Assert.AreEqual((TurnLookout.LeavingTurningPoint, 6), messages[1]);
 
-            Assert.AreEqual((Alarm.Crossroad, 2031), alarms[a++]);
-            Assert.AreEqual((Alarm.GoAhead, 2033), alarms[a++]);
-            Assert.AreEqual((Alarm.GoAhead, 2035), alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 2031), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.GoAhead, 2033), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.GoAhead, 2035), stats.Alarms[a++]);
 
-            Assert.AreEqual((Alarm.Crossroad, 4079), alarms[a++]);
-            Assert.AreEqual((Alarm.Crossroad, 4081), alarms[a++]);
-            Assert.AreEqual((Alarm.Crossroad, 4083), alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 4079), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 4081), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 4083), stats.Alarms[a++]);
         }
 
         [TestMethod]
@@ -421,24 +471,27 @@ namespace TrackRadar.Tests
             string tracked_filename = Toolbox.TestData("tight-turns.tracked.gpx");
 
             var prefs = Toolbox.CreatePreferences(); // regular thresholds for speed
-            Toolbox.Ride(prefs, plan_filename, tracked_filename, null,
-                out var alarmCounters, out var alarms, out var messages);
+            var stats = Toolbox.Ride(new RideParams(prefs)
+            {
+                PlanFilename = plan_filename,
+                TraceFilename = tracked_filename,
+            });
 
-            Assert.AreEqual(8, alarms.Count);
+            Assert.AreEqual(8, stats.Alarms.Count);
             int a = 0;
 
-            Assert.AreEqual((Alarm.Engaged, 3), alarms[a++]);
+            Assert.AreEqual((Alarm.Engaged, 3), stats.Alarms[a++]);
 
-            Assert.AreEqual((Alarm.DoubleTurn, 9), alarms[a++]);
-            Assert.AreEqual((Alarm.RightCross, 11), alarms[a++]);
-            Assert.AreEqual((Alarm.RightCross, 13), alarms[a++]);
+            Assert.AreEqual((Alarm.DoubleTurn, 9), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.RightCross, 11), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.RightCross, 13), stats.Alarms[a++]);
 
-            //Assert.AreEqual((Alarm.DoubleTurn, 24), alarms[a++]);
-            Assert.AreEqual((Alarm.LeftCross, 27), alarms[a++]);
-            Assert.AreEqual((Alarm.LeftCross, 29), alarms[a++]);
+            //Assert.AreEqual((Alarm.DoubleTurn, 24), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.LeftCross, 27), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.LeftCross, 29), stats.Alarms[a++]);
 
-            Assert.AreEqual((Alarm.OffTrack, 46), alarms[a++]);
-            Assert.AreEqual((Alarm.Disengage, 48), alarms[a++]);
+            Assert.AreEqual((Alarm.OffTrack, 46), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Disengage, 48), stats.Alarms[a++]);
         }
 
         [TestMethod]
@@ -456,24 +509,26 @@ namespace TrackRadar.Tests
             Toolbox.LoadData(prefs, plan_filename, tracked_filename,
                 out IPlanData plan_data, out List<GpsPoint> track_points);
 
-            Toolbox.Ride(prefs, plan_data, track_points,
-                out var alarmCounters, out var alarms, out var messages);
+            var stats = Toolbox.Ride(new RideParams(prefs)
+            {
+                PlanData = plan_data,
+            }.SetTrace(track_points));
 
-            Assert.AreEqual(9, alarms.Count);
+            Assert.AreEqual(9, stats.Alarms.Count);
 
-            Assert.AreEqual((Alarm.Engaged, 3), alarms[0]);
-            Assert.AreEqual((Alarm.Crossroad, 10), alarms[1]);
+            Assert.AreEqual((Alarm.Engaged, 3), stats.Alarms[0]);
+            Assert.AreEqual((Alarm.Crossroad, 10), stats.Alarms[1]);
             // this is kind of wrong, but since we allow manually created turn points and track this can happen
             // the "error" in manual plan is so big that program detects angled turn, this is "by desing"
             // maybe we can mitigate a bit, but it is rather wasting time
-            Assert.AreEqual((Alarm.RightEasy, 12), alarms[2]);
-            Assert.AreEqual((Alarm.RightEasy, 14), alarms[3]);
-            Assert.AreEqual((Alarm.Crossroad, 39), alarms[4]);
-            Assert.AreEqual((Alarm.Crossroad, 41), alarms[5]);
-            Assert.AreEqual((Alarm.Crossroad, 43), alarms[6]);
+            Assert.AreEqual((Alarm.RightEasy, 12), stats.Alarms[2]);
+            Assert.AreEqual((Alarm.RightEasy, 14), stats.Alarms[3]);
+            Assert.AreEqual((Alarm.Crossroad, 39), stats.Alarms[4]);
+            Assert.AreEqual((Alarm.Crossroad, 41), stats.Alarms[5]);
+            Assert.AreEqual((Alarm.Crossroad, 43), stats.Alarms[6]);
             // no double-turn because this turn is forked
-            Assert.AreEqual((Alarm.Crossroad, 46), alarms[7]);
-            Assert.AreEqual((Alarm.Disengage, 67), alarms[8]);
+            Assert.AreEqual((Alarm.Crossroad, 46), stats.Alarms[7]);
+            Assert.AreEqual((Alarm.Disengage, 67), stats.Alarms[8]);
         }
 
         [TestMethod]
@@ -493,24 +548,26 @@ namespace TrackRadar.Tests
             Toolbox.LoadData(prefs, plan_filename, tracked_filename,
                 out IPlanData plan_data, out List<GpsPoint> track_points);
 
-            Toolbox.Ride(prefs, plan_data, track_points,
-                out var alarmCounters, out var alarms, out var messages);
+            var stats = Toolbox.Ride(new RideParams(prefs)
+            {
+                PlanData = plan_data,
+            }.SetTrace(track_points));
+            
+            Assert.AreEqual(10, stats.Alarms.Count);
 
-            Assert.AreEqual(10, alarms.Count);
-
-            Assert.AreEqual((Alarm.Engaged, 3), alarms[0]);
-            Assert.AreEqual((Alarm.Crossroad, 10), alarms[1]);
+            Assert.AreEqual((Alarm.Engaged, 3), stats.Alarms[0]);
+            Assert.AreEqual((Alarm.Crossroad, 10), stats.Alarms[1]);
             // this is kind of wrong, but since we allow manually created turn points and track this can happen
             // the "error" in manual plan is so big that program detects angled turn, this is "by desing"
             // maybe we can mitigate a bit, but it is rather wasting time
-            Assert.AreEqual((Alarm.RightEasy, 12), alarms[2]);
-            Assert.AreEqual((Alarm.RightEasy, 14), alarms[3]);
-            Assert.AreEqual((Alarm.Crossroad, 39), alarms[4]);
-            Assert.AreEqual((Alarm.RightCross, 41), alarms[5]);
-            Assert.AreEqual((Alarm.RightCross, 43), alarms[6]);
-            Assert.AreEqual((Alarm.DoubleTurn, 45), alarms[7]);
-            Assert.AreEqual((Alarm.Crossroad, 47), alarms[8]);
-            Assert.AreEqual((Alarm.Disengage, 67), alarms[9]);
+            Assert.AreEqual((Alarm.RightEasy, 12), stats.Alarms[2]);
+            Assert.AreEqual((Alarm.RightEasy, 14), stats.Alarms[3]);
+            Assert.AreEqual((Alarm.Crossroad, 39), stats.Alarms[4]);
+            Assert.AreEqual((Alarm.RightCross, 41), stats.Alarms[5]);
+            Assert.AreEqual((Alarm.RightCross, 43), stats.Alarms[6]);
+            Assert.AreEqual((Alarm.DoubleTurn, 45), stats.Alarms[7]);
+            Assert.AreEqual((Alarm.Crossroad, 47), stats.Alarms[8]);
+            Assert.AreEqual((Alarm.Disengage, 67), stats.Alarms[9]);
         }
 
 
@@ -522,24 +579,27 @@ namespace TrackRadar.Tests
             string tracked_filename = Toolbox.TestData("tight-turns.tracked.gpx");
 
             var prefs = Toolbox.CreatePreferences(); // regular thresholds for speed
-            Toolbox.Ride(prefs, plan_filename, tracked_filename, null,
-                out var alarmCounters, out var alarms, out var messages);
+            var stats = Toolbox.Ride(new RideParams(prefs)
+            {
+                PlanFilename = plan_filename,
+                TraceFilename = tracked_filename,
+            });
 
-            Assert.AreEqual(8, alarms.Count);
+            Assert.AreEqual(8, stats.Alarms.Count);
             int a = 0;
 
-            Assert.AreEqual((Alarm.Engaged, 3), alarms[a++]);
+            Assert.AreEqual((Alarm.Engaged, 3), stats.Alarms[a++]);
 
-            Assert.AreEqual((Alarm.DoubleTurn, 9), alarms[a++]);
-            Assert.AreEqual((Alarm.RightCross, 11), alarms[a++]);
-            Assert.AreEqual((Alarm.RightCross, 13), alarms[a++]);
+            Assert.AreEqual((Alarm.DoubleTurn, 9), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.RightCross, 11), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.RightCross, 13), stats.Alarms[a++]);
 
-            // Assert.AreEqual((Alarm.DoubleTurn, 23), alarms[a++]);
-            Assert.AreEqual((Alarm.LeftCross, 26), alarms[a++]);
-            Assert.AreEqual((Alarm.LeftCross, 28), alarms[a++]);
+            // Assert.AreEqual((Alarm.DoubleTurn, 23), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.LeftCross, 26), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.LeftCross, 28), stats.Alarms[a++]);
 
-            Assert.AreEqual((Alarm.OffTrack, 46), alarms[a++]);
-            Assert.AreEqual((Alarm.Disengage, 48), alarms[a++]);
+            Assert.AreEqual((Alarm.OffTrack, 46), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Disengage, 48), stats.Alarms[a++]);
         }
 
         [TestMethod]
@@ -556,25 +616,27 @@ namespace TrackRadar.Tests
             // speed up riding through the second turn
             track_points.RemoveAt(28);
 
-            Toolbox.Ride(prefs, plan_data, track_points,
-                out var alarmCounters, out var alarms, out var messages);
+            var stats = Toolbox.Ride(new RideParams(prefs)
+            {
+                PlanData = plan_data,
+            }.SetTrace(track_points));
 
-            Assert.AreEqual(7, alarms.Count);
+            Assert.AreEqual(7, stats.Alarms.Count);
             int a = 0;
 
-            Assert.AreEqual((Alarm.Engaged, 3), alarms[a++]);
+            Assert.AreEqual((Alarm.Engaged, 3), stats.Alarms[a++]);
 
-            Assert.AreEqual((Alarm.DoubleTurn, 9), alarms[a++]);
-            Assert.AreEqual((Alarm.RightCross, 11), alarms[a++]);
-            Assert.AreEqual((Alarm.RightCross, 13), alarms[a++]);
+            Assert.AreEqual((Alarm.DoubleTurn, 9), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.RightCross, 11), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.RightCross, 13), stats.Alarms[a++]);
 
-            //Assert.AreEqual((Alarm.DoubleTurn, 24), alarms[a++]);
-            Assert.AreEqual((Alarm.LeftCross, 27), alarms[a++]);
+            //Assert.AreEqual((Alarm.DoubleTurn, 24), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.LeftCross, 27), stats.Alarms[a++]);
             // up to this point it should be the same as non-speed-up version
             // there is no room before turn-point to squeeze in another alarm
 
-            Assert.AreEqual((Alarm.OffTrack, 45), alarms[a++]);
-            Assert.AreEqual((Alarm.Disengage, 47), alarms[a++]);
+            Assert.AreEqual((Alarm.OffTrack, 45), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Disengage, 47), stats.Alarms[a++]);
         }
 
         [TestMethod]
@@ -591,25 +653,27 @@ namespace TrackRadar.Tests
             // speed up riding through the second turn
             track_points.RemoveAt(27);
 
-            Toolbox.Ride(prefs, plan_data, track_points,
-                out var alarmCounters, out var alarms, out var messages);
+            var stats = Toolbox.Ride(new RideParams(prefs)
+            {
+                PlanData = plan_data,
+            }.SetTrace(track_points));
 
-            Assert.AreEqual(8, alarms.Count);
+            Assert.AreEqual(8, stats.Alarms.Count);
             int a = 0;
 
-            Assert.AreEqual((Alarm.Engaged, 3), alarms[a++]);
+            Assert.AreEqual((Alarm.Engaged, 3), stats.Alarms[a++]);
 
-            Assert.AreEqual((Alarm.DoubleTurn, 9), alarms[a++]);
-            Assert.AreEqual((Alarm.RightCross, 11), alarms[a++]);
-            Assert.AreEqual((Alarm.RightCross, 13), alarms[a++]);
+            Assert.AreEqual((Alarm.DoubleTurn, 9), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.RightCross, 11), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.RightCross, 13), stats.Alarms[a++]);
 
-            // Assert.AreEqual((Alarm.DoubleTurn, 23), alarms[a++]);
-            Assert.AreEqual((Alarm.LeftCross, 26), alarms[a++]);
+            // Assert.AreEqual((Alarm.DoubleTurn, 23), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.LeftCross, 26), stats.Alarms[a++]);
             // up to this point it should be the same as non-speed-up version
-            Assert.AreEqual((Alarm.LeftCross, 28), alarms[a++]);
+            Assert.AreEqual((Alarm.LeftCross, 28), stats.Alarms[a++]);
 
-            Assert.AreEqual((Alarm.OffTrack, 45), alarms[a++]);
-            Assert.AreEqual((Alarm.Disengage, 47), alarms[a++]);
+            Assert.AreEqual((Alarm.OffTrack, 45), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Disengage, 47), stats.Alarms[a++]);
         }
 
         [TestMethod]
@@ -619,14 +683,18 @@ namespace TrackRadar.Tests
             string tracked_filename = Toolbox.TestData("tight-turns.tracked.gpx");
 
             var prefs = Toolbox.CreatePreferences(); // regular thresholds for speed
-            Toolbox.Ride(prefs, plan_filename, tracked_filename, null,
-                out var alarmCounters, out var alarms, out var messages, reverse: true);
+            var stats = Toolbox.Ride(new RideParams(prefs)
+            {
+                PlanFilename = plan_filename,
+                TraceFilename = tracked_filename,
+                Reverse = true,
+            });
 
-            Assert.AreEqual(3, alarms.Count);
+            Assert.AreEqual(3, stats.Alarms.Count);
 
-            Assert.AreEqual((Alarm.Crossroad, 78), alarms[0]);
-            Assert.AreEqual((Alarm.LeftCross, 91), alarms[1]);
-            Assert.AreEqual((Alarm.LeftCross, 93), alarms[2]);
+            Assert.AreEqual((Alarm.Crossroad, 78), stats.Alarms[0]);
+            Assert.AreEqual((Alarm.LeftCross, 91), stats.Alarms[1]);
+            Assert.AreEqual((Alarm.LeftCross, 93), stats.Alarms[2]);
 
         }
 
@@ -637,15 +705,19 @@ namespace TrackRadar.Tests
             string tracked_filename = Toolbox.TestData("tight-turns.tracked.gpx");
 
             var prefs = Toolbox.CreatePreferences(); // regular thresholds for speed
-            Toolbox.Ride(prefs, plan_filename, tracked_filename, null,
-                out var alarmCounters, out var alarms, out var messages, reverse: true);
+            var stats = Toolbox.Ride(new RideParams(prefs)
+            {
+                PlanFilename = plan_filename,
+                TraceFilename = tracked_filename,
+                Reverse = true,
+            });
 
-            Assert.AreEqual(3, alarms.Count);
+            Assert.AreEqual(3, stats.Alarms.Count);
 
             // first turn is between points 90 and 91
-            Assert.AreEqual((Alarm.Crossroad, 78), alarms[0]);
-            Assert.AreEqual((Alarm.LeftCross, 91), alarms[1]);
-            Assert.AreEqual((Alarm.LeftCross, 93), alarms[2]);
+            Assert.AreEqual((Alarm.Crossroad, 78), stats.Alarms[0]);
+            Assert.AreEqual((Alarm.LeftCross, 91), stats.Alarms[1]);
+            Assert.AreEqual((Alarm.LeftCross, 93), stats.Alarms[2]);
         }
 
         [TestMethod]
@@ -659,18 +731,19 @@ namespace TrackRadar.Tests
 
             var track_points = Toolbox.PopulateTrackDensely(Toolbox.ReadTrackGpxPoints(tracked_filename).Select(it => GpxHelper.FromGpx(it)));
 
-            Toolbox.Ride(prefs, gpx_data, track_points, out IReadOnlyDictionary<Alarm, int> alarmCounters,
-                out IReadOnlyList<(Alarm alarm, int index)> alarms,
-                out IReadOnlyList<(string message, int index)> messages);
+            var stats = Toolbox.Ride(new RideParams(prefs)
+            {
+                PlanData = gpx_data,
+            }.SetTrace(track_points));
 
-            Assert.AreEqual(2, alarms.Count());
+            Assert.AreEqual(2, stats.Alarms.Count());
 
-            Assert.AreEqual((Alarm.Engaged, 1027), alarms[0]); // this point is the second turn (right one)
-            Assert.AreEqual((Alarm.Crossroad, 1039), alarms[1]);
+            Assert.AreEqual((Alarm.Engaged, 1027), stats.Alarms[0]); // this point is the second turn (right one)
+            Assert.AreEqual((Alarm.Crossroad, 1039), stats.Alarms[1]);
 
 
 
-            Assert.AreEqual((TurnLookout.LeavingTurningPoint, 1041), messages[0]);
+            Assert.AreEqual((TurnLookout.LeavingTurningPoint, 1041), stats.Messages[0]);
         }
 
         [TestMethod]
@@ -721,25 +794,28 @@ namespace TrackRadar.Tests
             //  Toolbox.SaveGpxSegments("alt-turns.mocked.gpx", track_points);
             // Toolbox.SaveGpxWaypoints("alt-turns.points.gpx", track_points);
 
-            Toolbox.Ride(prefs, plan_data, gps_track_points, out var alarm_counters, out var alarms, out var messages);
+            var stats = Toolbox.Ride(new RideParams(prefs)
+            {
+                PlanData = plan_data,
+            }.SetTrace(gps_track_points));
 
-            Assert.AreEqual(9, alarms.Count());
+            Assert.AreEqual(9, stats.Alarms.Count());
             int a = 0;
 
-            Assert.AreEqual((Alarm.Engaged, 3), alarms[a++]);
+            Assert.AreEqual((Alarm.Engaged, 3), stats.Alarms[a++]);
 
-            Assert.AreEqual((Alarm.DoubleTurn, 240), alarms[a++]);
-            Assert.AreEqual((Alarm.LeftCross, 242), alarms[a++]);
-            Assert.AreEqual((Alarm.LeftCross, 244), alarms[a++]);
+            Assert.AreEqual((Alarm.DoubleTurn, 240), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.LeftCross, 242), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.LeftCross, 244), stats.Alarms[a++]);
 
-            //Assert.AreEqual((Alarm.DoubleTurn, 255), alarms[a++]);
-            Assert.AreEqual((Alarm.RightCross, 257), alarms[a++]);
-            Assert.AreEqual((Alarm.RightCross, 259), alarms[a++]);
+            //Assert.AreEqual((Alarm.DoubleTurn, 255), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.RightCross, 257), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.RightCross, 259), stats.Alarms[a++]);
 
-            // reaching endpoint alarms
-            Assert.AreEqual((Alarm.Crossroad, 504), alarms[a++]);
-            Assert.AreEqual((Alarm.Crossroad, 506), alarms[a++]);
-            Assert.AreEqual((Alarm.Crossroad, 508), alarms[a++]);
+            // reaching endpoint stats.Alarms
+            Assert.AreEqual((Alarm.Crossroad, 504), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 506), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 508), stats.Alarms[a++]);
         }
 
 
@@ -774,24 +850,27 @@ namespace TrackRadar.Tests
 
             var gps_track_points = Toolbox.PopulateTrackDensely(geo_track_points, riding_speed);
 
-            Toolbox.Ride(prefs, plan_data, gps_track_points, out var alarm_counters, out var alarms, out var messages);
+            var stats = Toolbox.Ride(new RideParams(prefs)
+            {
+                PlanData = plan_data,
+            }.SetTrace(gps_track_points));
 
-            Assert.AreEqual(9, alarms.Count());
+            Assert.AreEqual(9, stats.Alarms.Count());
             int a = 0;
 
-            Assert.AreEqual((Alarm.Engaged, 3), alarms[a++]);
+            Assert.AreEqual((Alarm.Engaged, 3), stats.Alarms[a++]);
 
-            Assert.AreEqual((Alarm.DoubleTurn, 240), alarms[a++]);
-            Assert.AreEqual((Alarm.LeftCross, 242), alarms[a++]);
-            Assert.AreEqual((Alarm.LeftCross, 244), alarms[a++]);
+            Assert.AreEqual((Alarm.DoubleTurn, 240), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.LeftCross, 242), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.LeftCross, 244), stats.Alarms[a++]);
 
-            // Assert.AreEqual((Alarm.DoubleTurn, 255), alarms[a++]);
-            Assert.AreEqual((Alarm.RightCross, 257), alarms[a++]);
-            Assert.AreEqual((Alarm.RightCross, 259), alarms[a++]);
+            // Assert.AreEqual((Alarm.DoubleTurn, 255), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.RightCross, 257), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.RightCross, 259), stats.Alarms[a++]);
 
-            Assert.AreEqual((Alarm.Crossroad, 504), alarms[a++]);
-            Assert.AreEqual((Alarm.Crossroad, 506), alarms[a++]);
-            Assert.AreEqual((Alarm.Crossroad, 508), alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 504), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 506), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 508), stats.Alarms[a++]);
         }
 
         [TestMethod]
@@ -820,8 +899,11 @@ namespace TrackRadar.Tests
 
             var gps_track_points = Toolbox.PopulateTrackDensely(geo_track_points, riding_speed);
 
-            var stats = Toolbox.Ride(prefs, playDuration: null, plan_data, gps_track_points,
-                out var alarm_counters, out _, out _,
+            var stats = Toolbox.Ride(new RideParams(prefs)
+            {
+                PlanData = plan_data,
+            }
+            .SetTrace(gps_track_points),
                 out var lookout);
 
             // making sure the distance between turns are small enough so in theory there should be double turn alarm
@@ -850,24 +932,27 @@ namespace TrackRadar.Tests
 
             Assert.AreEqual(3, gpx_data.Segments.Select(it => it.SectionId).Distinct().Count());
 
-            var stats = Toolbox.Ride(prefs, gpx_data, track_points, out var alarm_counters, out var alarms, out var messages);
+            var stats = Toolbox.Ride(new RideParams(prefs)
+            {
+                PlanData = gpx_data,
+            }.SetTrace(track_points));
 
-            Assert.AreEqual(7, alarms.Count());
+            Assert.AreEqual(7, stats.Alarms.Count());
 
-            Assert.AreEqual(Alarm.Engaged, alarms[0].alarm);
-            Assert.AreEqual(3, alarms[0].index);
-            Assert.AreEqual(Alarm.Crossroad, alarms[1].alarm);
-            Assert.AreEqual(495, alarms[1].index);
-            Assert.AreEqual(Alarm.LeftSharp, alarms[2].alarm);
-            Assert.AreEqual(497, alarms[2].index);
-            Assert.AreEqual(Alarm.LeftSharp, alarms[3].alarm);
-            Assert.AreEqual(499, alarms[3].index);
-            Assert.AreEqual(Alarm.Crossroad, alarms[4].alarm);
-            Assert.AreEqual(1006, alarms[4].index);
-            Assert.AreEqual(Alarm.RightSharp, alarms[5].alarm);
-            Assert.AreEqual(1008, alarms[5].index);
-            Assert.AreEqual(Alarm.RightSharp, alarms[6].alarm);
-            Assert.AreEqual(1010, alarms[6].index);
+            Assert.AreEqual(Alarm.Engaged, stats.Alarms[0].alarm);
+            Assert.AreEqual(3, stats.Alarms[0].index);
+            Assert.AreEqual(Alarm.Crossroad, stats.Alarms[1].alarm);
+            Assert.AreEqual(495, stats.Alarms[1].index);
+            Assert.AreEqual(Alarm.LeftSharp, stats.Alarms[2].alarm);
+            Assert.AreEqual(497, stats.Alarms[2].index);
+            Assert.AreEqual(Alarm.LeftSharp, stats.Alarms[3].alarm);
+            Assert.AreEqual(499, stats.Alarms[3].index);
+            Assert.AreEqual(Alarm.Crossroad, stats.Alarms[4].alarm);
+            Assert.AreEqual(1006, stats.Alarms[4].index);
+            Assert.AreEqual(Alarm.RightSharp, stats.Alarms[5].alarm);
+            Assert.AreEqual(1008, stats.Alarms[5].index);
+            Assert.AreEqual(Alarm.RightSharp, stats.Alarms[6].alarm);
+            Assert.AreEqual(1010, stats.Alarms[6].index);
         }
 
         [TestMethod]
@@ -884,14 +969,17 @@ namespace TrackRadar.Tests
 
             Assert.AreEqual(2, plan_data.Segments.Select(it => it.SectionId).Distinct().Count());
 
-            Toolbox.Ride(prefs, plan_data, track_points, out var alarm_counters, out var alarms, out var messages);
+            var stats = Toolbox.Ride(new RideParams(prefs)
+            {
+                PlanData = plan_data,
+            }.SetTrace(track_points));
 
-            Assert.AreEqual(4, alarms.Count);
+            Assert.AreEqual(4, stats.Alarms.Count);
             int a = 0;
-            Assert.AreEqual((Alarm.Engaged, 3), alarms[a++]);
-            Assert.AreEqual((Alarm.Crossroad, 63), alarms[a++]);
-            Assert.AreEqual((Alarm.RightSharp, 65), alarms[a++]);
-            Assert.AreEqual((Alarm.RightSharp, 67), alarms[a++]);
+            Assert.AreEqual((Alarm.Engaged, 3), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.Crossroad, 63), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.RightSharp, 65), stats.Alarms[a++]);
+            Assert.AreEqual((Alarm.RightSharp, 67), stats.Alarms[a++]);
         }
 
         [TestMethod]
@@ -1059,7 +1147,7 @@ namespace TrackRadar.Tests
             var clock = new SecondStamper();
             using (var raw_alarm_master = new AlarmMaster(clock))
             {
-                raw_alarm_master.PopulateAlarms();
+                raw_alarm_master.PopulateAlarms(null);
                 var counting_alarm_master = new CountingAlarmMaster(NoneLogger.Instance, raw_alarm_master);
                 var service = new Implementation.MockRadarService(prefs, clock);
                 var sequencer = new AlarmSequencer(service, counting_alarm_master);
@@ -1122,7 +1210,7 @@ namespace TrackRadar.Tests
             var clock = new SecondStamper();
             using (var raw_alarm_master = new AlarmMaster(clock))
             {
-                raw_alarm_master.PopulateAlarms();
+                raw_alarm_master.PopulateAlarms(null);
                 var counting_alarm_master = new CountingAlarmMaster(NoneLogger.Instance, raw_alarm_master);
                 var service = new Implementation.MockRadarService(prefs, clock);
                 var sequencer = new AlarmSequencer(service, counting_alarm_master);
@@ -1157,7 +1245,7 @@ namespace TrackRadar.Tests
                     leaving_longitude_start + i * (leaving_longitude_end - leaving_longitude_start) / parts))
                     .Take(100)
                     .Skip(10)
-                    .Select(pt => new GpsPoint(pt, null))
+                    .Select(pt => new GpsPoint(pt, null, null, null))
                     .ToList();
             }
 
@@ -1166,16 +1254,18 @@ namespace TrackRadar.Tests
                 waypoints: new[] { span_points[1] },
                 prefs.OffTrackAlarmDistance);
 
+            var stats = Toolbox.Ride(new RideParams(prefs)
+            {
+                PlanData = gpx_data,
+            }.SetTrace(track_points));
 
-            Toolbox.Ride(prefs, gpx_data, track_points, out var alarm_counters, out var alarms, out var messages);
-
-            Assert.AreEqual(1, alarms.Count());
+            Assert.AreEqual(1, stats.Alarms.Count());
             int a = 0;
 
             // we don't get crossroad alarm for leaving, because program detects implicit endpoint ahead of us (alternative turn-point)
             // but since it is too far it cannot alarm about it as well
             // thus we got general engaged alarm
-            Assert.AreEqual((Alarm.Engaged, 3), alarms[a++]);
+            Assert.AreEqual((Alarm.Engaged, 3), stats.Alarms[a++]);
         }
     }
 }

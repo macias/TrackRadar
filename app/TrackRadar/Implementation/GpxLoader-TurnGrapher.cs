@@ -16,7 +16,7 @@ namespace TrackRadar.Implementation
             IEnumerable<Track> tracks,
             IReadOnlyDictionary<GeoPoint, WayPointInfo> waypoints,
             IEnumerable<Crossroad> crossroads,
-            Length offTrackDistance, Length segmentLengthLimit, Action<Stage, double> onProgress)
+            Length offTrackDistance, Length segmentLengthLimit, Action<Stage, long, long> onProgress)
         {
             // if there are no turns at all, simply disable navigation (one factor which is important as well here is
             // the user will be notified the plan does not have indicated or computed turns at all)
@@ -84,8 +84,8 @@ namespace TrackRadar.Implementation
 
             var turn_nodes = new HashSet<GeoPoint>();
 
-            double total_steps = tracks.Sum(it => it.Nodes.Count());
-            double current_step = -1;
+            long total_steps = tracks.Sum(it => it.Nodes.Count());
+            long current_step = -1;
 
             {
                 var endpoints = waypoints.Where(it => it.Value.Kind == WayPointKind.Endpoint).Select(it => it.Key)
@@ -94,7 +94,7 @@ namespace TrackRadar.Implementation
 
                 while (node_queue.TryPop(out Length current_dist, out TrackNode track_node, out GeoPoint turn_point, out int hops))
                 {
-                    onProgress?.Invoke(Stage.AssigningTurns, ++current_step / total_steps);
+                    onProgress?.Invoke(Stage.AssigningTurns, ++current_step , total_steps);
 
                     if (hops == 0)
                     {
@@ -162,7 +162,7 @@ namespace TrackRadar.Implementation
             IReadOnlyDictionary<GeoPoint, IEnumerable<(TrackNode adjNode, Length distance)>> trackPointConnections,
             Dictionary<GeoPoint, TurnPointInfo> trackToTurns, IReadOnlyDictionary<GeoPoint, TurnPointInfo> altTrackToTurns,
             HashSet<GeoPoint> turnNodes,
-            Action<Stage, double> onProgress)
+            Action<Stage, long,long> onProgress)
         {
             var result = new Dictionary<GeoPoint, IEnumerable<TurnPointInfo>>();
 
@@ -230,7 +230,7 @@ namespace TrackRadar.Implementation
         private static Dictionary<GeoPoint, TurnPointInfo> calculateAlternateTurns(IEnumerable<Track> tracks,
             Dictionary<GeoPoint, TurnPointInfo> trackToTurns,
             HashSet<GeoPoint> turnNodes, IReadOnlyDictionary<TrackNode, (TrackNode ext_node, Length distance)> richExtensions,
-            Action<Stage, double> onProgress)
+            Action<Stage, long,long> onProgress)
         {
             // (a)-b--(c)
             // from "b" the closest turn node is "a", the question is what is the second adjacent turn to "b"
@@ -279,12 +279,12 @@ namespace TrackRadar.Implementation
                 }
             }
 
-            double total_steps = tracks.Count();
-            double current_step = -1;
+            long total_steps = tracks.Count();
+            long current_step = -1;
 
             foreach (Track trk in tracks)
             {
-                onProgress?.Invoke(Stage.AlternateTurns, ++current_step / total_steps);
+                onProgress?.Invoke(Stage.AlternateTurns, ++current_step , total_steps);
 
                 foreach (TrackNode turn_node in trk.Nodes.Where(it => turnNodes.Contains(it.Point)))
                 {
@@ -298,7 +298,7 @@ namespace TrackRadar.Implementation
 
         private static void assignSectionsIds(IEnumerable<Track> tracks,
             HashSet<GeoPoint> turnNodes, IReadOnlyDictionary<TrackNode, (TrackNode ext_node, Length distance)> extensions,
-            Action<Stage, double> onProgress)
+            Action<Stage, long,long> onProgress)
         {
             int flood_section_id(ref TrackNode node, ref TrackNode.Direction dir, int sectionId)
             {
@@ -331,8 +331,8 @@ namespace TrackRadar.Implementation
                 return sectionId + (change ? 1 : 0);
             }
 
-            double total_steps = tracks.Count() * 2;
-            double current_step = -1;
+            long total_steps = tracks.Count() * 2;
+            long current_step = -1;
 
             int section_id = -1;
 
@@ -343,7 +343,7 @@ namespace TrackRadar.Implementation
             // when it is the last node in the track (then it must have it the same)
             foreach (Track trk in tracks)
             {
-                onProgress?.Invoke(Stage.SectionId, ++current_step / total_steps);
+                onProgress?.Invoke(Stage.SectionId, ++current_step , total_steps);
 
                 if (trk.Head.IsSectionSet)
                     continue;
@@ -376,7 +376,7 @@ namespace TrackRadar.Implementation
             // assign section ids in the "free" tracks (i.e. without turning nodes)
             foreach (Track trk in tracks)
             {
-                onProgress?.Invoke(Stage.SectionId, ++current_step / total_steps);
+                onProgress?.Invoke(Stage.SectionId, ++current_step , total_steps);
 
                 if (trk.Head.IsSectionSet)
                     continue;
@@ -441,13 +441,13 @@ namespace TrackRadar.Implementation
 
         private static void splitTracksByWaypoints(IEnumerable<Track> tracks,
             IReadOnlyDictionary<GeoPoint, WayPointInfo> waypoints,
-            Length offTrackDistance, NodeQueue priorityQueue, Action<Stage, double> onProgress)
+            Length offTrackDistance, NodeQueue priorityQueue, Action<Stage, long,long> onProgress)
         {
-            double total_steps = waypoints.Count();
-            double current_step = -1;
+            long total_steps = waypoints.Count();
+            long current_step = -1;
             foreach ((GeoPoint wpt, WayPointInfo wpt_info) in waypoints)
             {
-                onProgress?.Invoke(Stage.SplitByWaypoints, ++current_step / total_steps);
+                onProgress?.Invoke(Stage.SplitByWaypoints, ++current_step , total_steps);
 
                 if (wpt_info.Neighbours.Any())
                 {

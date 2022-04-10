@@ -47,6 +47,7 @@ namespace TrackRadar.Implementation
                 this.stream.WriteLine("xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"");
                 this.stream.WriteLine("xmlns=\"http://www.topografix.com/GPX/1/0\"");
                 this.stream.WriteLine("xsi:schemaLocation=\"http://www.topografix.com/GPX/1/0 http://www.topografix.com/GPX/1/0/gpx.xsd\">");
+                this.stream.WriteLine($"<{GpxSymbol.Time}>{Formatter.ZuluFormat(DateTimeOffset.UtcNow)}</{GpxSymbol.Time}>");
             }
         }
 

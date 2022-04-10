@@ -56,11 +56,11 @@
     <AndroidSupportedAbis />
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Gpx, Version=1.1.3.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Gpx.1.1.3\lib\netstandard2.0\Gpx.dll</HintPath>
+    <Reference Include="Gpx, Version=2.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Gpx.2.0.0\lib\netstandard2.0\Gpx.dll</HintPath>
     </Reference>
-    <Reference Include="MathUnit, Version=2.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\MathUnit.2.0.0\lib\netstandard2.0\MathUnit.dll</HintPath>
+    <Reference Include="MathUnit, Version=3.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\MathUnit.3.0.0\lib\netstandard2.0\MathUnit.dll</HintPath>
     </Reference>
     <Reference Include="Mono.Android" />
     <Reference Include="mscorlib" />

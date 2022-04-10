@@ -13,6 +13,15 @@ namespace Geo.Tests
 
         delegate Length GetDistanceDelegate(in GeoPoint start, in GeoPoint end);
 
+        [TestMethod]
+        public void AngularDistanceTest()
+        {
+            const double m_precision = 0.00001;
+
+            var angle_dist = GeoCalculator.GetLongitudeDifference(Angle.Zero, GeoCalculator.EarthCircumference);
+            Assert.AreEqual(Angle.FullCircle.Degrees, angle_dist.Degrees, m_precision);
+        }
+
 
         [TestMethod]
         public void BearingDistanceMixTest()

@@ -6,7 +6,7 @@ namespace TrackRadar.Tests.Implementation
     internal sealed class ManualTimer : ITimer
     {
         private readonly Action callback;
-        private TimeSpan? dueTime;
+        public TimeSpan? DueTime { get; private set; }
 
         public ManualTimer(Action callback, SecondStamper stamper)
         {
@@ -14,14 +14,22 @@ namespace TrackRadar.Tests.Implementation
             stamper.TimePassed += Stamper_TimePassed;
         }
 
+        public void Change(TimeSpan dueTime, TimeSpan period)
+        {
+            if (period != System.Threading.Timeout.InfiniteTimeSpan)
+                throw new NotSupportedException();
+
+            this.DueTime = dueTime;
+        }
+
         private void Stamper_TimePassed(object sender, TimeSpan time)
         {
-            if (dueTime.HasValue)
+            if (DueTime.HasValue)
             {
-                dueTime = dueTime.Value - time;
-                if (dueTime.Value<=TimeSpan.Zero)
+                DueTime = DueTime.Value - time;
+                if (DueTime.Value<=TimeSpan.Zero)
                 {
-                    dueTime = null;
+                    DueTime = null;
                     callback();
                 }
             }
@@ -31,13 +39,6 @@ namespace TrackRadar.Tests.Implementation
         {
         }
 
-        public void Change(TimeSpan dueTime, TimeSpan period)
-        {
-            if (period != System.Threading.Timeout.InfiniteTimeSpan)
-                throw new NotSupportedException();
-
-            this.dueTime = dueTime;
-        }
 
 /*        public void TriggerCallback()
         {

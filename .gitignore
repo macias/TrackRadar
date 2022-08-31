@@ -10,5 +10,6 @@
 
 **/*.csproj.user
 app/.vs/
+app/.idea/
 app/packages/
 **/PublishProfiles

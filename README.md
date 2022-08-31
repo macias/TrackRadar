@@ -35,3 +35,6 @@ I need moderately priced, e-ink, around 5" device with GPS and ability to run cu
 All of them means paying extra cash for far from perfect solution. Until the dream device comes true I decided to re-use what I have -- Android Gingerbread smartphone --
 and since it is completely unreadable in the sun I opted for audible feedback. 
 
+# Author
+
+See my PL/EN [blog](https://przypadkopis.wordpress.com/) for other, various in nature, resources.
